@@ -36,7 +36,7 @@ export default function SupportPopup() {
 
         <div className="flex flex-col gap-2">
           <a
-            href="https://ko-fi.com/"
+            href="https://ko-fi.com/qyrnsec"
             target="_blank"
             rel="noopener noreferrer"
             className="border border-warm/30 text-warm text-[11px] font-[var(--font-ui)] text-center py-2 hover:bg-warm/10 cursor-pointer"

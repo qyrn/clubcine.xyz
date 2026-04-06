@@ -55,9 +55,7 @@ export default function Home() {
 
       <footer className="px-4 py-1.5 border-t border-border shrink-0 flex items-center justify-between">
         <nav className="flex items-center gap-3 text-[10px] font-[var(--font-ui)] text-muted">
-          <a href="https://discord.gg/" target="_blank" rel="noopener noreferrer" className="hover:text-warm/60 cursor-pointer">discord</a>
-          <a href="https://instagram.com/" target="_blank" rel="noopener noreferrer" className="hover:text-warm/60 cursor-pointer">instagram</a>
-          <a href="https://ko-fi.com/" target="_blank" rel="noopener noreferrer" className="hover:text-warm/60 cursor-pointer">ko-fi</a>
+          <a href="https://ko-fi.com/qyrnsec" target="_blank" rel="noopener noreferrer" className="hover:text-warm/60 cursor-pointer">ko-fi</a>
         </nav>
         <span className="text-[10px] text-muted font-[var(--font-ui)]">2026</span>
       </footer>
