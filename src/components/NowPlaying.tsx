@@ -44,21 +44,25 @@ export default function NowPlaying() {
   return (
     <div className="p-3 sm:border-r border-border">
       <div className="flex items-center gap-2 mb-2">
-        <span className="inline-block w-[6px] h-[6px] bg-on-air animate-[blink_1s_infinite]" />
-        <span className="text-on-air text-[10px] uppercase tracking-widest">Live</span>
+        <span className="inline-block w-[5px] h-[5px] rounded-full bg-live animate-[blink_1.2s_infinite]" />
+        <span className="text-live text-[10px] font-[var(--font-ui)]">live</span>
       </div>
 
-      <div className="text-[13px] text-white font-bold mb-0.5">{currentFilm.title}</div>
-      <div className="text-[11px] text-dim mb-3">{currentFilm.director}, {currentFilm.year}</div>
+      <div className="font-[var(--font-title)] text-white text-xl italic leading-tight mb-0.5">
+        {currentFilm.title}
+      </div>
+      <div className="text-[12px] text-dim mb-3">
+        {currentFilm.director}, {currentFilm.year}
+      </div>
 
-      <div className="w-full h-[2px] bg-[#222] overflow-hidden mb-1">
+      <div className="w-full h-[1px] bg-[#1a1a1a] overflow-hidden mb-1">
         <div
-          className="h-full bg-on-air transition-all duration-1000 ease-linear"
+          className="h-full bg-warm/50 transition-all duration-1000 ease-linear"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      <div className="flex justify-between text-[10px] text-dim">
+      <div className="flex justify-between text-[10px] text-muted font-[var(--font-ui)]">
         <span>{formatDuration(elapsed)}</span>
         <span>{formatDuration(currentFilm.duration)}</span>
       </div>

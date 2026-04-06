@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/types";
 
 const COLORS = [
-  "#dc2626",
-  "#2563eb",
-  "#16a34a",
-  "#d97706",
-  "#9333ea",
-  "#0891b2",
-  "#e11d48",
-  "#4f46e5",
+  "#a89a84",
+  "#7a8b6e",
+  "#8b7a6e",
+  "#6e7a8b",
+  "#8b6e7a",
+  "#6e8b7a",
+  "#8b8b6e",
+  "#7a6e8b",
 ];
 
 function getColor(username: string): string {
@@ -82,23 +82,24 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 py-2 border-b border-border">
-        <span className="text-[10px] text-dim uppercase tracking-widest">Chat</span>
+        <span className="text-[10px] text-muted font-[var(--font-ui)]">chat</span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
         {messages.length === 0 && (
-          <div className="text-dim text-[11px] pt-6 text-center">
+          <div className="text-muted text-[12px] pt-6 text-center italic">
             personne ne parle...
           </div>
         )}
 
         {messages.map((msg) => (
           <div key={msg.id} className="text-[12px] leading-[1.6] break-words">
-            <span className="text-dim text-[10px] mr-1.5">[{formatTime(msg.timestamp)}]</span>
-            <span className="font-bold" style={{ color: getColor(msg.username) }}>
-              {msg.username}:
-            </span>{" "}
-            <span className="text-white">{msg.text}</span>
+            <span className="text-muted text-[10px] font-[var(--font-ui)] mr-1.5">{formatTime(msg.timestamp)}</span>
+            <span className="font-medium" style={{ color: getColor(msg.username) }}>
+              {msg.username}
+            </span>
+            <span className="text-[#2a2a2a] mx-0.5">&middot;</span>
+            <span className="text-[#999]">{msg.text}</span>
           </div>
         ))}
         <div ref={endRef} />
@@ -111,12 +112,12 @@ export default function Chat() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="..."
           maxLength={280}
-          className="flex-1 bg-transparent border border-border px-2 py-1.5 text-[12px] text-white placeholder:text-[#333] outline-none focus:border-dim"
+          className="flex-1 bg-transparent border border-border px-2 py-1.5 text-[12px] text-white/80 placeholder:text-[#222] outline-none focus:border-[#333]"
         />
         <button
           type="submit"
           disabled={!input.trim()}
-          className="border border-border px-2.5 py-1.5 text-[10px] text-dim uppercase tracking-wider hover:text-white hover:border-dim cursor-pointer disabled:opacity-20 disabled:cursor-default"
+          className="border border-border px-2.5 py-1.5 text-[10px] text-muted font-[var(--font-ui)] hover:text-warm hover:border-[#333] cursor-pointer disabled:opacity-20 disabled:cursor-default"
         >
           envoyer
         </button>

@@ -27,18 +27,18 @@ export default function Schedule() {
 
   return (
     <div className="p-3">
-      <div className="text-[10px] text-dim uppercase tracking-widest mb-2">Programme</div>
+      <div className="text-[10px] text-muted font-[var(--font-ui)] mb-2">programme</div>
       <div className="space-y-0">
         {schedule.nextFilms.map((film, i) => (
           <div
             key={`${film.id}-${i}`}
-            className="flex items-baseline justify-between py-1.5 border-b border-[#1a1a1a] last:border-0"
+            className="flex items-baseline justify-between py-1.5 border-b border-border last:border-0"
           >
             <div className="min-w-0 mr-3">
-              <span className="text-[12px] text-white">{film.title}</span>
+              <span className="font-[var(--font-title)] text-[15px] text-white/80 italic">{film.title}</span>
               <span className="text-[11px] text-dim ml-2">{film.director}, {film.year}</span>
             </div>
-            <span className="text-[11px] text-dim shrink-0">{formatDuration(film.duration)}</span>
+            <span className="text-[10px] text-muted font-[var(--font-ui)] shrink-0">{formatDuration(film.duration)}</span>
           </div>
         ))}
       </div>

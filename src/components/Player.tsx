@@ -112,7 +112,7 @@ export default function Player() {
 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-on-air text-[11px] animate-[blink_1s_infinite]">
+          <span className="text-live text-[11px] font-[var(--font-ui)] animate-[blink_1s_infinite]">
             {error}
           </span>
         </div>
@@ -120,7 +120,7 @@ export default function Player() {
 
       {!schedule && !error && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-dim text-[11px] animate-[blink_1.5s_infinite]">
+          <span className="text-muted text-[11px] font-[var(--font-ui)]">
             synchro...
           </span>
         </div>
