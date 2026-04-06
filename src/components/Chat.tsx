@@ -23,13 +23,19 @@ function getColor(username: string): string {
 }
 
 function generateUsername(): string {
-  const parts = [
-    "anon", "spectre", "bobine", "pellicule", "ecran",
-    "splice", "frame", "rewind", "static", "flux",
+  const prefixes = [
+    "kubrick", "godard", "tarkovski", "fellini", "lynch",
+    "melies", "murnau", "wiene", "eisenstein", "pasolini",
+    "jodorowsky", "gaspar", "haneke", "kiarostami", "apichatpong",
   ];
-  const p = parts[Math.floor(Math.random() * parts.length)];
-  const n = Math.floor(Math.random() * 999);
-  return `${p}${n}`;
+  const suffixes = [
+    "fan", "vhs", "35mm", "noir", "cut",
+    "reel", "rush", "dub", "sub", "raw",
+  ];
+  const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const s = suffixes[Math.floor(Math.random() * suffixes.length)];
+  const n = Math.floor(Math.random() * 99);
+  return `${p}_${s}${n}`;
 }
 
 export default function Chat() {
