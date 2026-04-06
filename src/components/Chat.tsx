@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { ChatMessage } from "@/types";
 
 const COLORS = [
@@ -38,6 +39,8 @@ function generateUsername(): string {
   return `${p}_${s}${n}`;
 }
 
+const MAX_MESSAGES = 50;
+
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -56,22 +59,50 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
+    supabase
+      .from("messages")
+      .select("*")
+      .order("timestamp", { ascending: false })
+      .limit(MAX_MESSAGES)
+      .then(({ data }) => {
+        if (data) setMessages(data.reverse() as ChatMessage[]);
+      });
+
+    const channel = supabase
+      .channel("chat")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          setMessages((prev) => {
+            const next = [...prev, payload.new as ChatMessage];
+            return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = (e: React.FormEvent) => {
+  const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !username) return;
 
-    const message: ChatMessage = {
-      id: crypto.randomUUID(),
-      username,
-      text: input.trim(),
-      timestamp: Date.now(),
-    };
-
-    setMessages((prev) => [...prev, message]);
+    const text = input.trim();
     setInput("");
+
+    await supabase.from("messages").insert({
+      username,
+      text,
+      timestamp: Date.now(),
+    });
   };
 
   const formatTime = (ts: number) => {
