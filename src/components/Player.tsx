@@ -32,7 +32,7 @@ export default function Player() {
       setError(null);
       return data;
     } catch {
-      setError("Signal perdu...");
+      setError("signal perdu");
       return null;
     }
   }, []);
@@ -88,7 +88,6 @@ export default function Player() {
 
   useEffect(() => {
     if (!schedule) return;
-
     const video = videoRef.current;
     if (!video) return;
 
@@ -112,22 +111,20 @@ export default function Player() {
       />
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-          <p className="font-[var(--font-display)] text-red text-xs animate-[blink_1s_infinite]">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-on-air text-[11px] animate-[blink_1s_infinite]">
             {error}
-          </p>
+          </span>
         </div>
       )}
 
       {!schedule && !error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black">
-          <p className="font-[var(--font-display)] text-accent text-xs animate-[blink_1s_infinite]">
-            SYNCHRO...
-          </p>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-dim text-[11px] animate-[blink_1.5s_infinite]">
+            synchro...
+          </span>
         </div>
       )}
-
-      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,0,0,0.1)_2px,rgba(0,0,0,0.1)_4px)]" />
     </div>
   );
 }

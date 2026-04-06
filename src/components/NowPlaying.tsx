@@ -33,9 +33,7 @@ export default function NowPlaying() {
   }, []);
 
   useEffect(() => {
-    if (schedule) {
-      setElapsed(schedule.currentOffset);
-    }
+    if (schedule) setElapsed(schedule.currentOffset);
   }, [schedule]);
 
   if (!schedule) return null;
@@ -44,30 +42,23 @@ export default function NowPlaying() {
   const progress = Math.min((elapsed / currentFilm.duration) * 100, 100);
 
   return (
-    <div className="bg-surface border border-border p-4">
+    <div className="p-3 sm:border-r border-border">
       <div className="flex items-center gap-2 mb-2">
-        <span className="inline-block w-2 h-2 rounded-full bg-red animate-[blink_1s_infinite]" />
-        <span className="font-[var(--font-display)] text-[10px] text-red uppercase tracking-wider">
-          On Air
-        </span>
+        <span className="inline-block w-[6px] h-[6px] bg-on-air animate-[blink_1s_infinite]" />
+        <span className="text-on-air text-[10px] uppercase tracking-widest">Live</span>
       </div>
 
-      <h2 className="font-[var(--font-display)] text-accent text-sm leading-relaxed mb-1">
-        {currentFilm.title}
-      </h2>
+      <div className="text-[13px] text-white font-bold mb-0.5">{currentFilm.title}</div>
+      <div className="text-[11px] text-dim mb-3">{currentFilm.director}, {currentFilm.year}</div>
 
-      <p className="text-text-dim text-xs mb-3">
-        {currentFilm.director}, {currentFilm.year}
-      </p>
-
-      <div className="w-full h-1 bg-border-light rounded-full overflow-hidden mb-1">
+      <div className="w-full h-[2px] bg-[#222] overflow-hidden mb-1">
         <div
-          className="h-full bg-accent transition-all duration-1000 ease-linear"
+          className="h-full bg-on-air transition-all duration-1000 ease-linear"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      <div className="flex justify-between text-[10px] text-text-dim font-mono">
+      <div className="flex justify-between text-[10px] text-dim">
         <span>{formatDuration(elapsed)}</span>
         <span>{formatDuration(currentFilm.duration)}</span>
       </div>

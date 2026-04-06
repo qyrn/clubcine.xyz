@@ -26,29 +26,22 @@ export default function Schedule() {
   if (!schedule) return null;
 
   return (
-    <div className="bg-surface border border-border p-4">
-      <h3 className="font-[var(--font-display)] text-[10px] text-text-dim uppercase tracking-wider mb-3">
-        Prochaines diffusions
-      </h3>
-
-      <ul className="space-y-2">
+    <div className="p-3">
+      <div className="text-[10px] text-dim uppercase tracking-widest mb-2">Programme</div>
+      <div className="space-y-0">
         {schedule.nextFilms.map((film, i) => (
-          <li
+          <div
             key={`${film.id}-${i}`}
-            className="flex items-baseline justify-between gap-2 py-2 border-b border-border last:border-0"
+            className="flex items-baseline justify-between py-1.5 border-b border-[#1a1a1a] last:border-0"
           >
-            <div className="min-w-0">
-              <p className="text-text text-xs truncate">{film.title}</p>
-              <p className="text-text-dim text-[10px]">
-                {film.director}, {film.year}
-              </p>
+            <div className="min-w-0 mr-3">
+              <span className="text-[12px] text-white">{film.title}</span>
+              <span className="text-[11px] text-dim ml-2">{film.director}, {film.year}</span>
             </div>
-            <span className="text-text-dim text-[10px] font-mono shrink-0">
-              {formatDuration(film.duration)}
-            </span>
-          </li>
+            <span className="text-[11px] text-dim shrink-0">{formatDuration(film.duration)}</span>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
