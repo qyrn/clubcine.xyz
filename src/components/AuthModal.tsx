@@ -25,7 +25,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           <div className="text-[10px] text-dim uppercase tracking-widest">
             {mode === "login" ? "Connexion" : "Inscription"}
           </div>
-          <button onClick={onClose} className="text-dim hover:text-white text-[12px]">
+          <button onClick={onClose} className="text-dim hover:text-white text-[12px] cursor-pointer">
             [x]
           </button>
         </div>
@@ -72,7 +72,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
 
           <button
             type="submit"
-            className="w-full border border-border text-[11px] text-white uppercase tracking-wider py-2 hover:border-dim"
+            className="w-full border border-border text-[11px] text-white uppercase tracking-wider py-2 hover:border-dim cursor-pointer"
           >
             {mode === "login" ? "se connecter" : "creer un compte"}
           </button>
@@ -82,14 +82,14 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           {mode === "login" ? (
             <button
               onClick={() => setMode("register")}
-              className="text-[10px] text-dim hover:text-white"
+              className="text-[10px] text-dim hover:text-white cursor-pointer"
             >
               pas de compte ? inscris-toi
             </button>
           ) : (
             <button
               onClick={() => setMode("login")}
-              className="text-[10px] text-dim hover:text-white"
+              className="text-[10px] text-dim hover:text-white cursor-pointer"
             >
               deja un compte ? connecte-toi
             </button>

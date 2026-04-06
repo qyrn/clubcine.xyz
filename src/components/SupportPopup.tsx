@@ -40,13 +40,13 @@ export default function SupportPopup() {
             href="https://ko-fi.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="border border-on-air text-on-air text-[11px] uppercase tracking-wider text-center py-2 hover:bg-on-air hover:text-black transition-colors"
+            className="border border-on-air text-on-air text-[11px] uppercase tracking-wider text-center py-2 hover:bg-on-air hover:text-black transition-colors cursor-pointer"
           >
             faire un don
           </a>
           <button
             onClick={dismiss}
-            className="text-[11px] text-dim uppercase tracking-wider py-2 hover:text-white"
+            className="text-[11px] text-dim uppercase tracking-wider py-2 hover:text-white cursor-pointer"
           >
             [ peut-etre plus tard ]
           </button>

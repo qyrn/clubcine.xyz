@@ -116,7 +116,7 @@ export default function Chat() {
         <button
           type="submit"
           disabled={!input.trim()}
-          className="border border-border px-2.5 py-1.5 text-[10px] text-dim uppercase tracking-wider hover:text-white hover:border-dim disabled:opacity-20 disabled:cursor-default"
+          className="border border-border px-2.5 py-1.5 text-[10px] text-dim uppercase tracking-wider hover:text-white hover:border-dim cursor-pointer disabled:opacity-20 disabled:cursor-default"
         >
           envoyer
         </button>
