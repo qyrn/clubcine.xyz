@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 import { ChatMessage } from "@/types";
 
 const COLORS = [
-  "#a89a84",
+  "#c4a97d",
   "#7a8b6e",
   "#8b7a6e",
   "#6e7a8b",
-  "#8b6e7a",
+  "#9b7a6e",
   "#6e8b7a",
   "#8b8b6e",
   "#7a6e8b",
@@ -42,19 +43,22 @@ function generateUsername(): string {
 const MAX_MESSAGES = 50;
 
 export default function Chat() {
+  const { username: authUsername } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [username, setUsername] = useState("");
+  const [anonUsername, setAnonUsername] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+
+  const username = authUsername || anonUsername;
 
   useEffect(() => {
     const stored = localStorage.getItem("qyrn-username");
     if (stored) {
-      setUsername(stored);
+      setAnonUsername(stored);
     } else {
       const name = generateUsername();
       localStorage.setItem("qyrn-username", name);
-      setUsername(name);
+      setAnonUsername(name);
     }
   }, []);
 
@@ -112,25 +116,25 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-2 border-b border-border">
-        <span className="text-[10px] text-muted font-[var(--font-ui)]">chat</span>
+      <div className="px-3 py-2.5 border-b border-border">
+        <span className="text-[12px] text-muted uppercase tracking-wide">chat</span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
         {messages.length === 0 && (
-          <div className="text-muted text-[12px] pt-6 text-center italic">
+          <div className="text-dim text-[12px] pt-6 text-center italic font-[var(--font-title)]">
             personne ne parle...
           </div>
         )}
 
         {messages.map((msg) => (
           <div key={msg.id} className="text-[12px] leading-[1.6] break-words">
-            <span className="text-muted text-[10px] font-[var(--font-ui)] mr-1.5">{formatTime(msg.timestamp)}</span>
+            <span className="text-dim text-[10px] font-[var(--font-mono)] mr-1.5">{formatTime(msg.timestamp)}</span>
             <span className="font-medium" style={{ color: getColor(msg.username) }}>
               {msg.username}
             </span>
-            <span className="text-[#2a2a2a] mx-0.5">&middot;</span>
-            <span className="text-[#999]">{msg.text}</span>
+            <span className="text-border mx-0.5">&middot;</span>
+            <span className="text-[#b5b0a8]">{msg.text}</span>
           </div>
         ))}
         <div ref={endRef} />
@@ -143,12 +147,12 @@ export default function Chat() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="..."
           maxLength={280}
-          className="flex-1 bg-transparent border border-border px-2 py-1.5 text-[12px] text-white/80 placeholder:text-[#222] outline-none focus:border-[#333]"
+          className="flex-1 bg-transparent border border-border px-2 py-1.5 text-[12px] text-[#d4cfc7] placeholder:text-dim outline-none focus:border-raised"
         />
         <button
           type="submit"
           disabled={!input.trim()}
-          className="border border-border px-2.5 py-1.5 text-[10px] text-muted font-[var(--font-ui)] hover:text-warm hover:border-[#333] cursor-pointer disabled:opacity-20 disabled:cursor-default"
+          className="border border-border px-2.5 py-1.5 text-[11px] text-muted hover:text-warm hover:border-raised cursor-pointer disabled:opacity-20 disabled:cursor-default transition-colors"
         >
           envoyer
         </button>

@@ -46,28 +46,61 @@ export default function Schedule() {
   };
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] text-white/70 font-[var(--font-ui)] uppercase tracking-wide">
+    <div className="p-5">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[12px] text-muted uppercase tracking-wide">
           programme
         </span>
-        <span className="text-[10px] text-muted font-[var(--font-ui)]">
-          [{upcoming.length} prochains]
+        <span className="text-[10px] text-dim font-[var(--font-mono)]">
+          {upcoming.length} prochains
         </span>
       </div>
 
       <div className="divide-y divide-border">
         {upcoming.map((film, i) => (
-          <div key={`${film.id}-${i}`} className="py-3 flex gap-4">
-            <span className="text-[12px] text-muted font-[var(--font-ui)] w-[45px] shrink-0 pt-0.5">
+          <div key={`${film.id}-${i}`} className="py-4 flex gap-4">
+            <span className="text-[11px] text-dim font-[var(--font-mono)] w-[45px] shrink-0 pt-1">
               {formatTime(film.startTime)}
             </span>
+
+            {film.poster && (
+              <img
+                src={film.poster}
+                alt={film.title}
+                className="w-[45px] h-[65px] object-cover shrink-0 border border-border"
+              />
+            )}
+
             <div className="min-w-0 flex-1">
-              <div className="font-[var(--font-title)] text-[15px] text-white/80 italic leading-tight">
+              <div className="font-[var(--font-title)] text-[18px] text-[#d4cfc7] italic leading-tight">
                 {film.title}
               </div>
-              <div className="text-[11px] text-dim mt-0.5">
-                {film.director}, {film.year} &mdash; {formatDuration(film.duration)}
+              <div className="text-[11px] text-muted mt-1">
+                {film.director}, {film.year}
+                {film.country && <> &mdash; {film.country}</>}
+                <span className="text-dim ml-2">{formatDuration(film.duration)}</span>
+              </div>
+              {film.synopsis && (
+                <div className="text-[11px] text-dim mt-1.5 leading-relaxed line-clamp-2">
+                  {film.synopsis}
+                </div>
+              )}
+              <div className="flex items-center gap-3 mt-2">
+                {film.movement && (
+                  <span className="text-[10px] text-warm/60 italic">
+                    {film.movement}
+                  </span>
+                )}
+                {film.letterboxd && (
+                  <a
+                    href={film.letterboxd}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-muted hover:text-warm/70 transition-colors cursor-pointer"
+                  >
+                    letterboxd
+                  </a>
+                )}
               </div>
             </div>
           </div>

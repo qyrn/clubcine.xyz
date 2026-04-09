@@ -10,7 +10,7 @@ export default function ViewerCount() {
   }, []);
 
   return (
-    <span className="text-[10px] text-muted font-[var(--font-ui)]">
+    <span className="text-[10px] text-dim font-[var(--font-mono)]">
       {count} connect{count > 1 ? "\u00e9s" : "\u00e9"}
     </span>
   );

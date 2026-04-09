@@ -6,6 +6,11 @@ export interface Film {
   duration: number;
   url: string;
   poster?: string;
+  letterboxd?: string;
+  synopsis?: string;
+  country?: string;
+  genre?: string;
+  movement?: string;
 }
 
 export interface ScheduleState {
