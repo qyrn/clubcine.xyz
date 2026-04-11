@@ -42,12 +42,12 @@ function generateUsername(): string {
 
 const MAX_MESSAGES = 50;
 
-export default function Chat() {
+export default function Chat({ onCollapse, extra }: { onCollapse?: () => void; extra?: React.ReactNode } = {}) {
   const { username: authUsername } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
-  const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const username = authUsername || anonUsername;
 
@@ -92,7 +92,8 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -116,11 +117,29 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-2.5 border-b border-border">
-        <span className="text-[12px] text-muted uppercase tracking-wide">chat</span>
+      <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
+        {onCollapse ? (
+          <>
+            <button
+              onClick={onCollapse}
+              className="text-dim hover:text-warm/70 cursor-pointer transition-colors"
+              title="replier le chat (T)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+                <line x1="3" y1="4" x2="3" y2="20" />
+              </svg>
+            </button>
+            <span className="text-[12px] text-muted uppercase tracking-wide">chat</span>
+            {extra || <div className="w-[14px]" />}
+          </>
+        ) : (
+          <span className="text-[12px] text-muted uppercase tracking-wide">chat</span>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
         {messages.length === 0 && (
           <div className="text-dim text-[12px] pt-6 text-center italic font-[var(--font-title)]">
             personne ne parle...
@@ -137,7 +156,6 @@ export default function Chat() {
             <span className="text-[#b5b0a8]">{msg.text}</span>
           </div>
         ))}
-        <div ref={endRef} />
       </div>
 
       <form onSubmit={sendMessage} className="border-t border-border p-2 flex gap-1.5">

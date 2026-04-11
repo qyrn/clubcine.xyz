@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { ScheduleState } from "@/types";
 
-const SYNC_INTERVAL = 30_000;
-const SYNC_THRESHOLD = 3;
+const SYNC_INTERVAL = 15_000;
+const SYNC_THRESHOLD = 2;
+const DRIFT_CHECK_INTERVAL = 5_000;
+const RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000];
 
 interface SubSettings {
   fontSize: number;
@@ -26,7 +28,6 @@ export default function Player() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [schedule, setSchedule] = useState<ScheduleState | null>(null);
-  const [serverOffset, setServerOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(0.8);
@@ -36,30 +37,44 @@ export default function Player() {
   const [subSettings, setSubSettings] = useState<SubSettings>(DEFAULT_SUB_SETTINGS);
   const [showSubSettings, setShowSubSettings] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [buffering, setBuffering] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCount = useRef(0);
+  const lastSyncRef = useRef<{ serverTime: number; clientTime: number; offset: number; filmUrl: string } | null>(null);
+  const driftTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const syncServerTime = useCallback(async () => {
-    try {
-      const before = Date.now();
-      const res = await fetch("/api/now");
-      const { now } = await res.json();
-      const rtt = Date.now() - before;
-      setServerOffset(now + rtt / 2 - Date.now());
-    } catch {
-      /* noop */
-    }
+  const getExpectedOffset = useCallback(() => {
+    const sync = lastSyncRef.current;
+    if (!sync) return null;
+    const elapsed = (Date.now() - sync.clientTime) / 1000;
+    return sync.offset + elapsed;
   }, []);
 
-  const fetchSchedule = useCallback(async () => {
+  const fetchSchedule = useCallback(async (): Promise<ScheduleState | null> => {
     try {
+      const before = Date.now();
       const res = await fetch("/api/schedule");
       const data: ScheduleState = await res.json();
+      const rtt = Date.now() - before;
+      const correctedOffset = data.currentOffset + rtt / 2000;
+
+      lastSyncRef.current = {
+        serverTime: data.serverTime ?? Date.now(),
+        clientTime: Date.now(),
+        offset: correctedOffset,
+        filmUrl: data.currentFilm.url,
+      };
+
       setSchedule(data);
       setError(null);
-      return data;
+      retryCount.current = 0;
+      return { ...data, currentOffset: correctedOffset };
     } catch {
-      setError("signal perdu");
-      return null;
+      const delay = RETRY_DELAYS[Math.min(retryCount.current, RETRY_DELAYS.length - 1)];
+      retryCount.current++;
+      setError("signal perdu — reconnexion...");
+      await new Promise((r) => setTimeout(r, delay));
+      return fetchSchedule();
     }
   }, []);
 
@@ -71,46 +86,93 @@ export default function Player() {
       const targetUrl = data.currentFilm.url;
       const targetOffset = data.currentOffset;
 
-      if (video.src !== targetUrl) {
+      if (!video.src || !video.src.includes(new URL(targetUrl, location.origin).pathname.split("/").pop()!)) {
         video.src = targetUrl;
         video.currentTime = targetOffset;
         video.play().catch(() => {});
       } else if (Math.abs(video.currentTime - targetOffset) > SYNC_THRESHOLD) {
         video.currentTime = targetOffset;
+        if (video.paused) video.play().catch(() => {});
       }
     },
     []
   );
 
+  const forceSync = useCallback(async () => {
+    const data = await fetchSchedule();
+    if (data) syncPlayback(data);
+  }, [fetchSchedule, syncPlayback]);
+
   useEffect(() => {
-    syncServerTime();
-    fetchSchedule().then((data) => {
-      if (data) syncPlayback(data);
-    });
-
-    const syncInterval = setInterval(async () => {
-      await syncServerTime();
-      const data = await fetchSchedule();
-      if (data) syncPlayback(data);
-    }, SYNC_INTERVAL);
-
+    forceSync();
+    const syncInterval = setInterval(forceSync, SYNC_INTERVAL);
     return () => clearInterval(syncInterval);
-  }, [syncServerTime, fetchSchedule, syncPlayback]);
+  }, [forceSync]);
 
   useEffect(() => {
-    if (!schedule) return;
+    driftTimer.current = setInterval(() => {
+      const video = videoRef.current;
+      if (!video || video.paused || !lastSyncRef.current) return;
+      const expected = getExpectedOffset();
+      if (expected === null) return;
+      const drift = Math.abs(video.currentTime - expected);
+      if (drift > SYNC_THRESHOLD) {
+        video.currentTime = expected;
+      }
+    }, DRIFT_CHECK_INTERVAL);
+    return () => { if (driftTimer.current) clearInterval(driftTimer.current); };
+  }, [getExpectedOffset]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") forceSync();
+    };
+    const onOnline = () => forceSync();
+
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [forceSync]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const handleEnded = () => {
-      fetchSchedule().then((data) => {
-        if (data) syncPlayback(data);
-      });
+    const onCanPlay = () => {
+      const expected = getExpectedOffset();
+      if (expected !== null && Math.abs(video.currentTime - expected) > SYNC_THRESHOLD) {
+        video.currentTime = expected;
+      }
+      video.play().catch(() => {});
+      setBuffering(false);
     };
 
-    video.addEventListener("ended", handleEnded);
-    return () => video.removeEventListener("ended", handleEnded);
-  }, [schedule, fetchSchedule, syncPlayback]);
+    const onWaiting = () => setBuffering(true);
+    const onPlaying = () => setBuffering(false);
+
+    const onError = () => {
+      setError("erreur de lecture — resync...");
+      setTimeout(forceSync, 2000);
+    };
+
+    const onEnded = () => forceSync();
+
+    video.addEventListener("canplay", onCanPlay);
+    video.addEventListener("waiting", onWaiting);
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("error", onError);
+    video.addEventListener("ended", onEnded);
+    return () => {
+      video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("error", onError);
+      video.removeEventListener("ended", onEnded);
+    };
+  }, [forceSync, getExpectedOffset]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -123,17 +185,13 @@ export default function Player() {
     try {
       const stored = localStorage.getItem("subSettings");
       if (stored) setSubSettings({ ...DEFAULT_SUB_SETTINGS, ...JSON.parse(stored) });
-    } catch {
-      /* noop */
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
     try {
       localStorage.setItem("subSettings", JSON.stringify(subSettings));
-    } catch {
-      /* noop */
-    }
+    } catch {}
   }, [subSettings]);
 
   useEffect(() => {
@@ -215,7 +273,7 @@ export default function Player() {
   const handleMouseMove = () => {
     setShowControls(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => setShowControls(false), 3000);
+    hideTimer.current = setTimeout(() => setShowControls(false), 2000);
   };
 
   const handleMouseLeave = () => {
@@ -227,6 +285,7 @@ export default function Player() {
     <div
       ref={containerRef}
       className={`relative bg-black group ${isFullscreen ? "w-screen h-screen" : "w-full h-full"}`}
+      style={{ cursor: showControls ? "auto" : "none" }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
@@ -253,9 +312,7 @@ export default function Player() {
       {subsOn && cueText && (
         <div
           className="absolute left-1/2 -translate-x-1/2 z-[15] flex flex-col items-center gap-1 pointer-events-none max-w-[85%]"
-          style={{
-            bottom: `${subSettings.bottom}%`,
-          }}
+          style={{ bottom: `${subSettings.bottom}%` }}
         >
           {cueText.split("\n").map((line, i) => (
             <span
@@ -372,6 +429,12 @@ export default function Player() {
         </button>
       )}
 
+      {buffering && !error && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[18] pointer-events-none">
+          <div className="w-10 h-10 border-2 border-warm/30 border-t-warm rounded-full animate-spin" />
+        </div>
+      )}
+
       <div
         className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-center gap-4 transition-opacity duration-300 z-10"
         style={{
@@ -452,7 +515,7 @@ export default function Player() {
       </div>
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center z-[18]">
           <span className="text-live text-[11px] font-[var(--font-mono)] animate-[blink_1s_infinite]">
             {error}
           </span>

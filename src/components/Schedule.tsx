@@ -67,7 +67,7 @@ export default function Schedule() {
               <img
                 src={film.poster}
                 alt={film.title}
-                className="w-[45px] h-[65px] object-cover shrink-0 border border-border"
+                className="w-[60px] h-[86px] object-cover shrink-0 border border-border shadow-md"
               />
             )}
 

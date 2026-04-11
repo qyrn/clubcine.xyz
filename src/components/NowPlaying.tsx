@@ -51,14 +51,10 @@ export default function NowPlaying() {
             <img
               src={currentFilm.poster}
               alt={currentFilm.title}
-              className="w-[40px] h-[58px] object-cover shrink-0 border border-border"
+              className="w-[70px] h-[100px] object-cover shrink-0 border border-border shadow-lg"
             />
           )}
-          <div className="flex items-center gap-1.5 shrink-0 pt-1.5">
-            <span className="inline-block w-[7px] h-[7px] rounded-full bg-live animate-[blink_1.2s_infinite]" />
-            <span className="text-live text-[10px] font-[var(--font-mono)] uppercase">on air</span>
-          </div>
-          <div className="min-w-0">
+          <div className="min-w-0 pt-1">
             <div className="font-[var(--font-title)] text-[28px] text-[#d4cfc7] italic leading-tight">
               {currentFilm.title}
             </div>

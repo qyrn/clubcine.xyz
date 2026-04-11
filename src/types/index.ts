@@ -26,6 +26,7 @@ export interface ScheduleState {
   nextFilms: Film[];
   cycleStart: number;
   totalCycleDuration: number;
+  serverTime?: number;
 }
 
 export interface ChatMessage {

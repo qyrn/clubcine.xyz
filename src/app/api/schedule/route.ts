@@ -19,6 +19,7 @@ export function GET() {
   const schedule = getCurrentSchedule();
   return NextResponse.json({
     ...schedule,
+    serverTime: Date.now(),
     currentFilm: proxySubtitles(schedule.currentFilm),
     nextFilms: schedule.nextFilms.map(proxySubtitles),
   });
