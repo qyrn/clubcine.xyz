@@ -1,3 +1,9 @@
+export interface Subtitle {
+  label: string;
+  lang: string;
+  url: string;
+}
+
 export interface Film {
   id: string;
   title: string;
@@ -7,6 +13,7 @@ export interface Film {
   url: string;
   poster?: string;
   letterboxd?: string;
+  subtitles?: Subtitle[];
   synopsis?: string;
   country?: string;
   genre?: string;

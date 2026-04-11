@@ -25,11 +25,6 @@ function PageContent() {
 
         <div className="flex items-center gap-5">
           <ViewerCount />
-          <nav className="hidden sm:flex items-center gap-4 text-[12px]">
-            <span className="text-warm cursor-default">projection</span>
-            <a href="#programme" className="text-muted hover:text-warm/70 cursor-pointer transition-colors">programme</a>
-            <a href="#classement" className="text-muted hover:text-warm/70 cursor-pointer transition-colors">archives</a>
-          </nav>
           {user ? (
             <div className="flex items-center gap-3">
               <span className="text-[12px] text-warm/70">{username}</span>
