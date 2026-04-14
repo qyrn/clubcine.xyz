@@ -24,6 +24,45 @@ const DEFAULT_SUB_SETTINGS: SubSettings = {
 
 const SUB_COLORS = ["#f5f0e8", "#ffffff", "#c4a97d", "#e8d197", "#ffde59"];
 
+interface VTTCueItem {
+  start: number;
+  end: number;
+  text: string;
+}
+
+function parseVTTTimestamp(s: string): number {
+  const parts = s.trim().split(":");
+  if (parts.length === 3) {
+    return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(parts[2]);
+  }
+  return parseInt(parts[0], 10) * 60 + parseFloat(parts[1]);
+}
+
+function parseVTT(text: string): VTTCueItem[] {
+  const lines = text.split(/\r?\n/);
+  const cues: VTTCueItem[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const arrow = line.indexOf(" --> ");
+    if (arrow !== -1) {
+      const start = parseVTTTimestamp(line.slice(0, arrow));
+      const end = parseVTTTimestamp(line.slice(arrow + 5).split(" ")[0]);
+      const textLines: string[] = [];
+      i++;
+      while (i < lines.length && lines[i].trim() !== "") {
+        textLines.push(lines[i]);
+        i++;
+      }
+      if (!isNaN(start) && !isNaN(end)) {
+        cues.push({ start, end, text: textLines.join("\n") });
+      }
+    }
+    i++;
+  }
+  return cues;
+}
+
 export default function Player() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -194,36 +233,45 @@ export default function Player() {
     } catch {}
   }, [subSettings]);
 
+  const cuesRef = useRef<VTTCueItem[]>([]);
+
+  useEffect(() => {
+    const sub = schedule?.currentFilm.subtitles?.find((s) => s.lang === "fr");
+    if (!sub) {
+      cuesRef.current = [];
+      setCueText("");
+      return;
+    }
+    let cancelled = false;
+    fetch(sub.url)
+      .then((r) => (r.ok ? r.text() : ""))
+      .then((text) => {
+        if (cancelled) return;
+        cuesRef.current = parseVTT(text);
+      })
+      .catch(() => {
+        if (!cancelled) cuesRef.current = [];
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [schedule?.currentFilm.id]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
-    const handleCueChange = (e: Event) => {
-      const track = e.target as TextTrack;
-      if (!track.activeCues || track.activeCues.length === 0) {
-        setCueText("");
-        return;
-      }
-      const text = Array.from(track.activeCues)
-        .map((cue) => (cue as VTTCue).text)
-        .join("\n");
-      setCueText(text);
-    };
-
-    const listeners: Array<[TextTrack, EventListener]> = [];
-    for (let i = 0; i < video.textTracks.length; i++) {
-      const track = video.textTracks[i];
-      track.mode = subsOn ? "hidden" : "disabled";
-      track.addEventListener("cuechange", handleCueChange);
-      listeners.push([track, handleCueChange]);
+    if (!subsOn) {
+      setCueText("");
+      return;
     }
-
-    if (!subsOn) setCueText("");
-
-    return () => {
-      listeners.forEach(([track, fn]) => track.removeEventListener("cuechange", fn));
+    const handleTime = () => {
+      const t = video.currentTime;
+      const cue = cuesRef.current.find((c) => t >= c.start && t <= c.end);
+      setCueText(cue?.text || "");
     };
-  }, [subsOn, schedule]);
+    video.addEventListener("timeupdate", handleTime);
+    return () => video.removeEventListener("timeupdate", handleTime);
+  }, [subsOn, schedule?.currentFilm.id]);
 
   const toggleFullscreen = useCallback(() => {
     const el = containerRef.current;
@@ -295,7 +343,6 @@ export default function Player() {
         autoPlay
         muted
         playsInline
-        crossOrigin="anonymous"
         onClick={toggleMute}
       >
         {schedule?.currentFilm.subtitles?.map((sub) => (
