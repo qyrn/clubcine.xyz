@@ -303,7 +303,7 @@ export default function Player() {
             kind="subtitles"
             label={sub.label}
             srcLang={sub.lang}
-            src={sub.url}
+            src={`/api/sub?film=${encodeURIComponent(schedule!.currentFilm.id)}&lang=${encodeURIComponent(sub.lang)}`}
             default={sub.lang === "fr"}
           />
         ))}
