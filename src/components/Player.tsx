@@ -344,18 +344,7 @@ export default function Player() {
         muted
         playsInline
         onClick={toggleMute}
-      >
-        {schedule?.currentFilm.subtitles?.map((sub) => (
-          <track
-            key={sub.lang}
-            kind="subtitles"
-            label={sub.label}
-            srcLang={sub.lang}
-            src={`/api/sub?film=${encodeURIComponent(schedule!.currentFilm.id)}&lang=${encodeURIComponent(sub.lang)}`}
-            default={sub.lang === "fr"}
-          />
-        ))}
-      </video>
+      />
 
       {subsOn && cueText && (
         <div
