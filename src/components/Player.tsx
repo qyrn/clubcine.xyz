@@ -295,6 +295,7 @@ export default function Player() {
         autoPlay
         muted
         playsInline
+        crossOrigin="anonymous"
         onClick={toggleMute}
       >
         {schedule?.currentFilm.subtitles?.map((sub) => (
