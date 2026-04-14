@@ -55,7 +55,9 @@ function parseVTT(text: string): VTTCueItem[] {
         i++;
       }
       if (!isNaN(start) && !isNaN(end)) {
-        cues.push({ start, end, text: textLines.join("\n") });
+        const raw = textLines.join("\n");
+        const clean = raw.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
+        cues.push({ start, end, text: clean });
       }
     }
     i++;
