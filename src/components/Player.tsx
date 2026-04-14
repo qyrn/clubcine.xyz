@@ -13,6 +13,7 @@ interface SubSettings {
   bottom: number;
   color: string;
   bgOpacity: number;
+  offset: number;
 }
 
 const DEFAULT_SUB_SETTINGS: SubSettings = {
@@ -20,6 +21,7 @@ const DEFAULT_SUB_SETTINGS: SubSettings = {
   bottom: 10,
   color: "#f5f0e8",
   bgOpacity: 0.6,
+  offset: 0,
 };
 
 const SUB_COLORS = ["#f5f0e8", "#ffffff", "#c4a97d", "#e8d197", "#ffde59"];
@@ -271,13 +273,13 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       return;
     }
     const handleTime = () => {
-      const t = video.currentTime;
+      const t = video.currentTime - subSettings.offset;
       const cue = cuesRef.current.find((c) => t >= c.start && t <= c.end);
       setCueText(cue?.text || "");
     };
     video.addEventListener("timeupdate", handleTime);
     return () => video.removeEventListener("timeupdate", handleTime);
-  }, [subsOn, schedule?.currentFilm.id]);
+  }, [subsOn, schedule?.currentFilm.id, subSettings.offset]);
 
   useEffect(() => {
     onControlsVisibleChange?.(showControls);
@@ -393,6 +395,48 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
             >
               reset
             </button>
+          </div>
+
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1 text-[#d4cfc7]">
+              <span>décalage</span>
+              <span className="text-dim font-[var(--font-mono)]">
+                {subSettings.offset > 0 ? "+" : ""}
+                {subSettings.offset.toFixed(1)}s
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] font-[var(--font-mono)]">
+              <button
+                onClick={() => setSubSettings((s) => ({ ...s, offset: Math.round((s.offset - 1) * 10) / 10 }))}
+                className="flex-1 py-1 border border-border text-[#d4cfc7] hover:text-warm hover:border-warm cursor-pointer transition-colors"
+              >
+                −1s
+              </button>
+              <button
+                onClick={() => setSubSettings((s) => ({ ...s, offset: Math.round((s.offset - 0.1) * 10) / 10 }))}
+                className="flex-1 py-1 border border-border text-[#d4cfc7] hover:text-warm hover:border-warm cursor-pointer transition-colors"
+              >
+                −0.1
+              </button>
+              <button
+                onClick={() => setSubSettings((s) => ({ ...s, offset: 0 }))}
+                className="px-2 py-1 border border-border text-dim hover:text-warm hover:border-warm cursor-pointer transition-colors"
+              >
+                0
+              </button>
+              <button
+                onClick={() => setSubSettings((s) => ({ ...s, offset: Math.round((s.offset + 0.1) * 10) / 10 }))}
+                className="flex-1 py-1 border border-border text-[#d4cfc7] hover:text-warm hover:border-warm cursor-pointer transition-colors"
+              >
+                +0.1
+              </button>
+              <button
+                onClick={() => setSubSettings((s) => ({ ...s, offset: Math.round((s.offset + 1) * 10) / 10 }))}
+                className="flex-1 py-1 border border-border text-[#d4cfc7] hover:text-warm hover:border-warm cursor-pointer transition-colors"
+              >
+                +1s
+              </button>
+            </div>
           </div>
 
           <div className="mb-3">
@@ -529,9 +573,17 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
           <>
             <button
               onClick={() => setSubsOn((prev) => !prev)}
-              className={`text-[11px] font-[var(--font-mono)] cursor-pointer transition-colors shrink-0 ${subsOn ? "text-warm" : "text-dim"}`}
+              aria-label="sous-titres"
+              title="sous-titres"
+              className={`cursor-pointer transition-colors shrink-0 ${subsOn ? "text-warm" : "text-dim hover:text-[#d4cfc7]"}`}
             >
-              ST
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <line x1="7" y1="15" x2="10" y2="15" />
+                <line x1="14" y1="15" x2="17" y2="15" />
+                <line x1="7" y1="11" x2="9" y2="11" />
+                <line x1="13" y1="11" x2="17" y2="11" />
+              </svg>
             </button>
             {subsOn && (
               <button
