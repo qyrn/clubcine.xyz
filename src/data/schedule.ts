@@ -88,7 +88,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "armee-des-ombres",
-    title: "L'Armée des ombres",
+    title: "Army of Shadows",
     director: "Jean-Pierre Melville",
     year: 1969,
     duration: 8715,
@@ -119,7 +119,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "soy-cuba",
-    title: "Soy Cuba",
+    title: "I Am Cuba",
     director: "Mikhaïl Kalatozov",
     year: 1964,
     duration: 8434,
@@ -136,7 +136,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "kikujiro",
-    title: "L'Été de Kikujiro",
+    title: "Kikujiro",
     director: "Takeshi Kitano",
     year: 1999,
     duration: 7305,
@@ -204,7 +204,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "bataille-alger",
-    title: "La Bataille d'Alger",
+    title: "The Battle of Algiers",
     director: "Gillo Pontecorvo",
     year: 1966,
     duration: 7299,
@@ -430,7 +430,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "maman-putain",
-    title: "La Maman et la Putain",
+    title: "The Mother and the Whore",
     director: "Jean Eustache",
     year: 1973,
     duration: 13118,
@@ -562,7 +562,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "playtime",
-    title: "Playtime",
+    title: "PlayTime",
     director: "Jacques Tati",
     year: 1967,
     duration: 7417,
@@ -576,7 +576,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "scenes-from-a-marriage",
-    title: "Scènes de la vie conjugale",
+    title: "Scenes from a Marriage",
     director: "Ingmar Bergman",
     year: 1973,
     duration: 10199,
@@ -590,7 +590,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "seven",
-    title: "Seven",
+    title: "Se7en",
     director: "David Fincher",
     year: 1995,
     duration: 7609,
@@ -599,7 +599,7 @@ export const FILMS: Film[] = [
     subtitles: [
       { label: "Français", lang: "fr", url: "https://archive.org/download/qyrn-proj-38/seven-1995.fr.vtt" },
     ],
-    letterboxd: "https://letterboxd.com/film/seven/",
+    letterboxd: "https://letterboxd.com/film/se7en/",
     synopsis: "Deux flics traquent un tueur en série qui met en scène ses meurtres selon les sept péchés capitaux.",
     country: "USA",
     genre: "Thriller",
@@ -607,7 +607,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "autumn-sonata",
-    title: "Sonate d'automne",
+    title: "Autumn Sonata",
     director: "Ingmar Bergman",
     year: 1978,
     duration: 5555,
@@ -808,7 +808,7 @@ export const FILMS: Film[] = [
   },
   {
     id: "the-insider",
-    title: "Révélations",
+    title: "The Insider",
     director: "Michael Mann",
     year: 1999,
     duration: 9467,

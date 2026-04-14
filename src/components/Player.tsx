@@ -63,7 +63,11 @@ function parseVTT(text: string): VTTCueItem[] {
   return cues;
 }
 
-export default function Player() {
+type PlayerProps = {
+  onControlsVisibleChange?: (visible: boolean) => void;
+};
+
+export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [schedule, setSchedule] = useState<ScheduleState | null>(null);
@@ -272,6 +276,10 @@ export default function Player() {
     video.addEventListener("timeupdate", handleTime);
     return () => video.removeEventListener("timeupdate", handleTime);
   }, [subsOn, schedule?.currentFilm.id]);
+
+  useEffect(() => {
+    onControlsVisibleChange?.(showControls);
+  }, [showControls, onControlsVisibleChange]);
 
   const toggleFullscreen = useCallback(() => {
     const el = containerRef.current;

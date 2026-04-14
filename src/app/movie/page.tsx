@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AuthProvider } from "@/lib/auth-context";
 import Player from "@/components/Player";
 import Chat from "@/components/Chat";
@@ -107,29 +107,8 @@ function FilmInfo({ visible }: { visible: boolean }) {
 
 function MovieContent() {
   const [chatOpen, setChatOpen] = useState(true);
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const [filmInfoVisible, setFilmInfoVisible] = useState(true);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [overlayVisible, setOverlayVisible] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
-
-  const scheduleHide = useCallback(() => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => {
-      setHeaderVisible(false);
-      setFilmInfoVisible(false);
-    }, 2000);
-  }, []);
-
-  const handleMouseMove = useCallback(() => {
-    setHeaderVisible(true);
-    setFilmInfoVisible(true);
-    scheduleHide();
-  }, [scheduleHide]);
-
-  useEffect(() => {
-    scheduleHide();
-    return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
-  }, [scheduleHide]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -140,24 +119,20 @@ function MovieContent() {
         e.preventDefault();
         setChatOpen((p) => !p);
       }
-      if (e.key.toLowerCase() === "h") {
-        e.preventDefault();
-        setHeaderVisible((p) => !p);
-      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   return (
-    <div ref={pageRef} className="flex flex-col h-screen overflow-hidden bg-black" style={{ cursor: headerVisible ? "auto" : "none" }} onMouseMove={handleMouseMove}>
+    <div ref={pageRef} className="flex flex-col h-screen overflow-hidden bg-black">
       <header
         className="flex items-center justify-between px-4 py-2 shrink-0 transition-all duration-500 z-20 absolute top-0 left-0 right-0"
         style={{
-          opacity: headerVisible ? 1 : 0,
-          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+          opacity: overlayVisible ? 1 : 0,
+          transform: overlayVisible ? "translateY(0)" : "translateY(-100%)",
           background: "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%)",
-          pointerEvents: headerVisible ? "auto" : "none",
+          pointerEvents: overlayVisible ? "auto" : "none",
         }}
       >
         <a
@@ -171,11 +146,11 @@ function MovieContent() {
 
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 relative min-w-0">
-          <Player />
+          <Player onControlsVisibleChange={setOverlayVisible} />
           <div className="absolute inset-0 pointer-events-none" style={{
             background: "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.35) 100%)",
           }} />
-          <FilmInfo visible={filmInfoVisible} />
+          <FilmInfo visible={overlayVisible} />
         </div>
 
         <div
