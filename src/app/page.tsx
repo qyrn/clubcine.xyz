@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
 import Player from "@/components/Player";
 import NowPlaying from "@/components/NowPlaying";
 import Schedule from "@/components/Schedule";
@@ -15,6 +16,7 @@ import AuthModal from "@/components/AuthModal";
 function PageContent() {
   const { user, username, signOut } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
+  useWatchHeartbeat(username);
 
   return (
     <div className="flex flex-col min-h-screen">

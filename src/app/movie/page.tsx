@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { AuthProvider } from "@/lib/auth-context";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
 import Player from "@/components/Player";
 import Chat from "@/components/Chat";
 import ViewerCount from "@/components/ViewerCount";
@@ -106,6 +107,8 @@ function FilmInfo({ visible }: { visible: boolean }) {
 }
 
 function MovieContent() {
+  const { username } = useAuth();
+  useWatchHeartbeat(username);
   const [chatOpen, setChatOpen] = useState(true);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);

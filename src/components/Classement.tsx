@@ -38,20 +38,19 @@ export default function Classement() {
 
   useEffect(() => {
     const fetchScores = async () => {
-      const { data } = await supabase.from("messages").select("username");
+      const { data } = await supabase
+        .from("watch_time")
+        .select("username,seconds")
+        .order("seconds", { ascending: false })
+        .limit(5);
       if (!data) return;
 
-      const counts: Record<string, number> = {};
-      for (const row of data) {
-        counts[row.username] = (counts[row.username] || 0) + 1;
-      }
-
-      const sorted = Object.entries(counts)
-        .map(([username, count]) => ({ username, minutes: count * 5 }))
-        .sort((a, b) => b.minutes - a.minutes)
-        .slice(0, 5);
-
-      setScores(sorted);
+      setScores(
+        data.map((row) => ({
+          username: row.username,
+          minutes: Math.floor(row.seconds / 60),
+        }))
+      );
     };
 
     fetchScores();
