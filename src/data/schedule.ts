@@ -241,7 +241,7 @@ export const FILMS: Film[] = [
     subtitles: [
       { label: "Français", lang: "fr", url: "https://archive.org/download/qyrn-proj-15/aniki-mon-frere-2000.fr.vtt" },
     ],
-    letterboxd: "https://letterboxd.com/film/brother-2000/",
+    letterboxd: "https://letterboxd.com/film/brother/",
     synopsis: "Un yakuza exilé retrouve son frère à Los Angeles et bâtit un empire criminel entre deux cultures.",
     country: "Japon / USA",
     genre: "Thriller",
@@ -391,7 +391,7 @@ export const FILMS: Film[] = [
     subtitles: [
       { label: "Français", lang: "fr", url: "https://archive.org/download/qyrn-proj-24/heat-1995.fr.vtt" },
     ],
-    letterboxd: "https://letterboxd.com/film/heat/",
+    letterboxd: "https://letterboxd.com/film/heat-1995/",
     synopsis: "Un flic obsessionnel traque une bande de braqueurs d'élite dans un Los Angeles nocturne et métallique.",
     country: "USA",
     genre: "Thriller",
@@ -568,7 +568,7 @@ export const FILMS: Film[] = [
     duration: 7417,
     url: "https://archive.org/download/qyrn-proj-36/playtime-1967-final.mp4",
     poster: "/posters/playtime.webp",
-    letterboxd: "https://letterboxd.com/film/play-time/",
+    letterboxd: "https://letterboxd.com/film/playtime/",
     synopsis: "Monsieur Hulot erre dans un Paris moderne géométrique et froid, peuplé de touristes perdus.",
     country: "France",
     genre: "Comédie",
