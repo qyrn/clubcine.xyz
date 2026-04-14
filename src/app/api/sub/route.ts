@@ -21,11 +21,12 @@ export async function GET(req: Request) {
 
   try {
     const upstream = await fetch(sub.url);
-    if (!upstream.ok || !upstream.body) {
+    if (!upstream.ok) {
       return NextResponse.json({ error: "upstream failed" }, { status: 502 });
     }
 
-    return new Response(upstream.body, {
+    const text = await upstream.text();
+    return new Response(text, {
       status: 200,
       headers: {
         "Content-Type": "text/vtt;charset=utf-8",
