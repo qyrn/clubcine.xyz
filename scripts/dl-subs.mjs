@@ -54,7 +54,7 @@ async function getFrenchSrtUrl(path) {
 
 async function downloadSrt(url) {
   const res = await fetch(url, { headers: HEADERS })
-  if (!res.ok) throw new Error(`HTTP ${res.status} pour ${url}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.text()
 }
 
@@ -88,13 +88,15 @@ async function main() {
   for (const entry of entries) {
     process.stdout.write(`  Vérification "${entry.filename}" (${entry.langCount} langues)... `)
     const url = await getFrenchSrtUrl(entry.path)
-    if (url) {
+    if (!url) { console.log('pas de FR direct'); continue }
+    try {
+      const res = await fetch(url, { headers: HEADERS, method: 'HEAD' })
+      if (!res.ok) { console.log(`FR lien mort (${res.status})`); continue }
       frUrl = url
       chosen = entry
       console.log('FR disponible ✓')
       break
-    }
-    console.log('pas de FR direct')
+    } catch { console.log('FR lien mort'); continue }
   }
 
   if (!frUrl) {
