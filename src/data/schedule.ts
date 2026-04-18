@@ -773,13 +773,13 @@ export const FILMS: Film[] = [
     movement: "Cinéma de Lynch",
   },
   {
-    id: "voyages-italie",
+    id: "voyages-en-italie",
     title: "Voyages en Italie",
     director: "Sophie Letourneur",
     year: 2023,
     duration: 5480,
     url: "https://archive.org/download/qyrn-proj-49/voyages-italie-2023-final.mp4",
-    poster: "/posters/voyages-italie.webp",
+    poster: "/posters/voyages-en-italie.webp",
     subtitles: [
       { label: "Français", lang: "fr", url: "https://archive.org/download/qyrn-proj-49/voyages-italie-2023.fr.vtt" },
     ],
