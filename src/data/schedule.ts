@@ -7,10 +7,10 @@ export const FILMS: Film[] = [
     director: "Paul Thomas Anderson",
     year: 1997,
     duration: 9328,
-    url: "https://archive.org/download/boogie-nights-1997/boogie-nights-1997-final.mp4",
+    url: "https://cdn.qyrn.dev/boogie-nights.mkv",
     poster: "/posters/boogie-nights.webp",
     subtitles: [
-      { label: "Français", lang: "fr", url: "https://archive.org/download/boogie-nights-1997/boogie-nights-1997.fr.vtt" },
+      { label: "Français", lang: "fr", url: "/subs/boogie-nights.fr.vtt" },
     ],
     letterboxd: "https://letterboxd.com/film/boogie-nights/",
     synopsis: "Un jeune homme découvre l'industrie du film pour adultes dans le Los Angeles des années 70.",
@@ -24,7 +24,7 @@ export const FILMS: Film[] = [
     director: "David Lynch",
     year: 1986,
     duration: 7230,
-    url: "https://archive.org/download/qyrn-proj-02/blue-velvet-1986-final.mp4",
+    url: "https://cdn.qyrn.dev/blue-velvet.mkv",
     poster: "/posters/blue-velvet.webp",
     subtitles: [
       { label: "Français", lang: "fr", url: "https://archive.org/download/qyrn-proj-02/blue-velvet-1986.fr.vtt" },
