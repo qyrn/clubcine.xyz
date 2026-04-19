@@ -332,6 +332,9 @@ export const FILMS: Film[] = [
     duration: 10692,
     url: "https://cdn.qyrn.dev/films/casino.mkv",
     poster: "/posters/casino.webp",
+    subtitles: [
+      { label: "Français", lang: "fr", url: "https://cdn.qyrn.dev/subs/casino.fr.vtt" },
+    ],
     letterboxd: "https://letterboxd.com/film/casino/",
     synopsis: "L'ascension et la chute d'un parrain de la mafia à la tête d'un casino de Las Vegas des années 70.",
     country: "USA",
@@ -363,6 +366,9 @@ export const FILMS: Film[] = [
     duration: 9551,
     url: "https://cdn.qyrn.dev/films/eyes-wide-shut.mkv",
     poster: "/posters/eyes-wide-shut.webp",
+    subtitles: [
+      { label: "Français", lang: "fr", url: "https://cdn.qyrn.dev/subs/eyes-wide-shut.fr.vtt" },
+    ],
     letterboxd: "https://letterboxd.com/film/eyes-wide-shut/",
     synopsis: "Après une confession troublante de sa femme, un médecin new-yorkais plonge dans une odyssée nocturne.",
     country: "USA / Royaume-Uni",
@@ -411,6 +417,9 @@ export const FILMS: Film[] = [
     duration: 12489,
     url: "https://cdn.qyrn.dev/films/killers-of-the-flower-moon.mkv",
     poster: "/posters/killers-of-the-flower-moon.webp",
+    subtitles: [
+      { label: "Français", lang: "fr", url: "https://cdn.qyrn.dev/subs/killers-of-the-flower-moon.fr.vtt" },
+    ],
     letterboxd: "https://letterboxd.com/film/killers-of-the-flower-moon/",
     synopsis: "Dans l'Oklahoma des années 20, les Osage deviennent soudain riches grâce au pétrole, puis commencent à mourir.",
     country: "USA",
@@ -510,6 +519,9 @@ export const FILMS: Film[] = [
     duration: 6801,
     url: "https://cdn.qyrn.dev/films/midnight-cowboy.mkv",
     poster: "/posters/midnight-cowboy.webp",
+    subtitles: [
+      { label: "Français", lang: "fr", url: "https://cdn.qyrn.dev/subs/midnight-cowboy.fr.vtt" },
+    ],
     letterboxd: "https://letterboxd.com/film/midnight-cowboy/",
     synopsis: "Un cow-boy texan débarque à New York pour vivre de ses charmes et rencontre un petit escroc malade.",
     country: "USA",
@@ -524,6 +536,9 @@ export const FILMS: Film[] = [
     duration: 6253,
     url: "https://cdn.qyrn.dev/films/masculine-feminine.mkv",
     poster: "/posters/masculine-feminine.webp",
+    subtitles: [
+      { label: "Français", lang: "fr", url: "https://cdn.qyrn.dev/subs/masculine-feminine.fr.vtt" },
+    ],
     letterboxd: "https://letterboxd.com/film/masculin-feminin/",
     synopsis: "Un jeune militant parisien s'éprend d'une chanteuse yéyé dans le Paris pré-68, entre amour et idéologie.",
     country: "France",
@@ -538,6 +553,9 @@ export const FILMS: Film[] = [
     duration: 6985,
     url: "https://cdn.qyrn.dev/films/my-uncle.mkv",
     poster: "/posters/my-uncle.webp",
+    subtitles: [
+      { label: "Français", lang: "fr", url: "https://cdn.qyrn.dev/subs/my-uncle.fr.vtt" },
+    ],
     letterboxd: "https://letterboxd.com/film/mon-oncle/",
     synopsis: "Monsieur Hulot affronte la modernité absurde de la villa automatisée de sa sœur et de son beau-frère.",
     country: "France",
@@ -552,6 +570,9 @@ export const FILMS: Film[] = [
     duration: 9901,
     url: "https://cdn.qyrn.dev/films/pacifiction.mkv",
     poster: "/posters/pacifiction.webp",
+    subtitles: [
+      { label: "Français", lang: "fr", url: "https://cdn.qyrn.dev/subs/pacifiction.fr.vtt" },
+    ],
     letterboxd: "https://letterboxd.com/film/pacifiction/",
     synopsis: "Un haut-commissaire français dérive en Polynésie entre rumeurs d'essais nucléaires et moiteur tropicale.",
     country: "France",
@@ -583,6 +604,9 @@ export const FILMS: Film[] = [
     duration: 7417,
     url: "https://cdn.qyrn.dev/films/playtime.mkv",
     poster: "/posters/playtime.webp",
+    subtitles: [
+      { label: "Français", lang: "fr", url: "https://cdn.qyrn.dev/subs/playtime.fr.vtt" },
+    ],
     letterboxd: "https://letterboxd.com/film/playtime/",
     synopsis: "Monsieur Hulot erre dans un Paris moderne géométrique et froid, peuplé de touristes perdus.",
     country: "France",
