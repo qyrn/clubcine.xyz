@@ -24,7 +24,7 @@ foreach ($film in $films) {
 
     # Extraction sous-titres FR
     $probeRaw = ffprobe -v quiet -print_format json -show_streams -select_streams s $src 2>$null | Out-String
-    if ($probeRaw) {
+    if ($probeRaw.Trim()) {
         $subStreams = ($probeRaw | ConvertFrom-Json).streams
 
         $frStream = $subStreams | Where-Object {
@@ -55,7 +55,7 @@ foreach ($film in $films) {
     ffmpeg -y -loglevel error -i $src -map 0:v:0 -map 0:a:0 -c:v h264_nvenc -rc:v vbr -cq:v 22 -b:v 0 -maxrate:v 6000k -preset p4 -c:a aac -b:a 192k -ac 2 $enc
 
     if ($LASTEXITCODE -ne 0 -or !(Test-Path $enc)) {
-        Write-Host "  ENC : erreur — source conservee"
+        Write-Host "  ENC : erreur - source conservee"
         if (Test-Path $enc) { Remove-Item $enc }
     } else {
         $srcGB = [math]::Round($film.Length / 1GB, 2)
@@ -69,7 +69,7 @@ foreach ($film in $films) {
     Write-Host "  UP  : film..."
     rclone copyto $src "$B2Remote/films/$id.mkv"
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "  UP  : ERREUR upload film — film ignore"
+        Write-Host "  UP  : ERREUR upload film - film ignore"
         Write-Host ""
         continue
     }
@@ -96,19 +96,17 @@ Write-Host "=== Verification B2 ==="
 $b2Films = @(rclone lsf "$B2Remote/films/" 2>$null)
 $b2Subs  = @(rclone lsf "$B2Remote/subs/"  2>$null)
 
-$allFilmsOk = $true
 foreach ($film in $films) {
     $id   = $film.BaseName
     $fOk  = $b2Films -contains "$id.mkv"
     $sOk  = $b2Subs  -contains "$id.fr.vtt"
-    if (!$fOk) { $allFilmsOk = $false }
     $fMark = if ($fOk) { "OK" } else { "MANQUANT" }
     $sMark = if ($sOk) { "sub OK" } else { "pas de sub" }
     Write-Host "  $id : film=$fMark  $sMark"
 }
 Write-Host ""
 
-# Suppression locale (seulement si confirme sur B2)
+# Suppression locale
 Write-Host "=== Nettoyage local ==="
 foreach ($film in $films) {
     $id        = $film.BaseName
@@ -119,7 +117,7 @@ foreach ($film in $films) {
         if (Test-Path $localFilm) { Remove-Item $localFilm; Write-Host "  Supprime $id.mkv" }
         if (Test-Path $localSub)  { Remove-Item $localSub;  Write-Host "  Supprime $id.fr.vtt" }
     } else {
-        Write-Host "  SKIP $id — non confirme sur B2, fichier conserve"
+        Write-Host "  SKIP $id - non confirme sur B2, fichier conserve"
     }
 }
 
