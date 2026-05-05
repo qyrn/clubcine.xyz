@@ -8,65 +8,6 @@ const SYNC_THRESHOLD = 2;
 const DRIFT_CHECK_INTERVAL = 5_000;
 const RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000];
 
-interface SubSettings {
-  fontSize: number;
-  bottom: number;
-  color: string;
-  bgOpacity: number;
-  offset: number;
-}
-
-const DEFAULT_SUB_SETTINGS: SubSettings = {
-  fontSize: 22,
-  bottom: 10,
-  color: "#f5f0e8",
-  bgOpacity: 0.6,
-  offset: 0,
-};
-
-const SUB_COLORS = ["#f5f0e8", "#ffffff", "#c4a97d", "#e8d197", "#ffde59"];
-
-interface VTTCueItem {
-  start: number;
-  end: number;
-  text: string;
-}
-
-function parseVTTTimestamp(s: string): number {
-  const parts = s.trim().split(":");
-  if (parts.length === 3) {
-    return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(parts[2]);
-  }
-  return parseInt(parts[0], 10) * 60 + parseFloat(parts[1]);
-}
-
-function parseVTT(text: string): VTTCueItem[] {
-  const lines = text.split(/\r?\n/);
-  const cues: VTTCueItem[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    const arrow = line.indexOf(" --> ");
-    if (arrow !== -1) {
-      const start = parseVTTTimestamp(line.slice(0, arrow));
-      const end = parseVTTTimestamp(line.slice(arrow + 5).split(" ")[0]);
-      const textLines: string[] = [];
-      i++;
-      while (i < lines.length && lines[i].trim() !== "") {
-        textLines.push(lines[i]);
-        i++;
-      }
-      if (!isNaN(start) && !isNaN(end)) {
-        const raw = textLines.join("\n");
-        const clean = raw.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
-        cues.push({ start, end, text: clean });
-      }
-    }
-    i++;
-  }
-  return cues;
-}
-
 type PlayerProps = {
   onControlsVisibleChange?: (visible: boolean) => void;
 };
@@ -78,11 +19,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(0.8);
-  const [subsOn, setSubsOn] = useState(true);
   const [showControls, setShowControls] = useState(false);
-  const [cueText, setCueText] = useState("");
-  const [subSettings, setSubSettings] = useState<SubSettings>(DEFAULT_SUB_SETTINGS);
-  const [showSubSettings, setShowSubSettings] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -228,58 +165,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     video.muted = muted;
   }, [volume, muted]);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("subSettings");
-      if (stored) setSubSettings({ ...DEFAULT_SUB_SETTINGS, ...JSON.parse(stored) });
-    } catch {}
-  }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem("subSettings", JSON.stringify(subSettings));
-    } catch {}
-  }, [subSettings]);
-
-  const cuesRef = useRef<VTTCueItem[]>([]);
-
-  useEffect(() => {
-    const sub = schedule?.currentFilm.subtitles?.find((s) => s.lang === "fr");
-    if (!sub) {
-      cuesRef.current = [];
-      setCueText("");
-      return;
-    }
-    let cancelled = false;
-    fetch(sub.url)
-      .then((r) => (r.ok ? r.text() : ""))
-      .then((text) => {
-        if (cancelled) return;
-        cuesRef.current = parseVTT(text);
-      })
-      .catch(() => {
-        if (!cancelled) cuesRef.current = [];
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [schedule?.currentFilm.id]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (!subsOn) {
-      setCueText("");
-      return;
-    }
-    const handleTime = () => {
-      const t = video.currentTime - subSettings.offset;
-      const cue = cuesRef.current.find((c) => t >= c.start && t <= c.end);
-      setCueText(cue?.text || "");
-    };
-    video.addEventListener("timeupdate", handleTime);
-    return () => video.removeEventListener("timeupdate", handleTime);
-  }, [subsOn, schedule?.currentFilm.id, subSettings.offset]);
 
   useEffect(() => {
     onControlsVisibleChange?.(showControls);
@@ -319,10 +205,6 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
           e.preventDefault();
           toggleMute();
           break;
-        case "s":
-          e.preventDefault();
-          setSubsOn((prev) => !prev);
-          break;
       }
     };
 
@@ -358,154 +240,6 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         onClick={toggleMute}
       />
 
-      {subsOn && cueText && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 z-[15] flex flex-col items-center gap-1 pointer-events-none max-w-[85%]"
-          style={{ bottom: `${subSettings.bottom}%` }}
-        >
-          {cueText.split("\n").map((line, i) => (
-            <span
-              key={i}
-              className="px-3 py-1 leading-snug text-center"
-              style={{
-                fontSize: `${subSettings.fontSize}px`,
-                color: subSettings.color,
-                backgroundColor: `rgba(0,0,0,${subSettings.bgOpacity})`,
-                textShadow: "0 1px 2px rgba(0,0,0,0.9)",
-                fontFamily: "var(--font-body)",
-                fontWeight: 500,
-              }}
-            >
-              {line}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {showSubSettings && (
-        <div
-          className="absolute bottom-16 right-4 z-20 bg-black/90 border border-border rounded-sm p-4 w-[240px] text-[11px] font-[var(--font-body)]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-warm uppercase tracking-wide">sous-titres</span>
-            <button
-              onClick={() => setSubSettings(DEFAULT_SUB_SETTINGS)}
-              className="text-dim hover:text-warm cursor-pointer transition-colors text-[10px]"
-            >
-              reset
-            </button>
-          </div>
-
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1 text-[#d4cfc7]">
-              <span>décalage</span>
-              <span className="text-dim font-[var(--font-mono)]">
-                {subSettings.offset > 0 ? "+" : ""}
-                {subSettings.offset.toFixed(1)}s
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-[10px] font-[var(--font-mono)]">
-              <button
-                onClick={() => setSubSettings((s) => ({ ...s, offset: Math.round((s.offset - 1) * 10) / 10 }))}
-                className="flex-1 py-1 border border-border text-[#d4cfc7] hover:text-warm hover:border-warm cursor-pointer transition-colors"
-              >
-                −1s
-              </button>
-              <button
-                onClick={() => setSubSettings((s) => ({ ...s, offset: Math.round((s.offset - 0.1) * 10) / 10 }))}
-                className="flex-1 py-1 border border-border text-[#d4cfc7] hover:text-warm hover:border-warm cursor-pointer transition-colors"
-              >
-                −0.1
-              </button>
-              <button
-                onClick={() => setSubSettings((s) => ({ ...s, offset: 0 }))}
-                className="px-2 py-1 border border-border text-dim hover:text-warm hover:border-warm cursor-pointer transition-colors"
-              >
-                0
-              </button>
-              <button
-                onClick={() => setSubSettings((s) => ({ ...s, offset: Math.round((s.offset + 0.1) * 10) / 10 }))}
-                className="flex-1 py-1 border border-border text-[#d4cfc7] hover:text-warm hover:border-warm cursor-pointer transition-colors"
-              >
-                +0.1
-              </button>
-              <button
-                onClick={() => setSubSettings((s) => ({ ...s, offset: Math.round((s.offset + 1) * 10) / 10 }))}
-                className="flex-1 py-1 border border-border text-[#d4cfc7] hover:text-warm hover:border-warm cursor-pointer transition-colors"
-              >
-                +1s
-              </button>
-            </div>
-          </div>
-
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1 text-[#d4cfc7]">
-              <span>taille</span>
-              <span className="text-dim font-[var(--font-mono)]">{subSettings.fontSize}px</span>
-            </div>
-            <input
-              type="range"
-              min="14"
-              max="40"
-              step="1"
-              value={subSettings.fontSize}
-              onChange={(e) => setSubSettings((s) => ({ ...s, fontSize: parseInt(e.target.value) }))}
-              className="w-full h-[3px] accent-warm cursor-pointer"
-            />
-          </div>
-
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1 text-[#d4cfc7]">
-              <span>position</span>
-              <span className="text-dim font-[var(--font-mono)]">{subSettings.bottom}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="80"
-              step="1"
-              value={subSettings.bottom}
-              onChange={(e) => setSubSettings((s) => ({ ...s, bottom: parseInt(e.target.value) }))}
-              className="w-full h-[3px] accent-warm cursor-pointer"
-            />
-          </div>
-
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1 text-[#d4cfc7]">
-              <span>fond</span>
-              <span className="text-dim font-[var(--font-mono)]">{Math.round(subSettings.bgOpacity * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={subSettings.bgOpacity}
-              onChange={(e) => setSubSettings((s) => ({ ...s, bgOpacity: parseFloat(e.target.value) }))}
-              className="w-full h-[3px] accent-warm cursor-pointer"
-            />
-          </div>
-
-          <div>
-            <div className="text-[#d4cfc7] mb-2">couleur</div>
-            <div className="flex gap-2">
-              {SUB_COLORS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setSubSettings((s) => ({ ...s, color }))}
-                  className="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-110"
-                  style={{
-                    background: color,
-                    outline: subSettings.color === color ? "2px solid var(--color-warm)" : "1px solid var(--color-border)",
-                    outlineOffset: "2px",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {muted && (
         <button
@@ -568,37 +302,6 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         />
 
         <div className="flex-1" />
-
-        {schedule?.currentFilm.subtitles && schedule.currentFilm.subtitles.length > 0 && (
-          <>
-            <button
-              onClick={() => setSubsOn((prev) => !prev)}
-              aria-label="sous-titres"
-              title="sous-titres"
-              className={`cursor-pointer transition-colors shrink-0 ${subsOn ? "text-warm" : "text-dim hover:text-[#d4cfc7]"}`}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <line x1="7" y1="15" x2="10" y2="15" />
-                <line x1="14" y1="15" x2="17" y2="15" />
-                <line x1="7" y1="11" x2="9" y2="11" />
-                <line x1="13" y1="11" x2="17" y2="11" />
-              </svg>
-            </button>
-            {subsOn && (
-              <button
-                onClick={() => setShowSubSettings((prev) => !prev)}
-                className={`cursor-pointer transition-colors shrink-0 ${showSubSettings ? "text-warm" : "text-[#d4cfc7] hover:text-warm"}`}
-                title="réglages sous-titres"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-              </button>
-            )}
-          </>
-        )}
 
         <button
           onClick={toggleFullscreen}
