@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Hls from "hls.js";
 import { ScheduleState } from "@/types";
 
-const SYNC_INTERVAL = 15_000;
-const SYNC_THRESHOLD = 2;
-const DRIFT_CHECK_INTERVAL = 5_000;
+const SYNC_INTERVAL = 30_000;
+const SYNC_THRESHOLD = 4;
+const DRIFT_CHECK_INTERVAL = 10_000;
 const RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000];
 
 type PlayerProps = {
@@ -15,6 +16,8 @@ type PlayerProps = {
 export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const currentUrlRef = useRef<string | null>(null);
   const [schedule, setSchedule] = useState<ScheduleState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
@@ -22,6 +25,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [buffering, setBuffering] = useState(false);
+  const [hasSubs, setHasSubs] = useState(false);
+  const [subsOn, setSubsOn] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCount = useRef(0);
   const lastSyncRef = useRef<{ serverTime: number; clientTime: number; offset: number; filmUrl: string } | null>(null);
@@ -62,6 +67,50 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     }
   }, []);
 
+  const loadFilm = useCallback((video: HTMLVideoElement, url: string, offset: number) => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    currentUrlRef.current = url;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        backBufferLength: 30,
+        maxBufferLength: 60,
+        maxMaxBufferLength: 120,
+      });
+      hlsRef.current = hls;
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.currentTime = offset;
+        video.play().catch(() => {});
+        const tracks = hls.subtitleTracks;
+        const hasFr = tracks.length > 0;
+        setHasSubs(hasFr);
+        if (hasFr) {
+          hls.subtitleTrack = subsOn ? 0 : -1;
+        }
+      });
+
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          setError("erreur HLS — resync...");
+          setTimeout(() => forceSyncRef.current?.(), 2000);
+        }
+      });
+
+      hls.loadSource(url);
+      hls.attachMedia(video);
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = url;
+      video.currentTime = offset;
+      video.play().catch(() => {});
+      setHasSubs(video.textTracks.length > 0);
+    }
+  }, [subsOn]);
+
   const syncPlayback = useCallback(
     (data: ScheduleState) => {
       const video = videoRef.current;
@@ -70,27 +119,35 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       const targetUrl = data.currentFilm.url;
       const targetOffset = data.currentOffset;
 
-      if (!video.src || !video.src.includes(new URL(targetUrl, location.origin).pathname.split("/").pop()!)) {
-        video.src = targetUrl;
-        video.currentTime = targetOffset;
-        video.play().catch(() => {});
+      if (currentUrlRef.current !== targetUrl) {
+        loadFilm(video, targetUrl, targetOffset);
       } else if (Math.abs(video.currentTime - targetOffset) > SYNC_THRESHOLD) {
         video.currentTime = targetOffset;
         if (video.paused) video.play().catch(() => {});
       }
     },
-    []
+    [loadFilm]
   );
+
+  const forceSyncRef = useRef<(() => Promise<void>) | null>(null);
 
   const forceSync = useCallback(async () => {
     const data = await fetchSchedule();
     if (data) syncPlayback(data);
   }, [fetchSchedule, syncPlayback]);
 
+  forceSyncRef.current = forceSync;
+
   useEffect(() => {
     forceSync();
     const syncInterval = setInterval(forceSync, SYNC_INTERVAL);
-    return () => clearInterval(syncInterval);
+    return () => {
+      clearInterval(syncInterval);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
   }, [forceSync]);
 
   useEffect(() => {
@@ -109,7 +166,21 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") forceSync();
+      if (document.visibilityState !== "visible") return;
+      const video = videoRef.current;
+      const expected = getExpectedOffset();
+      if (!video || expected === null) {
+        forceSync();
+        return;
+      }
+      const drift = Math.abs(video.currentTime - expected);
+      if (drift > SYNC_THRESHOLD * 2) {
+        video.currentTime = expected;
+      }
+      const sync = lastSyncRef.current;
+      if (!sync || Date.now() - sync.clientTime > 60_000) {
+        forceSync();
+      }
     };
     const onOnline = () => forceSync();
 
@@ -119,44 +190,28 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
     };
-  }, [forceSync]);
+  }, [forceSync, getExpectedOffset]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const onCanPlay = () => {
-      const expected = getExpectedOffset();
-      if (expected !== null && Math.abs(video.currentTime - expected) > SYNC_THRESHOLD) {
-        video.currentTime = expected;
-      }
-      video.play().catch(() => {});
-      setBuffering(false);
-    };
-
     const onWaiting = () => setBuffering(true);
     const onPlaying = () => setBuffering(false);
-
-    const onError = () => {
-      setError("erreur de lecture — resync...");
-      setTimeout(forceSync, 2000);
-    };
-
+    const onCanPlay = () => setBuffering(false);
     const onEnded = () => forceSync();
 
-    video.addEventListener("canplay", onCanPlay);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
-    video.addEventListener("error", onError);
+    video.addEventListener("canplay", onCanPlay);
     video.addEventListener("ended", onEnded);
     return () => {
-      video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("playing", onPlaying);
-      video.removeEventListener("error", onError);
+      video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("ended", onEnded);
     };
-  }, [forceSync, getExpectedOffset]);
+  }, [forceSync]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -165,7 +220,11 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     video.muted = muted;
   }, [volume, muted]);
 
-
+  useEffect(() => {
+    if (hlsRef.current && hasSubs) {
+      hlsRef.current.subtitleTrack = subsOn ? 0 : -1;
+    }
+  }, [subsOn, hasSubs]);
 
   useEffect(() => {
     onControlsVisibleChange?.(showControls);
@@ -183,6 +242,10 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
   const toggleMute = useCallback(() => {
     setMuted((prev) => !prev);
+  }, []);
+
+  const toggleSubs = useCallback(() => {
+    setSubsOn((prev) => !prev);
   }, []);
 
   useEffect(() => {
@@ -205,12 +268,16 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
           e.preventDefault();
           toggleMute();
           break;
+        case "c":
+          e.preventDefault();
+          if (hasSubs) toggleSubs();
+          break;
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggleFullscreen, toggleMute]);
+  }, [toggleFullscreen, toggleMute, toggleSubs, hasSubs]);
 
   const handleMouseMove = () => {
     setShowControls(true);
@@ -239,7 +306,6 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         playsInline
         onClick={toggleMute}
       />
-
 
       {muted && (
         <button
@@ -302,6 +368,22 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         />
 
         <div className="flex-1" />
+
+        {hasSubs && (
+          <button
+            onClick={toggleSubs}
+            className={`cursor-pointer transition-colors shrink-0 ${subsOn ? "text-warm" : "text-[#d4cfc7] hover:text-warm"}`}
+            title={subsOn ? "Désactiver sous-titres (C)" : "Activer sous-titres (C)"}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
+              <line x1="6" y1="11" x2="9" y2="11" />
+              <line x1="11" y1="11" x2="14" y2="11" />
+              <line x1="6" y1="15" x2="13" y2="15" />
+              <line x1="15" y1="15" x2="18" y2="15" />
+            </svg>
+          </button>
+        )}
 
         <button
           onClick={toggleFullscreen}
