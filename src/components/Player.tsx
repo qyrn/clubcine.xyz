@@ -9,6 +9,30 @@ const SYNC_THRESHOLD = 4;
 const DRIFT_CHECK_INTERVAL = 10_000;
 const RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000];
 
+type SubsSettings = {
+  offset: number;
+  size: number;
+  position: number;
+  color: string;
+};
+
+const DEFAULT_SUBS_SETTINGS: SubsSettings = {
+  offset: 0,
+  size: 100,
+  position: 12,
+  color: "#f0eae0",
+};
+
+const SUB_COLORS = [
+  { value: "#f0eae0", label: "Crème" },
+  { value: "#ffffff", label: "Blanc" },
+  { value: "#fbbf24", label: "Ambre" },
+  { value: "#86efac", label: "Vert" },
+  { value: "#a5b4fc", label: "Bleu" },
+];
+
+const SUBS_STORAGE_KEY = "qyrn-subs-settings";
+
 type PlayerProps = {
   onControlsVisibleChange?: (visible: boolean) => void;
 };
@@ -27,6 +51,11 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const [buffering, setBuffering] = useState(false);
   const [hasSubs, setHasSubs] = useState(false);
   const [subsOn, setSubsOn] = useState(true);
+  const [subsSettings, setSubsSettings] = useState<SubsSettings>(DEFAULT_SUBS_SETTINGS);
+  const [showSubsPanel, setShowSubsPanel] = useState(false);
+  const subsOnRef = useRef(true);
+  const subsSettingsRef = useRef<SubsSettings>(DEFAULT_SUBS_SETTINGS);
+  const baseTimingsRef = useRef<Map<TextTrackCue, { start: number; end: number }>>(new Map());
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCount = useRef(0);
   const lastSyncRef = useRef<{ serverTime: number; clientTime: number; offset: number; filmUrl: string } | null>(null);
@@ -77,6 +106,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
     if (Hls.isSupported()) {
       const hls = new Hls({
+        startPosition: offset,
         backBufferLength: 30,
         maxBufferLength: 60,
         maxMaxBufferLength: 120,
@@ -84,32 +114,35 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       hlsRef.current = hls;
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.currentTime = offset;
-        video.play().catch(() => {});
-        const tracks = hls.subtitleTracks;
-        const hasFr = tracks.length > 0;
-        setHasSubs(hasFr);
-        if (hasFr) {
-          hls.subtitleTrack = subsOn ? 0 : -1;
+        video.play().catch((e) => console.warn("[HLS] play failed:", e));
+      });
+
+      hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
+        const tracksAvail = data.subtitleTracks.length > 0;
+        setHasSubs(tracksAvail);
+        if (tracksAvail) {
+          hls.subtitleTrack = subsOnRef.current ? 0 : -1;
         }
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.details === "bufferFullError") return;
+        console.error("[HLS]", data.type, data.details, data.fatal ? "FATAL" : "warn");
         if (data.fatal) {
           setError("erreur HLS — resync...");
           setTimeout(() => forceSyncRef.current?.(), 2000);
         }
       });
 
-      hls.loadSource(url);
       hls.attachMedia(video);
+      hls.loadSource(url);
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = url;
       video.currentTime = offset;
       video.play().catch(() => {});
       setHasSubs(video.textTracks.length > 0);
     }
-  }, [subsOn]);
+  }, []);
 
   const syncPlayback = useCallback(
     (data: ScheduleState) => {
@@ -221,10 +254,99 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   }, [volume, muted]);
 
   useEffect(() => {
+    subsOnRef.current = subsOn;
     if (hlsRef.current && hasSubs) {
       hlsRef.current.subtitleTrack = subsOn ? 0 : -1;
     }
+    const video = videoRef.current;
+    if (video) {
+      for (const track of Array.from(video.textTracks)) {
+        if (track.kind === "subtitles" || track.kind === "captions") {
+          track.mode = subsOn ? "showing" : "hidden";
+        }
+      }
+    }
   }, [subsOn, hasSubs]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SUBS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<SubsSettings>;
+        setSubsSettings({ ...DEFAULT_SUBS_SETTINGS, ...parsed });
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    subsSettingsRef.current = subsSettings;
+    try {
+      localStorage.setItem(SUBS_STORAGE_KEY, JSON.stringify(subsSettings));
+    } catch {}
+    const video = videoRef.current;
+    if (!video) return;
+    for (const track of Array.from(video.textTracks)) {
+      if (!track.cues) continue;
+      for (const cue of Array.from(track.cues)) {
+        const base = baseTimingsRef.current.get(cue);
+        if (base) {
+          cue.startTime = base.start + subsSettings.offset;
+          cue.endTime = base.end + subsSettings.offset;
+        }
+        const vtt = cue as VTTCue;
+        vtt.snapToLines = false;
+        vtt.line = 100 - subsSettings.position;
+      }
+    }
+  }, [subsSettings]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const applyToCue = (cue: TextTrackCue) => {
+      if (!baseTimingsRef.current.has(cue)) {
+        baseTimingsRef.current.set(cue, { start: cue.startTime, end: cue.endTime });
+        const s = subsSettingsRef.current;
+        if (s.offset !== 0) {
+          cue.startTime += s.offset;
+          cue.endTime += s.offset;
+        }
+        const vtt = cue as VTTCue;
+        vtt.snapToLines = false;
+        vtt.line = 100 - s.position;
+      }
+    };
+
+    const onTrackAdd = (track: TextTrack) => {
+      track.mode = subsOnRef.current ? "showing" : "hidden";
+      const handleCues = () => {
+        if (!track.cues) return;
+        for (const cue of Array.from(track.cues)) {
+          applyToCue(cue);
+        }
+      };
+      handleCues();
+      track.addEventListener("cuechange", handleCues);
+    };
+
+    const onTracksChange = () => {
+      for (const track of Array.from(video.textTracks)) {
+        if (track.kind === "subtitles" || track.kind === "captions") {
+          onTrackAdd(track);
+        }
+      }
+    };
+
+    video.textTracks.addEventListener("addtrack", onTracksChange);
+    video.textTracks.addEventListener("change", onTracksChange);
+    onTracksChange();
+
+    return () => {
+      video.textTracks.removeEventListener("addtrack", onTracksChange);
+      video.textTracks.removeEventListener("change", onTracksChange);
+    };
+  }, [hasSubs]);
 
   useEffect(() => {
     onControlsVisibleChange?.(showControls);
@@ -326,6 +448,81 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         </div>
       )}
 
+      <style>{`::cue { color: ${subsSettings.color}; font-size: ${subsSettings.size}%; }`}</style>
+
+      {hasSubs && showSubsPanel && showControls && (
+        <div className="absolute bottom-16 right-4 z-20 bg-black/85 backdrop-blur-sm border border-warm/30 rounded px-4 py-3 min-w-[260px] text-[#d4cfc7] text-[11px] font-[var(--font-mono)]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-warm uppercase tracking-wide">Sous-titres</span>
+            <button
+              onClick={() => setSubsSettings(DEFAULT_SUBS_SETTINGS)}
+              className="text-muted hover:text-warm cursor-pointer text-[10px] uppercase"
+            >
+              Réinitialiser
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-16 shrink-0">Décalage</span>
+              <input
+                type="range"
+                min="-10"
+                max="10"
+                step="0.1"
+                value={subsSettings.offset}
+                onChange={(e) => setSubsSettings((s) => ({ ...s, offset: parseFloat(e.target.value) }))}
+                className="flex-1 h-[3px] accent-warm cursor-pointer"
+              />
+              <span className="w-12 text-right tabular-nums">{subsSettings.offset > 0 ? "+" : ""}{subsSettings.offset.toFixed(1)}s</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="w-16 shrink-0">Taille</span>
+              <input
+                type="range"
+                min="60"
+                max="200"
+                step="5"
+                value={subsSettings.size}
+                onChange={(e) => setSubsSettings((s) => ({ ...s, size: parseInt(e.target.value) }))}
+                className="flex-1 h-[3px] accent-warm cursor-pointer"
+              />
+              <span className="w-12 text-right tabular-nums">{subsSettings.size}%</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="w-16 shrink-0">Position</span>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                step="1"
+                value={subsSettings.position}
+                onChange={(e) => setSubsSettings((s) => ({ ...s, position: parseInt(e.target.value) }))}
+                className="flex-1 h-[3px] accent-warm cursor-pointer"
+              />
+              <span className="w-12 text-right tabular-nums">{subsSettings.position}%</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="w-16 shrink-0">Couleur</span>
+              <div className="flex-1 flex gap-2">
+                {SUB_COLORS.map((c) => (
+                  <button
+                    key={c.value}
+                    onClick={() => setSubsSettings((s) => ({ ...s, color: c.value }))}
+                    title={c.label}
+                    className={`w-5 h-5 rounded-full cursor-pointer border ${subsSettings.color === c.value ? "border-warm" : "border-transparent"}`}
+                    style={{ background: c.value }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-center gap-4 transition-opacity duration-300 z-10"
         style={{
@@ -370,19 +567,31 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         <div className="flex-1" />
 
         {hasSubs && (
-          <button
-            onClick={toggleSubs}
-            className={`cursor-pointer transition-colors shrink-0 ${subsOn ? "text-warm" : "text-[#d4cfc7] hover:text-warm"}`}
-            title={subsOn ? "Désactiver sous-titres (C)" : "Activer sous-titres (C)"}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
-              <line x1="6" y1="11" x2="9" y2="11" />
-              <line x1="11" y1="11" x2="14" y2="11" />
-              <line x1="6" y1="15" x2="13" y2="15" />
-              <line x1="15" y1="15" x2="18" y2="15" />
-            </svg>
-          </button>
+          <>
+            <button
+              onClick={toggleSubs}
+              className={`cursor-pointer transition-colors shrink-0 ${subsOn ? "text-warm" : "text-[#d4cfc7] hover:text-warm"}`}
+              title={subsOn ? "Désactiver sous-titres (C)" : "Activer sous-titres (C)"}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
+                <line x1="6" y1="11" x2="9" y2="11" />
+                <line x1="11" y1="11" x2="14" y2="11" />
+                <line x1="6" y1="15" x2="13" y2="15" />
+                <line x1="15" y1="15" x2="18" y2="15" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setShowSubsPanel((v) => !v)}
+              className={`cursor-pointer transition-colors shrink-0 ${showSubsPanel ? "text-warm" : "text-[#d4cfc7] hover:text-warm"}`}
+              title="Réglages sous-titres"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </button>
+          </>
         )}
 
         <button
