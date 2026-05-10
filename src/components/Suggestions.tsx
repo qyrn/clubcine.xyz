@@ -1,112 +1,88 @@
 "use client";
 
-import { useState } from "react";
-
-interface Suggestion {
-  id: string;
-  title: string;
-  director: string;
-  year: number;
-  votes: number;
-}
-
-const INITIAL: Suggestion[] = [
-  { id: "blue-velvet", title: "Blue Velvet", director: "Lynch", year: 1986, votes: 14 },
-  { id: "vertigo", title: "Vertigo", director: "Hitchcock", year: 1958, votes: 11 },
-  { id: "tree-of-life", title: "The Tree of Life", director: "Malick", year: 2011, votes: 9 },
-];
+import { useEffect, useState } from "react";
 
 const LETTERBOXD_LIST = "https://letterboxd.com/clubcinefr/list/club-cine-juin-2026/";
+const CURRENT_MONTH_LABEL = "Juin 2026";
 
 export default function Suggestions() {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>(INITIAL);
-  const [voted, setVoted] = useState<Set<string>>(new Set());
   const [input, setInput] = useState("");
+  const [status, setStatus] = useState<"idle" | "sent">("idle");
 
-  const toggleVote = (id: string) => {
-    setVoted((prev) => {
-      const next = new Set(prev);
-      const has = next.has(id);
-      if (has) next.delete(id);
-      else next.add(id);
-      setSuggestions((sugs) =>
-        sugs.map((s) =>
-          s.id === id ? { ...s, votes: s.votes + (has ? -1 : 1) } : s,
-        ),
-      );
-      return next;
-    });
-  };
+  useEffect(() => {
+    if (status !== "sent") return;
+    const t = setTimeout(() => setStatus("idle"), 4000);
+    return () => clearTimeout(t);
+  }, [status]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!input.trim()) return;
     setInput("");
+    setStatus("sent");
   };
 
   return (
-    <div className="p-10 max-md:p-6">
-      <div className="text-[13px] font-semibold uppercase tracking-[0.16em] mb-5 flex justify-between items-baseline">
-        <span>Suggérer</span>
-        <span className="font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 normal-case">
-          {suggestions.reduce((acc, s) => acc + s.votes, 0)} votes / sem.
-        </span>
-      </div>
-
-      <form onSubmit={submit} className="flex gap-2 mb-4">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Titre, lien letterboxd…"
-          className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
-        />
-        <button
-          type="submit"
-          className="px-4 py-2.5 border border-ink-3 text-ink font-semibold text-[12px] hover:bg-ink hover:text-bg transition-colors cursor-pointer"
-        >
-          Proposer
-        </button>
-      </form>
-
-      <div className="flex flex-col">
-        {suggestions.map((s) => {
-          const isVoted = voted.has(s.id);
-          return (
-            <div
-              key={s.id}
-              className="py-2.5 grid grid-cols-[auto_1fr] gap-3.5 items-center border-b border-line last:border-b-0"
-            >
-              <button
-                onClick={() => toggleVote(s.id)}
-                className={`px-2.5 py-1.5 border font-mono font-semibold text-[12px] flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  isVoted ? "border-red text-red" : "border-line-2 hover:border-red hover:text-red"
-                }`}
-              >
-                ▲ {s.votes}
-              </button>
-              <div>
-                <div className="text-[14px] font-semibold">{s.title}</div>
-                <div className="text-[11px] text-ink-3">
-                  {s.director}, {s.year}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 pt-5 border-t border-line">
-        <div className="font-mono font-medium text-[12px] tracking-[0.02em] text-ink-3 mb-2">
-          <strong className="text-ink font-semibold">100 films</strong> · 32 réalisateurs · 16 pays · 7 décennies
+    <div className="p-10 max-md:p-6 flex flex-col h-full gap-6">
+      <div>
+        <div className="text-[13px] font-semibold uppercase tracking-[0.16em] mb-1">
+          Programmation du mois
         </div>
-        <a
-          href={LETTERBOXD_LIST}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block px-3.5 py-2 border border-ink-3 text-[12px] font-medium hover:bg-ink hover:text-bg hover:border-ink transition-colors"
+        <div className="font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 uppercase">
+          {CURRENT_MONTH_LABEL} · 100 films en rotation
+        </div>
+      </div>
+
+      <p className="text-[14px] leading-[1.6] text-ink-2">
+        La liste complète des films diffusés ce mois-ci est tenue à jour sur
+        Letterboxd. Ordre, notes, réalisateurs, posters : tout y est.
+      </p>
+
+      <a
+        href={LETTERBOXD_LIST}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center gap-3 px-5 py-3.5 border border-ink bg-transparent text-ink font-semibold text-[12px] tracking-wide w-fit transition-colors hover:border-red hover:text-red rounded-md"
+      >
+        VOIR LA LISTE {CURRENT_MONTH_LABEL.toUpperCase()}
+        <span aria-hidden>→</span>
+      </a>
+
+      <div className="mt-2 pt-6 border-t border-line flex flex-col gap-3">
+        <div>
+          <div className="text-[13px] font-semibold uppercase tracking-[0.16em] mb-1">
+            Suggérer un film
+          </div>
+          <div className="text-[12px] text-ink-3 leading-[1.5]">
+            Un film qui devrait passer ici ? Lien Letterboxd ou titre, on lit
+            tout.
+          </div>
+        </div>
+
+        <form onSubmit={submit} className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Titre, lien letterboxd…"
+            className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors rounded-md"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="px-4 py-2.5 border border-ink text-ink font-semibold text-[12px] bg-transparent hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default rounded-md"
+          >
+            Proposer
+          </button>
+        </form>
+
+        <div
+          className="font-mono text-[11px] tracking-[0.04em] text-red transition-opacity"
+          style={{ opacity: status === "sent" ? 1 : 0 }}
+          aria-live="polite"
         >
-          Voir sur Letterboxd
-        </a>
+          ★ Suggestion notée, merci.
+        </div>
       </div>
     </div>
   );
