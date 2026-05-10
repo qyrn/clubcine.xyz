@@ -32,7 +32,6 @@ const SUB_COLORS = [
 ];
 
 const SUBS_STORAGE_KEY = "clubcine-subs-settings";
-const LEGACY_SUBS_KEY = "qyrn-subs-settings";
 
 type PlayerProps = {
   onControlsVisibleChange?: (visible: boolean) => void;
@@ -271,9 +270,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
   useEffect(() => {
     try {
-      const raw =
-        localStorage.getItem(SUBS_STORAGE_KEY) ??
-        localStorage.getItem(LEGACY_SUBS_KEY);
+      const raw = localStorage.getItem(SUBS_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<SubsSettings>;
         setSubsSettings({ ...DEFAULT_SUBS_SETTINGS, ...parsed });

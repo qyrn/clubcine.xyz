@@ -1,6 +1,6 @@
 import { Film } from "@/types";
 
-const CDN = process.env.NEXT_PUBLIC_CDN_BASE ?? "https://cdn.qyrn.dev";
+const CDN = process.env.NEXT_PUBLIC_CDN_BASE ?? "https://cdn.clubcine.xyz";
 
 const buildUrl = (slug: string) => `${CDN}/films-hls/${slug}/master.m3u8`;
 

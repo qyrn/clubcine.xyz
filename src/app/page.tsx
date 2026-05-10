@@ -41,7 +41,7 @@ function PageContent() {
         <span>CLUBCINE.XYZ · CHANNEL 01 · 2026</span>
         <span className="flex gap-3">
           <a
-            href="https://ko-fi.com/qyrnsec"
+            href="https://ko-fi.com/clubcinefr"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-ink transition-colors"
