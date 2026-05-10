@@ -84,7 +84,7 @@ export default function Hero() {
 
         <Link
           href="/movie"
-          className="inline-flex items-center gap-3 px-6 py-4 border border-ink bg-ink text-bg font-semibold text-[13px] tracking-wide w-fit mt-2 transition-colors hover:bg-bg hover:text-ink"
+          className="inline-flex items-center gap-3 px-6 py-4 border border-ink bg-transparent text-ink font-semibold text-[13px] tracking-wide w-fit mt-2 transition-colors hover:border-red hover:text-red"
         >
           REJOINDRE LA SALLE
           <span aria-hidden>→</span>
@@ -93,7 +93,7 @@ export default function Hero() {
 
       <Link
         href="/movie"
-        className="block w-full aspect-[2/3] border border-line bg-cover bg-center max-[1000px]:max-w-[360px] max-[1000px]:mx-auto"
+        className="block w-full aspect-[2/3] border border-line bg-cover bg-center rounded-lg overflow-hidden max-[1000px]:max-w-[360px] max-[1000px]:mx-auto"
         style={{
           backgroundImage: film.poster ? `url(${film.poster})` : undefined,
           boxShadow: "0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",

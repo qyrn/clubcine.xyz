@@ -66,7 +66,7 @@ function FilmInfo({ visible }: { visible: boolean }) {
               <img
                 src={currentFilm.poster}
                 alt={currentFilm.title}
-                className="w-[56px] h-[80px] object-cover shrink-0 border border-white/10 shadow-2xl"
+                className="w-[56px] h-[80px] object-cover shrink-0 border border-white/10 shadow-2xl rounded-md"
               />
             )}
             <div className="min-w-0 pb-0.5">

@@ -122,7 +122,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full border border-ink bg-ink text-bg text-[12px] font-semibold py-2.5 hover:bg-bg hover:text-ink cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-default"
+            className="w-full border border-ink bg-transparent text-ink text-[12px] font-semibold py-2.5 hover:border-red hover:text-red cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-default"
           >
             {submitting ? "…" : mode === "login" ? "Se connecter" : "Créer un compte"}
           </button>

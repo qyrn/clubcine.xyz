@@ -39,7 +39,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const username = authUsername || anonUsername;
 
   useEffect(() => {
-    const stored = localStorage.getItem("clubcine-username") ?? localStorage.getItem("qyrn-username");
+    const stored = localStorage.getItem("clubcine-username");
     const name = stored ?? generateUsername();
     localStorage.setItem("clubcine-username", name);
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -188,7 +188,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         <button
           type="submit"
           disabled={!input.trim()}
-          className="px-4 py-2.5 bg-ink text-bg font-semibold text-[12px] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-opacity hover:opacity-90"
+          className="px-4 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors hover:border-red hover:text-red"
         >
           Envoyer
         </button>

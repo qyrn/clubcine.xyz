@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "clubcine-support-dismissed";
-const LEGACY_KEY = "qyrn-support-dismissed";
 
 export default function SupportPopup() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const dismissed =
-      localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY);
+    const dismissed = localStorage.getItem(STORAGE_KEY);
     if (dismissed) return;
     const timer = setTimeout(() => setVisible(true), 15_000);
     return () => clearTimeout(timer);
@@ -46,10 +44,10 @@ export default function SupportPopup() {
         </p>
 
         <a
-          href="https://ko-fi.com/qyrnsec"
+          href="https://ko-fi.com/clubcinefr"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center border border-ink bg-ink text-bg text-[12px] font-semibold uppercase tracking-[0.04em] py-2.5 hover:bg-bg hover:text-ink transition-colors"
+          className="flex items-center justify-center border border-ink bg-transparent text-ink text-[12px] font-semibold uppercase tracking-[0.04em] py-2.5 hover:border-red hover:text-red transition-colors"
         >
           Faire un don
         </a>

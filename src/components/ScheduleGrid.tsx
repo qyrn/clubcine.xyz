@@ -66,7 +66,7 @@ export default function ScheduleGrid() {
             className="flex flex-col gap-3 group cursor-pointer"
           >
             <div
-              className="aspect-[2/3] bg-cover bg-center transition-opacity group-hover:opacity-85 border border-line"
+              className="aspect-[2/3] bg-cover bg-center transition-opacity group-hover:opacity-85 border border-line rounded-lg overflow-hidden"
               style={{ backgroundImage: film.poster ? `url(${film.poster})` : undefined }}
             />
             <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.04em] text-red">
