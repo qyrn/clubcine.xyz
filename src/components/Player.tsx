@@ -20,18 +20,19 @@ const DEFAULT_SUBS_SETTINGS: SubsSettings = {
   offset: 0,
   size: 100,
   position: 12,
-  color: "#f0eae0",
+  color: "#ffffff",
 };
 
 const SUB_COLORS = [
-  { value: "#f0eae0", label: "Crème" },
   { value: "#ffffff", label: "Blanc" },
+  { value: "#f0eae0", label: "Crème" },
   { value: "#fbbf24", label: "Ambre" },
   { value: "#86efac", label: "Vert" },
   { value: "#a5b4fc", label: "Bleu" },
 ];
 
-const SUBS_STORAGE_KEY = "qyrn-subs-settings";
+const SUBS_STORAGE_KEY = "clubcine-subs-settings";
+const LEGACY_SUBS_KEY = "qyrn-subs-settings";
 
 type PlayerProps = {
   onControlsVisibleChange?: (visible: boolean) => void;
@@ -90,7 +91,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     } catch {
       const delay = RETRY_DELAYS[Math.min(retryCount.current, RETRY_DELAYS.length - 1)];
       retryCount.current++;
-      setError("signal perdu — reconnexion...");
+      setError("signal perdu, reconnexion...");
       await new Promise((r) => setTimeout(r, delay));
       return fetchSchedule();
     }
@@ -129,7 +130,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         if (data.details === "bufferFullError") return;
         console.error("[HLS]", data.type, data.details, data.fatal ? "FATAL" : "warn");
         if (data.fatal) {
-          setError("erreur HLS — resync...");
+          setError("erreur HLS, resync...");
           setTimeout(() => forceSyncRef.current?.(), 2000);
         }
       });
@@ -270,7 +271,9 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(SUBS_STORAGE_KEY);
+      const raw =
+        localStorage.getItem(SUBS_STORAGE_KEY) ??
+        localStorage.getItem(LEGACY_SUBS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<SubsSettings>;
         setSubsSettings({ ...DEFAULT_SUBS_SETTINGS, ...parsed });
@@ -432,9 +435,10 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       {muted && (
         <button
           onClick={toggleMute}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-black/60 rounded-full p-5 cursor-pointer transition-opacity hover:bg-black/80"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-black/60 p-5 cursor-pointer transition-opacity hover:bg-black/80"
+          aria-label="activer le son"
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d4cfc7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
             <line x1="23" y1="9" x2="17" y2="15" />
             <line x1="17" y1="9" x2="23" y2="15" />
@@ -444,19 +448,19 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
       {buffering && !error && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[18] pointer-events-none">
-          <div className="w-10 h-10 border-2 border-warm/30 border-t-warm rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-line-2 border-t-ink rounded-full animate-spin" />
         </div>
       )}
 
       <style>{`::cue { color: ${subsSettings.color}; font-size: ${subsSettings.size}%; }`}</style>
 
       {hasSubs && showSubsPanel && showControls && (
-        <div className="absolute bottom-16 right-4 z-20 bg-black/85 backdrop-blur-sm border border-warm/30 rounded px-4 py-3 min-w-[260px] text-[#d4cfc7] text-[11px] font-[var(--font-mono)]">
+        <div className="absolute bottom-16 right-4 z-20 bg-black/85 backdrop-blur-sm border border-line-2 px-4 py-3 min-w-[260px] text-ink text-[11px] font-mono">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-warm uppercase tracking-wide">Sous-titres</span>
+            <span className="text-ink uppercase tracking-[0.16em] font-semibold">Sous-titres</span>
             <button
               onClick={() => setSubsSettings(DEFAULT_SUBS_SETTINGS)}
-              className="text-muted hover:text-warm cursor-pointer text-[10px] uppercase"
+              className="text-ink-3 hover:text-ink cursor-pointer text-[10px] uppercase tracking-[0.08em]"
             >
               Réinitialiser
             </button>
@@ -464,7 +468,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="w-16 shrink-0">Décalage</span>
+              <span className="w-16 shrink-0 text-ink-2">Décalage</span>
               <input
                 type="range"
                 min="-10"
@@ -472,13 +476,13 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
                 step="0.1"
                 value={subsSettings.offset}
                 onChange={(e) => setSubsSettings((s) => ({ ...s, offset: parseFloat(e.target.value) }))}
-                className="flex-1 h-[3px] accent-warm cursor-pointer"
+                className="flex-1 h-[3px] accent-red cursor-pointer"
               />
               <span className="w-12 text-right tabular-nums">{subsSettings.offset > 0 ? "+" : ""}{subsSettings.offset.toFixed(1)}s</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="w-16 shrink-0">Taille</span>
+              <span className="w-16 shrink-0 text-ink-2">Taille</span>
               <input
                 type="range"
                 min="60"
@@ -486,13 +490,13 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
                 step="5"
                 value={subsSettings.size}
                 onChange={(e) => setSubsSettings((s) => ({ ...s, size: parseInt(e.target.value) }))}
-                className="flex-1 h-[3px] accent-warm cursor-pointer"
+                className="flex-1 h-[3px] accent-red cursor-pointer"
               />
               <span className="w-12 text-right tabular-nums">{subsSettings.size}%</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="w-16 shrink-0">Position</span>
+              <span className="w-16 shrink-0 text-ink-2">Position</span>
               <input
                 type="range"
                 min="0"
@@ -500,20 +504,20 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
                 step="1"
                 value={subsSettings.position}
                 onChange={(e) => setSubsSettings((s) => ({ ...s, position: parseInt(e.target.value) }))}
-                className="flex-1 h-[3px] accent-warm cursor-pointer"
+                className="flex-1 h-[3px] accent-red cursor-pointer"
               />
               <span className="w-12 text-right tabular-nums">{subsSettings.position}%</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="w-16 shrink-0">Couleur</span>
+              <span className="w-16 shrink-0 text-ink-2">Couleur</span>
               <div className="flex-1 flex gap-2">
                 {SUB_COLORS.map((c) => (
                   <button
                     key={c.value}
                     onClick={() => setSubsSettings((s) => ({ ...s, color: c.value }))}
                     title={c.label}
-                    className={`w-5 h-5 rounded-full cursor-pointer border ${subsSettings.color === c.value ? "border-warm" : "border-transparent"}`}
+                    className={`w-5 h-5 cursor-pointer border ${subsSettings.color === c.value ? "border-red" : "border-transparent"}`}
                     style={{ background: c.value }}
                   />
                 ))}
@@ -533,7 +537,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       >
         <button
           onClick={toggleMute}
-          className="text-[#d4cfc7] hover:text-warm cursor-pointer transition-colors shrink-0"
+          className="text-ink hover:text-red cursor-pointer transition-colors shrink-0"
+          aria-label={muted ? "activer le son" : "couper le son"}
         >
           {muted || volume === 0 ? (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -561,7 +566,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
             setVolume(v);
             if (v > 0) setMuted(false);
           }}
-          className="w-20 h-[3px] accent-warm cursor-pointer"
+          className="w-20 h-[3px] accent-red cursor-pointer"
         />
 
         <div className="flex-1" />
@@ -570,7 +575,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
           <>
             <button
               onClick={toggleSubs}
-              className={`cursor-pointer transition-colors shrink-0 ${subsOn ? "text-warm" : "text-[#d4cfc7] hover:text-warm"}`}
+              className={`cursor-pointer transition-colors shrink-0 ${subsOn ? "text-red" : "text-ink hover:text-red"}`}
               title={subsOn ? "Désactiver sous-titres (C)" : "Activer sous-titres (C)"}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -583,7 +588,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
             </button>
             <button
               onClick={() => setShowSubsPanel((v) => !v)}
-              className={`cursor-pointer transition-colors shrink-0 ${showSubsPanel ? "text-warm" : "text-[#d4cfc7] hover:text-warm"}`}
+              className={`cursor-pointer transition-colors shrink-0 ${showSubsPanel ? "text-red" : "text-ink hover:text-red"}`}
               title="Réglages sous-titres"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -596,7 +601,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
         <button
           onClick={toggleFullscreen}
-          className="text-[#d4cfc7] hover:text-warm cursor-pointer transition-colors shrink-0"
+          className="text-ink hover:text-red cursor-pointer transition-colors shrink-0"
+          aria-label="plein écran"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 3 21 3 21 9" />
@@ -609,7 +615,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center z-[18]">
-          <span className="text-live text-[11px] font-[var(--font-mono)] animate-[blink_1s_infinite]">
+          <span className="text-red text-[11px] font-mono uppercase tracking-[0.16em] animate-[pulse-dot_1.5s_infinite]">
             {error}
           </span>
         </div>
@@ -617,7 +623,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
       {!schedule && !error && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-muted text-[11px] font-[var(--font-mono)]">
+          <span className="text-ink-3 text-[11px] font-mono uppercase tracking-[0.16em]">
             synchro...
           </span>
         </div>
