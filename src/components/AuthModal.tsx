@@ -36,18 +36,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         return;
       }
       const err = await signUp(email, password, username.trim());
-      if (err) {
-        setError(err);
-      } else {
-        setSuccess(true);
-      }
+      if (err) setError(err);
+      else setSuccess(true);
     } else {
       const err = await signIn(email, password);
-      if (err) {
-        setError(err);
-      } else {
-        onClose();
-      }
+      if (err) setError(err);
+      else onClose();
     }
 
     setSubmitting(false);
@@ -60,18 +54,21 @@ export default function AuthModal({ onClose }: AuthModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85">
-      <div className="border border-border bg-surface max-w-xs w-full mx-4 p-5">
+      <div className="border border-line bg-bg max-w-xs w-full mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <span className="font-[var(--font-title)] text-[20px] text-[#d4cfc7] italic">
-            {mode === "login" ? "connexion" : "inscription"}
+          <span className="text-[14px] font-semibold uppercase tracking-[0.16em]">
+            {mode === "login" ? "Connexion" : "Inscription"}
           </span>
-          <button onClick={onClose} className="text-dim hover:text-warm text-[12px] cursor-pointer transition-colors">
+          <button
+            onClick={onClose}
+            className="text-ink-3 hover:text-ink text-[12px] cursor-pointer transition-colors"
+          >
             fermer
           </button>
         </div>
 
         {error && (
-          <div className="text-[11px] text-red mb-3 border border-red/20 bg-red/5 px-2 py-1.5">
+          <div className="text-[11px] text-red mb-3 border border-red/30 bg-red/5 px-2.5 py-2">
             {error}
           </div>
         )}
@@ -79,12 +76,14 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === "register" && (
             <div>
-              <label className="text-[11px] text-muted block mb-1">pseudo</label>
+              <label className="text-[11px] text-ink-2 block mb-1.5 uppercase tracking-[0.04em]">
+                pseudo
+              </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-transparent border border-border px-2 py-1.5 text-[12px] text-[#d4cfc7] outline-none focus:border-raised"
+                className="w-full bg-transparent border border-line-2 px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink transition-colors"
                 maxLength={20}
                 required
               />
@@ -92,25 +91,29 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           )}
 
           <div>
-            <label className="text-[11px] text-muted block mb-1">email</label>
+            <label className="text-[11px] text-ink-2 block mb-1.5 uppercase tracking-[0.04em]">
+              email
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              className="w-full bg-transparent border border-border px-2 py-1.5 text-[12px] text-[#d4cfc7] outline-none focus:border-raised"
+              className="w-full bg-transparent border border-line-2 px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink transition-colors"
               required
             />
           </div>
 
           <div>
-            <label className="text-[11px] text-muted block mb-1">mot de passe</label>
+            <label className="text-[11px] text-ink-2 block mb-1.5 uppercase tracking-[0.04em]">
+              mot de passe
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
-              className="w-full bg-transparent border border-border px-2 py-1.5 text-[12px] text-[#d4cfc7] outline-none focus:border-raised"
+              className="w-full bg-transparent border border-line-2 px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink transition-colors"
               minLength={6}
               required
             />
@@ -119,9 +122,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full border border-warm/30 text-warm text-[12px] py-2 hover:bg-warm/10 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-default"
+            className="w-full border border-ink bg-ink text-bg text-[12px] font-semibold py-2.5 hover:bg-bg hover:text-ink cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-default"
           >
-            {submitting ? "..." : mode === "login" ? "se connecter" : "créer un compte"}
+            {submitting ? "…" : mode === "login" ? "Se connecter" : "Créer un compte"}
           </button>
         </form>
 
@@ -129,14 +132,14 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           {mode === "login" ? (
             <button
               onClick={() => { setMode("register"); setError(null); }}
-              className="text-[11px] text-dim hover:text-warm/60 cursor-pointer transition-colors"
+              className="text-[11px] text-ink-3 hover:text-ink cursor-pointer transition-colors"
             >
               pas de compte ? inscris-toi
             </button>
           ) : (
             <button
               onClick={() => { setMode("login"); setError(null); }}
-              className="text-[11px] text-dim hover:text-warm/60 cursor-pointer transition-colors"
+              className="text-[11px] text-ink-3 hover:text-ink cursor-pointer transition-colors"
             >
               déjà un compte ? connecte-toi
             </button>

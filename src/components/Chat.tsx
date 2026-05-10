@@ -5,25 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { ChatMessage } from "@/types";
 
-const COLORS = [
-  "#c4a97d",
-  "#7a8b6e",
-  "#8b7a6e",
-  "#6e7a8b",
-  "#9b7a6e",
-  "#6e8b7a",
-  "#8b8b6e",
-  "#7a6e8b",
-];
-
-function getColor(username: string): string {
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return COLORS[Math.abs(hash) % COLORS.length];
-}
-
 function generateUsername(): string {
   const prefixes = [
     "kubrick", "godard", "tarkovski", "fellini", "lynch",
@@ -42,7 +23,13 @@ function generateUsername(): string {
 
 const MAX_MESSAGES = 50;
 
-export default function Chat({ onCollapse, extra }: { onCollapse?: () => void; extra?: React.ReactNode } = {}) {
+interface ChatProps {
+  onCollapse?: () => void;
+  extra?: React.ReactNode;
+}
+
+export default function Chat({ onCollapse, extra }: ChatProps = {}) {
+  const compact = !!onCollapse;
   const { username: authUsername } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -52,14 +39,11 @@ export default function Chat({ onCollapse, extra }: { onCollapse?: () => void; e
   const username = authUsername || anonUsername;
 
   useEffect(() => {
-    const stored = localStorage.getItem("qyrn-username");
-    if (stored) {
-      setAnonUsername(stored);
-    } else {
-      const name = generateUsername();
-      localStorage.setItem("qyrn-username", name);
-      setAnonUsername(name);
-    }
+    const stored = localStorage.getItem("clubcine-username") ?? localStorage.getItem("qyrn-username");
+    const name = stored ?? generateUsername();
+    localStorage.setItem("clubcine-username", name);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAnonUsername(name);
   }, []);
 
   useEffect(() => {
@@ -115,64 +99,98 @@ export default function Chat({ onCollapse, extra }: { onCollapse?: () => void; e
     return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
   };
 
+  if (compact) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="px-3 py-2.5 border-b border-line flex items-center justify-between">
+          <button
+            onClick={onCollapse}
+            className="text-ink-3 hover:text-ink cursor-pointer transition-colors"
+            title="replier le chat (T)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+              <line x1="3" y1="4" x2="3" y2="20" />
+            </svg>
+          </button>
+          <span className="text-[12px] text-ink-3 uppercase tracking-[0.16em]">chat</span>
+          {extra ?? <div className="w-[14px]" />}
+        </div>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
+          {messages.length === 0 && (
+            <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
+          )}
+
+          {messages.map((msg) => (
+            <div key={msg.id} className="text-[12px] leading-[1.6] break-words">
+              <span className="text-ink-4 text-[10px] font-mono mr-1.5">{formatTime(msg.timestamp)}</span>
+              <span className="font-semibold text-ink">{msg.username}</span>
+              <span className="text-ink-2 ml-1">{msg.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={sendMessage} className="border-t border-line p-2 flex gap-1.5">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="…"
+            maxLength={280}
+            className="flex-1 bg-transparent border border-line-2 px-2 py-1.5 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="border border-line-2 px-2.5 py-1.5 text-[11px] text-ink-2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors"
+          >
+            envoyer
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
-        {onCollapse ? (
-          <>
-            <button
-              onClick={onCollapse}
-              className="text-dim hover:text-warm/70 cursor-pointer transition-colors"
-              title="replier le chat (T)"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-                <line x1="3" y1="4" x2="3" y2="20" />
-              </svg>
-            </button>
-            <span className="text-[12px] text-muted uppercase tracking-wide">chat</span>
-            {extra || <div className="w-[14px]" />}
-          </>
-        ) : (
-          <span className="text-[12px] text-muted uppercase tracking-wide">chat</span>
-        )}
+    <div className="p-10 max-md:p-6 flex flex-col h-full">
+      <div className="text-[13px] font-semibold uppercase tracking-[0.16em] mb-5 flex justify-between items-baseline">
+        <span>Chat</span>
+        <span className="font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 normal-case">
+          {messages.length} message{messages.length > 1 ? "s" : ""}
+        </span>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
+      <div ref={scrollRef} className="flex-1 min-h-[280px] overflow-y-auto mb-4">
         {messages.length === 0 && (
-          <div className="text-dim text-[12px] pt-6 text-center italic font-[var(--font-title)]">
-            personne ne parle...
-          </div>
+          <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className="text-[12px] leading-[1.6] break-words">
-            <span className="text-dim text-[10px] font-[var(--font-mono)] mr-1.5">{formatTime(msg.timestamp)}</span>
-            <span className="font-medium" style={{ color: getColor(msg.username) }}>
-              {msg.username}
-            </span>
-            <span className="text-border mx-0.5">&middot;</span>
-            <span className="text-[#b5b0a8]">{msg.text}</span>
+          <div key={msg.id} className="py-1 text-[13px] leading-[1.5] break-words">
+            <span className="text-ink-4 text-[10px] font-mono mr-2">{formatTime(msg.timestamp)}</span>
+            <span className="font-semibold text-ink">{msg.username}</span>
+            <span className="text-ink-2 ml-1">{msg.text}</span>
           </div>
         ))}
       </div>
 
-      <form onSubmit={sendMessage} className="border-t border-border p-2 flex gap-1.5">
+      <form onSubmit={sendMessage} className="flex gap-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="..."
+          placeholder="Envoyer un message"
           maxLength={280}
-          className="flex-1 bg-transparent border border-border px-2 py-1.5 text-[12px] text-[#d4cfc7] placeholder:text-dim outline-none focus:border-raised"
+          className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
         />
         <button
           type="submit"
           disabled={!input.trim()}
-          className="border border-border px-2.5 py-1.5 text-[11px] text-muted hover:text-warm hover:border-raised cursor-pointer disabled:opacity-20 disabled:cursor-default transition-colors"
+          className="px-4 py-2.5 bg-ink text-bg font-semibold text-[12px] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-opacity hover:opacity-90"
         >
-          envoyer
+          Envoyer
         </button>
       </form>
     </div>

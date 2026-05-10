@@ -5,32 +5,13 @@ import { supabase } from "@/lib/supabase";
 
 interface UserWatch {
   username: string;
-  minutes: number;
+  seconds: number;
 }
 
-const TITLES = [
-  "spectateur",
-  "habitué",
-  "cinéphile",
-  "projectionniste",
-  "fantôme de la salle",
-];
-
-function getTitle(minutes: number): string {
-  if (minutes >= 600) return TITLES[4];
-  if (minutes >= 240) return TITLES[3];
-  if (minutes >= 60) return TITLES[2];
-  if (minutes >= 15) return TITLES[1];
-  return TITLES[0];
-}
-
-function formatWatch(minutes: number): string {
-  if (minutes >= 60) {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return m > 0 ? `${h}h${m.toString().padStart(2, "0")}` : `${h}h`;
-  }
-  return `${minutes}min`;
+function formatWatch(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
 export default function Classement() {
@@ -44,13 +25,7 @@ export default function Classement() {
         .order("seconds", { ascending: false })
         .limit(5);
       if (!data) return;
-
-      setScores(
-        data.map((row) => ({
-          username: row.username,
-          minutes: Math.floor(row.seconds / 60),
-        }))
-      );
+      setScores(data as UserWatch[]);
     };
 
     fetchScores();
@@ -59,47 +34,41 @@ export default function Classement() {
   }, []);
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[12px] text-muted uppercase tracking-wide">
-          classement
+    <div className="p-10 max-md:p-6">
+      <div className="text-[13px] font-semibold uppercase tracking-[0.16em] mb-5 flex justify-between items-baseline">
+        <span>Classement</span>
+        <span className="font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 normal-case">
+          cette semaine
         </span>
-        <span className="text-[10px] text-dim font-[var(--font-mono)]">top 5</span>
       </div>
 
       {scores.length === 0 ? (
-        <div className="py-8 text-center">
-          <div className="text-[11px] text-muted italic">
-            personne encore...
-          </div>
+        <div className="py-8 text-center text-[11px] text-ink-3">
+          personne encore
         </div>
       ) : (
-        <div className="divide-y divide-border">
-          {scores.map((user, i) => (
-            <div key={user.username} className="py-3 flex items-start gap-3">
-              <span className="text-[14px] text-dim font-[var(--font-title)] italic w-[20px] shrink-0">
-                {i + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[13px] text-[#d4cfc7] truncate">
-                  {user.username}
-                </div>
-                <div className="text-[10px] text-warm/60 italic mt-0.5">
-                  {getTitle(user.minutes)}
-                </div>
+        <div className="flex flex-col">
+          {scores.map((row, i) => {
+            const top = i < 3;
+            return (
+              <div
+                key={row.username}
+                className="py-2.5 grid grid-cols-[32px_1fr_auto] gap-3 items-baseline border-b border-line last:border-b-0"
+              >
+                <span
+                  className={`font-mono font-semibold text-[13px] ${top ? "text-red" : "text-ink-4"}`}
+                >
+                  {(i + 1).toString().padStart(2, "0")}
+                </span>
+                <span className="text-[13px] font-medium truncate">{row.username}</span>
+                <span className="font-mono font-medium text-[11px] text-ink-3">
+                  {formatWatch(row.seconds)}
+                </span>
               </div>
-              <span className="text-[10px] text-dim font-[var(--font-mono)] shrink-0 pt-0.5">
-                {formatWatch(user.minutes)}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
-
-      <div className="mt-4 pt-3 border-t border-border text-[10px] text-dim text-center space-y-1">
-        <div>spectateur &rarr; habitué &rarr; cinéphile</div>
-        <div>&rarr; projectionniste &rarr; fantôme de la salle</div>
-      </div>
     </div>
   );
 }

@@ -6,12 +6,15 @@ export default function ViewerCount() {
   const [count, setCount] = useState(1);
 
   useEffect(() => {
-    setCount(1);
+    const update = () => setCount(1);
+    update();
+    const interval = setInterval(update, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <span className="text-[10px] text-dim font-[var(--font-mono)]">
-      {count} connect{count > 1 ? "\u00e9s" : "\u00e9"}
+    <span className="font-mono text-[12px] text-ink-3">
+      {count} connect{count > 1 ? "és" : "é"}
     </span>
   );
 }
