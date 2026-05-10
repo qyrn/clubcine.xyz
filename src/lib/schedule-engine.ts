@@ -20,7 +20,7 @@ export function getCurrentSchedule(now: number = Date.now()): ScheduleState {
   const currentOffset = elapsed - accumulated;
 
   const nextFilms: Film[] = [];
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 6; i++) {
     nextFilms.push(FILMS[(currentIndex + i) % FILMS.length]);
   }
 
