@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "clubcine.xyz · cinéma 24/7",
+  title: {
+    default: "club ciné · 24/7",
+    template: "%s · club ciné",
+  },
   description: "Une chaîne de cinéma de contrebande. 100 films d'auteur en boucle, diffusés en synchrone, 24h/24.",
   manifest: "/favicon/site.webmanifest",
   icons: {
@@ -28,7 +32,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="h-full">{children}</body>
+      <body className="h-full">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

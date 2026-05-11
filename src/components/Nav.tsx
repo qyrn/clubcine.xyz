@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Brand from "./Brand";
@@ -9,17 +10,57 @@ import AuthModal from "./AuthModal";
 interface NavLink {
   href: string;
   label: string;
+  key: string;
 }
 
 const LINKS: NavLink[] = [
-  { href: "/movie", label: "Direct" },
-  { href: "#programme", label: "Programme" },
-  { href: "#soirees", label: "Soirées" },
-  { href: "#liste", label: "Liste" },
+  { href: "/movie", label: "Direct", key: "direct" },
+  { href: "/programme", label: "Programme", key: "programme" },
+  { href: "/soirees", label: "Soirées", key: "soirees" },
 ];
 
+function getInitial(username: string | null): string {
+  if (!username) return "?";
+  const first = username.trim().charAt(0);
+  return first ? first.toUpperCase() : "?";
+}
+
+function ProfileButton({ username }: { username: string | null }) {
+  const href = username ? `/u/${encodeURIComponent(username)}` : "/";
+  return (
+    <Link
+      href={href}
+      title={username ?? undefined}
+      aria-label={username ? `Profil ${username}` : "Profil"}
+      className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-line-2 bg-transparent text-ink text-[12px] font-semibold uppercase tracking-wide hover:border-ink transition-colors"
+    >
+      {getInitial(username)}
+    </Link>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
 export default function Nav({ active }: { active?: string }) {
-  const { user, username, signOut } = useAuth();
+  const { user, username, signOut, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
 
   return (
@@ -27,34 +68,39 @@ export default function Nav({ active }: { active?: string }) {
       <nav className="grid grid-cols-[auto_1fr_auto] items-center gap-10 px-10 py-6 border-b border-line max-md:px-5 max-md:py-4 max-md:gap-4">
         <Brand />
 
-        <div className="flex justify-center gap-7 max-md:hidden">
+        <div className="flex justify-center gap-8 max-md:hidden">
           {LINKS.map((l) => (
-            <a
+            <Link
               key={l.href}
               href={l.href}
               className={`text-[13px] font-medium transition-colors ${
-                active === l.label.toLowerCase() ? "text-ink" : "text-ink-2 hover:text-ink"
+                active === l.key ? "text-ink" : "text-ink-2 hover:text-ink"
               }`}
             >
               {l.label}
-            </a>
+            </Link>
           ))}
         </div>
 
-        <div className="flex items-center gap-[18px] text-[12px] text-ink-3 max-md:gap-3">
-          <span className="flex items-center gap-1.5 text-red font-semibold tracking-wider">
-            <span className="inline-block w-2 h-2 rounded-full bg-red animate-[pulse-dot_1.5s_ease-in-out_infinite]" />
-            <span className="max-md:hidden">EN DIRECT</span>
-          </span>
+        <div className="flex items-center gap-4 text-[12px] text-ink-3 max-md:gap-3">
           <ViewerCount />
-          {user ? (
-            <button
-              onClick={() => signOut()}
-              className="text-ink-3 hover:text-ink transition-colors cursor-pointer max-md:hidden"
-              title={username ?? undefined}
-            >
-              déconnexion
-            </button>
+          {loading ? (
+            <span
+              aria-hidden
+              className="w-8 h-8 rounded-full border border-line-2 bg-line/40 animate-pulse"
+            />
+          ) : user ? (
+            <>
+              <ProfileButton username={username} />
+              <button
+                onClick={() => signOut()}
+                aria-label="Se déconnecter"
+                title="Se déconnecter"
+                className="text-ink-3 hover:text-red transition-colors cursor-pointer"
+              >
+                <LogoutIcon />
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setShowAuth(true)}
