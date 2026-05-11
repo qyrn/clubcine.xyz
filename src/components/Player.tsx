@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { ScheduleState } from "@/types";
+import IntermissionOverlay from "./IntermissionOverlay";
 
 const SYNC_INTERVAL = 30_000;
 const SYNC_THRESHOLD = 4;
@@ -32,6 +33,7 @@ const SUB_COLORS = [
 ];
 
 const SUBS_STORAGE_KEY = "clubcine-subs-settings";
+const SUBS_ON_STORAGE_KEY = "clubcine-subs-on";
 
 type PlayerProps = {
   onControlsVisibleChange?: (visible: boolean) => void;
@@ -42,6 +44,9 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const currentUrlRef = useRef<string | null>(null);
+  const wasIntermissionRef = useRef(false);
+  const fadingRef = useRef(false);
+  const fadeRafRef = useRef<number | null>(null);
   const [schedule, setSchedule] = useState<ScheduleState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
@@ -53,6 +58,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const [subsOn, setSubsOn] = useState(true);
   const [subsSettings, setSubsSettings] = useState<SubsSettings>(DEFAULT_SUBS_SETTINGS);
   const [showSubsPanel, setShowSubsPanel] = useState(false);
+  const [intermissionLeft, setIntermissionLeft] = useState<number | null>(null);
   const subsOnRef = useRef(true);
   const subsSettingsRef = useRef<SubsSettings>(DEFAULT_SUBS_SETTINGS);
   const baseTimingsRef = useRef<Map<TextTrackCue, { start: number; end: number }>>(new Map());
@@ -148,6 +154,19 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     (data: ScheduleState) => {
       const video = videoRef.current;
       if (!video) return;
+
+      if (data.intermission) {
+        if (!video.paused) video.pause();
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
+        currentUrlRef.current = null;
+        setIntermissionLeft(data.intermission.secondsLeft);
+        return;
+      }
+
+      setIntermissionLeft(null);
 
       const targetUrl = data.currentFilm.url;
       const targetOffset = data.currentOffset;
@@ -249,9 +268,56 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    video.volume = volume;
     video.muted = muted;
-  }, [volume, muted]);
+    if (fadingRef.current) return;
+    if (intermissionLeft !== null && intermissionLeft > 0) {
+      video.volume = 0;
+      return;
+    }
+    video.volume = volume;
+  }, [volume, muted, intermissionLeft]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const inIntermission = intermissionLeft !== null && intermissionLeft > 0;
+    if (inIntermission) {
+      if (fadeRafRef.current !== null) {
+        cancelAnimationFrame(fadeRafRef.current);
+        fadeRafRef.current = null;
+      }
+      fadingRef.current = false;
+      video.volume = 0;
+      wasIntermissionRef.current = true;
+      return;
+    }
+    if (!wasIntermissionRef.current) return;
+    wasIntermissionRef.current = false;
+    fadingRef.current = true;
+    const FADE_MS = 2500;
+    const startTime = performance.now();
+    const step = () => {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(1, elapsed / FADE_MS);
+      const eased = t * t * (3 - 2 * t);
+      const target = muted ? 0 : volume;
+      if (videoRef.current) videoRef.current.volume = target * eased;
+      if (t < 1) {
+        fadeRafRef.current = requestAnimationFrame(step);
+      } else {
+        fadeRafRef.current = null;
+        fadingRef.current = false;
+      }
+    };
+    fadeRafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (fadeRafRef.current !== null) {
+        cancelAnimationFrame(fadeRafRef.current);
+        fadeRafRef.current = null;
+      }
+      fadingRef.current = false;
+    };
+  }, [intermissionLeft, volume, muted]);
 
   useEffect(() => {
     subsOnRef.current = subsOn;
@@ -275,8 +341,16 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         const parsed = JSON.parse(raw) as Partial<SubsSettings>;
         setSubsSettings({ ...DEFAULT_SUBS_SETTINGS, ...parsed });
       }
+      const onRaw = localStorage.getItem(SUBS_ON_STORAGE_KEY);
+      if (onRaw !== null) setSubsOn(onRaw === "1");
     } catch {}
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SUBS_ON_STORAGE_KEY, subsOn ? "1" : "0");
+    } catch {}
+  }, [subsOn]);
 
   useEffect(() => {
     subsSettingsRef.current = subsSettings;
@@ -351,6 +425,22 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   useEffect(() => {
     onControlsVisibleChange?.(showControls);
   }, [showControls, onControlsVisibleChange]);
+
+  useEffect(() => {
+    if (intermissionLeft === null || intermissionLeft <= 0) return;
+    const tick = setInterval(() => {
+      setIntermissionLeft((prev) => {
+        if (prev === null) return null;
+        const next = prev - 1;
+        if (next <= 0) {
+          forceSyncRef.current?.();
+          return null;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [intermissionLeft]);
 
   const toggleFullscreen = useCallback(() => {
     const el = containerRef.current;
@@ -616,6 +706,17 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
             {error}
           </span>
         </div>
+      )}
+
+      {schedule?.intermission && (
+        <IntermissionOverlay
+          title={schedule.currentFilm.title}
+          director={schedule.currentFilm.director}
+          year={schedule.currentFilm.year}
+          posterUrl={schedule.currentFilm.poster}
+          musicUrl={schedule.currentFilm.music}
+          secondsLeft={intermissionLeft}
+        />
       )}
 
       {!schedule && !error && (

@@ -5,6 +5,7 @@ export interface Film {
   year: number;
   duration: number;
   url: string;
+  music?: string;
   poster?: string;
   letterboxd?: string;
   synopsis?: string;
@@ -13,9 +14,15 @@ export interface Film {
   movement?: string;
 }
 
+export interface IntermissionState {
+  secondsLeft: number;
+  prevFilm: Film | null;
+}
+
 export interface ScheduleState {
   currentFilm: Film;
   currentOffset: number;
+  intermission: IntermissionState | null;
   nextFilms: Film[];
   cycleStart: number;
   totalCycleDuration: number;

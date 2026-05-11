@@ -3,8 +3,10 @@ import { Film } from "@/types";
 const CDN = process.env.NEXT_PUBLIC_CDN_BASE ?? "https://cdn.clubcine.xyz";
 
 const buildUrl = (slug: string) => `${CDN}/films-hls/${slug}/master.m3u8`;
+const buildMusic = (slug: string) => `${CDN}/films-music/${slug}/manifest.json`;
+const DEFAULT_MUSIC = `${CDN}/films-music/_default/manifest.json`;
 
-type FilmData = Omit<Film, "url"> & { slug?: string };
+type FilmData = Omit<Film, "url" | "music"> & { slug?: string; hasMusic?: boolean };
 
 const FILMS_DATA: FilmData[] = [
   {
@@ -87,6 +89,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "there-will-be-blood",
+    hasMusic: true,
     title: "There Will Be Blood",
     director: "Paul Thomas Anderson",
     year: 2007,
@@ -113,6 +116,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "kikujiro",
+    hasMusic: true,
     title: "Kikujiro",
     director: "Takeshi Kitano",
     year: 1999,
@@ -126,6 +130,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "magnolia",
+    hasMusic: true,
     title: "Magnolia",
     director: "Paul Thomas Anderson",
     year: 1999,
@@ -139,6 +144,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "chinatown",
+    hasMusic: true,
     title: "Chinatown",
     director: "Roman Polanski",
     year: 1974,
@@ -152,6 +158,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "kids-return",
+    hasMusic: true,
     title: "Kids Return",
     director: "Takeshi Kitano",
     year: 1996,
@@ -165,6 +172,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "the-battle-of-algiers",
+    hasMusic: true,
     title: "The Battle of Algiers",
     director: "Gillo Pontecorvo",
     year: 1966,
@@ -192,6 +200,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "brother",
+    hasMusic: true,
     title: "Brother",
     director: "Takeshi Kitano",
     year: 2000,
@@ -205,6 +214,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "a-clockwork-orange",
+    hasMusic: true,
     title: "A Clockwork Orange",
     director: "Stanley Kubrick",
     year: 1971,
@@ -218,6 +228,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "a-hidden-life",
+    hasMusic: true,
     title: "A Hidden Life",
     director: "Terrence Malick",
     year: 2019,
@@ -231,6 +242,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "barry-lyndon",
+    hasMusic: true,
     title: "Barry Lyndon",
     director: "Stanley Kubrick",
     year: 1975,
@@ -244,6 +256,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "blonde",
+    hasMusic: true,
     title: "Blonde",
     director: "Andrew Dominik",
     year: 2022,
@@ -257,6 +270,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "casino",
+    hasMusic: true,
     title: "Casino",
     director: "Martin Scorsese",
     year: 1995,
@@ -270,6 +284,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "close-up",
+    hasMusic: true,
     title: "Close-Up",
     director: "Abbas Kiarostami",
     year: 1990,
@@ -283,6 +298,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "eyes-wide-shut",
+    hasMusic: true,
     title: "Eyes Wide Shut",
     director: "Stanley Kubrick",
     year: 1999,
@@ -296,6 +312,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "good-time",
+    hasMusic: true,
     title: "Good Time",
     director: "Safdie Brothers",
     year: 2017,
@@ -309,6 +326,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "heat",
+    hasMusic: true,
     title: "Heat",
     director: "Michael Mann",
     year: 1995,
@@ -322,6 +340,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "killers-of-the-flower-moon",
+    hasMusic: true,
     title: "Killers of the Flower Moon",
     director: "Martin Scorsese",
     year: 2023,
@@ -361,6 +380,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "king-of-comedy",
+    hasMusic: true,
     title: "The King of Comedy",
     director: "Martin Scorsese",
     year: 1982,
@@ -1310,13 +1330,10 @@ const FILMS_DATA: FilmData[] = [
   },
 ];
 
-export const FILMS: Film[] = FILMS_DATA.map(({ slug, ...film }) => ({
+export const FILMS: Film[] = FILMS_DATA.map(({ slug, hasMusic, ...film }) => ({
   ...film,
   url: buildUrl(slug ?? film.id),
+  music: hasMusic ? buildMusic(slug ?? film.id) : DEFAULT_MUSIC,
 }));
 
 export const CYCLE_EPOCH = new Date("2026-01-01T00:00:00Z").getTime();
-
-export function getTotalCycleDuration(): number {
-  return FILMS.reduce((sum, film) => sum + film.duration, 0);
-}

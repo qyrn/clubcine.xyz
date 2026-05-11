@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
 import Player from "@/components/Player";
 import Chat from "@/components/Chat";
@@ -42,7 +42,7 @@ function FilmInfo({ visible }: { visible: boolean }) {
     if (schedule) setElapsed(schedule.currentOffset);
   }, [schedule]);
 
-  if (!schedule) return null;
+  if (!schedule || schedule.intermission) return null;
 
   const { currentFilm } = schedule;
   const progress = Math.min((elapsed / currentFilm.duration) * 100, 100);
@@ -173,15 +173,31 @@ function MovieContent() {
         >
           <Chat onCollapse={() => setChatOpen(false)} extra={<ViewerCount />} />
         </aside>
+
+        {!chatOpen && (
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            aria-label="ouvrir le chat (T)"
+            title="ouvrir le chat (T)"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5 px-2 py-3 bg-[#0a0a0a]/90 backdrop-blur-sm border border-r-0 border-line-2 rounded-l-md text-ink-3 hover:text-red hover:border-red transition-colors cursor-pointer group"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span className="font-mono text-[9px] tracking-[0.16em] uppercase [writing-mode:vertical-rl] [transform:rotate(180deg)] mt-1">
+              chat
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
 export default function MoviePage() {
-  return (
-    <AuthProvider>
-      <MovieContent />
-    </AuthProvider>
-  );
+  return <MovieContent />;
 }
