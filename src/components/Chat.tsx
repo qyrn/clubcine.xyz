@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { useProfilesByUsername } from "@/lib/use-profiles";
 import { ChatMessage } from "@/types";
+import UserChip from "./UserChip";
 
 function generateUsername(): string {
   const prefixes = [
@@ -80,6 +82,12 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
+  const usernames = useMemo(
+    () => Array.from(new Set(messages.map((m) => m.username))),
+    [messages]
+  );
+  const profileMap = useProfilesByUsername(usernames);
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !username) return;
@@ -124,10 +132,15 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           )}
 
           {messages.map((msg) => (
-            <div key={msg.id} className="text-[12px] leading-[1.6] break-words">
-              <span className="text-ink-4 text-[10px] font-mono mr-1.5">{formatTime(msg.timestamp)}</span>
-              <span className="font-semibold text-ink">{msg.username}</span>
-              <span className="text-ink-2 ml-1">{msg.text}</span>
+            <div key={msg.id} className="text-[12px] leading-[1.6] break-words flex items-center gap-1.5">
+              <span className="text-ink-4 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
+              <UserChip
+                username={msg.username}
+                profile={profileMap.get(msg.username.toLowerCase())}
+                size="sm"
+                className="font-semibold text-ink"
+              />
+              <span className="text-ink-2">{msg.text}</span>
             </div>
           ))}
         </div>
@@ -168,10 +181,15 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className="py-1 text-[13px] leading-[1.5] break-words">
-            <span className="text-ink-4 text-[10px] font-mono mr-2">{formatTime(msg.timestamp)}</span>
-            <span className="font-semibold text-ink">{msg.username}</span>
-            <span className="text-ink-2 ml-1">{msg.text}</span>
+          <div key={msg.id} className="py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2">
+            <span className="text-ink-4 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
+            <UserChip
+              username={msg.username}
+              profile={profileMap.get(msg.username.toLowerCase())}
+              size="sm"
+              className="font-semibold text-ink"
+            />
+            <span className="text-ink-2">{msg.text}</span>
           </div>
         ))}
       </div>

@@ -3,14 +3,22 @@
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "clubcine-support-dismissed";
+const DELAY_MS = 20_000;
+const REPROMPT_DAYS = 14;
 
 export default function SupportPopup() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const dismissed = localStorage.getItem(STORAGE_KEY);
-    if (dismissed) return;
-    const timer = setTimeout(() => setVisible(true), 15_000);
+    if (dismissed) {
+      const ts = Number(dismissed);
+      if (!Number.isNaN(ts)) {
+        const ageDays = (Date.now() - ts) / (1000 * 60 * 60 * 24);
+        if (ageDays < REPROMPT_DAYS) return;
+      }
+    }
+    const timer = setTimeout(() => setVisible(true), DELAY_MS);
     return () => clearTimeout(timer);
   }, []);
 
@@ -22,43 +30,48 @@ export default function SupportPopup() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 border border-line bg-bg max-w-xs w-full shadow-2xl">
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.16em] text-ink">
-          Soutenir clubcine
-        </span>
+    <div
+      role="dialog"
+      aria-label="Soutenir club ciné"
+      className="fixed bottom-4 right-4 z-50 border border-line bg-bg max-w-[300px] w-[calc(100vw-2rem)] rounded-md shadow-2xl overflow-hidden"
+    >
+      <div className="px-4 py-2.5 border-b border-line flex items-center justify-between">
+        <div className="font-mono text-[10px] font-bold tracking-[0.16em] uppercase text-red">
+          ★ Soutenir
+        </div>
         <button
           onClick={dismiss}
-          className="text-ink-3 text-[18px] leading-none hover:text-ink cursor-pointer transition-colors"
           aria-label="fermer"
+          className="text-ink-3 hover:text-red text-[18px] leading-none cursor-pointer transition-colors"
         >
           ×
         </button>
       </div>
 
-      <div className="px-4 pb-3 pt-2">
-        <p className="text-[12px] text-ink-2 leading-relaxed mb-3">
-          On finance le serveur nous-mêmes pour rester{" "}
-          <span className="text-red font-semibold">sans pubs</span>. Toute aide
-          est la bienvenue pour faire tourner la projection.
+      <div className="px-4 py-3 flex flex-col items-center gap-2.5">
+        <p className="text-[13px] leading-[1.65] text-ink-2 text-center">
+          Les films sont diffusés 24/7
+          <br />
+          Pour que le site tienne dans le temps
+          <br />
+          Fais-moi un petit don pour le VPS
+          <br />
+          Merci beaucoup <span className="text-red">❤︎</span>
+        </p>
+        <p className="font-mono text-[10px] tracking-[0.04em] text-ink-3 text-center text-balance">
+          ★ badge supporter + role soutien auto
         </p>
 
         <a
           href="https://ko-fi.com/clubcinefr"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center border border-ink bg-transparent text-ink text-[12px] font-semibold uppercase tracking-[0.04em] py-2.5 hover:border-red hover:text-red transition-colors"
+          onClick={dismiss}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors rounded-md mt-1"
         >
-          Faire un don
+          Ko-fi <span aria-hidden>→</span>
         </a>
       </div>
-
-      <button
-        onClick={dismiss}
-        className="w-full text-[11px] text-ink-3 py-2 hover:text-ink cursor-pointer border-t border-line transition-colors"
-      >
-        peut-être plus tard
-      </button>
     </div>
   );
 }

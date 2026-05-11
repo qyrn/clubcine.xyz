@@ -51,7 +51,7 @@ export default function ScheduleGrid() {
           Programme · cette nuit
         </h2>
         <Link
-          href="#liste"
+          href="/programme"
           className="text-[12px] text-ink-3 font-medium hover:text-ink transition-colors after:content-['_→']"
         >
           Tout voir
@@ -65,10 +65,19 @@ export default function ScheduleGrid() {
             href="/movie"
             className="flex flex-col gap-3 group cursor-pointer"
           >
-            <div
-              className="aspect-[2/3] bg-cover bg-center transition-opacity group-hover:opacity-85 border border-line rounded-lg overflow-hidden"
-              style={{ backgroundImage: film.poster ? `url(${film.poster})` : undefined }}
-            />
+            <div className="relative">
+              {film.poster && (
+                <div
+                  aria-hidden
+                  className="absolute inset-0 translate-y-1.5 -z-10 bg-cover bg-center blur-[18px] opacity-20 saturate-125"
+                  style={{ backgroundImage: `url(${film.poster})` }}
+                />
+              )}
+              <div
+                className="relative aspect-[2/3] bg-cover bg-center transition-opacity group-hover:opacity-90 border border-line rounded-lg overflow-hidden"
+                style={{ backgroundImage: film.poster ? `url(${film.poster})` : undefined }}
+              />
+            </div>
             <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.04em] text-red">
               {formatHour(film.startTime)} · {formatDuration(film.duration)}
             </div>

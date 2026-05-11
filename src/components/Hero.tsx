@@ -26,11 +26,11 @@ export default function Hero() {
         const data: ScheduleState = await res.json();
         if (cancelled) return;
         const now = Date.now();
-        setState({
-          schedule: data,
-          startMs: now - data.currentOffset * 1000,
-          endMs: now + (data.currentFilm.duration - data.currentOffset) * 1000,
-        });
+        const startMs = data.intermission
+          ? now + data.intermission.secondsLeft * 1000
+          : now - data.currentOffset * 1000;
+        const endMs = startMs + data.currentFilm.duration * 1000;
+        setState({ schedule: data, startMs, endMs });
       } catch {}
     };
     fetchSchedule();
@@ -54,9 +54,19 @@ export default function Hero() {
       <div className="flex flex-col gap-6">
         <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.16em] uppercase text-ink-3">
           ★{" "}
-          <strong className="text-red font-bold">À l&apos;antenne ce soir</strong>
-          {" · "}
-          {formatHour(startDate)} → {formatHour(endDate)}
+          {state.schedule.intermission ? (
+            <>
+              <strong className="text-red font-bold">Entracte</strong>
+              {" · Prochain film à "}
+              {formatHour(startDate)}
+            </>
+          ) : (
+            <>
+              <strong className="text-red font-bold">À l&apos;antenne ce soir</strong>
+              {" · "}
+              {formatHour(startDate)} → {formatHour(endDate)}
+            </>
+          )}
         </div>
 
         <h1
@@ -91,15 +101,24 @@ export default function Hero() {
         </Link>
       </div>
 
-      <Link
-        href="/movie"
-        className="block w-full aspect-[2/3] border border-line bg-cover bg-center rounded-lg overflow-hidden max-[1000px]:max-w-[360px] max-[1000px]:mx-auto"
-        style={{
-          backgroundImage: film.poster ? `url(${film.poster})` : undefined,
-          boxShadow: "0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
-        }}
-        aria-label={`Affiche : ${film.title}`}
-      />
+      <div className="relative w-full max-[1000px]:max-w-[360px] max-[1000px]:mx-auto">
+        {film.poster && (
+          <div
+            aria-hidden
+            className="absolute inset-0 translate-y-3 -z-10 bg-cover bg-center blur-[40px] opacity-25 saturate-125"
+            style={{ backgroundImage: `url(${film.poster})` }}
+          />
+        )}
+        <Link
+          href="/movie"
+          className="relative block w-full aspect-[2/3] border border-line bg-cover bg-center rounded-lg overflow-hidden"
+          style={{
+            backgroundImage: film.poster ? `url(${film.poster})` : undefined,
+            boxShadow: "0 20px 50px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)",
+          }}
+          aria-label={`Affiche : ${film.title}`}
+        />
+      </div>
     </section>
   );
 }

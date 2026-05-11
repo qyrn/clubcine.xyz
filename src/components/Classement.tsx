@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useProfilesByUsername } from "@/lib/use-profiles";
+import UserChip from "./UserChip";
 
 interface UserWatch {
   username: string;
@@ -33,6 +35,9 @@ export default function Classement() {
     return () => clearInterval(interval);
   }, []);
 
+  const usernames = useMemo(() => scores.map((s) => s.username), [scores]);
+  const profileMap = useProfilesByUsername(usernames);
+
   return (
     <div className="p-10 max-md:p-6">
       <div className="text-[13px] font-semibold uppercase tracking-[0.16em] mb-5 flex justify-between items-baseline">
@@ -53,14 +58,19 @@ export default function Classement() {
             return (
               <div
                 key={row.username}
-                className="py-2.5 grid grid-cols-[32px_1fr_auto] gap-3 items-baseline border-b border-line last:border-b-0"
+                className="py-2.5 grid grid-cols-[32px_1fr_auto] gap-3 items-center border-b border-line last:border-b-0"
               >
                 <span
                   className={`font-mono font-semibold text-[13px] ${top ? "text-red" : "text-ink-4"}`}
                 >
                   {(i + 1).toString().padStart(2, "0")}
                 </span>
-                <span className="text-[13px] font-medium truncate">{row.username}</span>
+                <UserChip
+                  username={row.username}
+                  profile={profileMap.get(row.username.toLowerCase())}
+                  size="sm"
+                  className="text-[13px] font-medium text-ink"
+                />
                 <span className="font-mono font-medium text-[11px] text-ink-3">
                   {formatWatch(row.seconds)}
                 </span>

@@ -1,8 +1,10 @@
 "use client";
 
-import { AuthProvider, useAuth } from "@/lib/auth-context";
+import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
 import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
 import Nav from "@/components/Nav";
+import Ticker from "@/components/Ticker";
 import Hero from "@/components/Hero";
 import ScheduleGrid from "@/components/ScheduleGrid";
 import SoireesGrid from "@/components/SoireesGrid";
@@ -10,6 +12,7 @@ import Suggestions from "@/components/Suggestions";
 import Chat from "@/components/Chat";
 import Classement from "@/components/Classement";
 import SupportPopup from "@/components/SupportPopup";
+import BugReportButton from "@/components/BugReportButton";
 
 function PageContent() {
   const { username } = useAuth();
@@ -17,7 +20,8 @@ function PageContent() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Nav active="direct" />
+      <Ticker />
+      <Nav />
 
       <Hero />
 
@@ -32,7 +36,7 @@ function PageContent() {
         <div className="border-r border-line max-[900px]:border-r-0 max-[900px]:border-b max-[900px]:border-line">
           <Classement />
         </div>
-        <div>
+        <div id="suggestions" className="scroll-mt-24">
           <Suggestions />
         </div>
       </section>
@@ -49,9 +53,11 @@ function PageContent() {
             KO-FI
           </a>
           <span>·</span>
-          <a href="#about" className="hover:text-ink transition-colors">
+          <Link href="/about" className="hover:text-ink transition-colors">
             À PROPOS
-          </a>
+          </Link>
+          <span>·</span>
+          <BugReportButton inline />
         </span>
       </footer>
 
@@ -61,9 +67,5 @@ function PageContent() {
 }
 
 export default function Home() {
-  return (
-    <AuthProvider>
-      <PageContent />
-    </AuthProvider>
-  );
+  return <PageContent />;
 }
