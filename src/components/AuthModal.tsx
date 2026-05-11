@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useEscapeKey } from "@/lib/use-escape-key";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 type Mode = "login" | "register";
 
@@ -11,6 +13,8 @@ interface AuthModalProps {
 
 export default function AuthModal({ onClose }: AuthModalProps) {
   const { signUp, signIn } = useAuth();
+  useEscapeKey(onClose);
+  useBodyScrollLock(true);
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,8 +57,14 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85">
-      <div className="border border-line bg-bg max-w-xs w-full mx-4 p-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85"
+      onClick={onClose}
+    >
+      <div
+        className="border border-line bg-bg max-w-xs w-full mx-4 p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-5">
           <span className="text-[14px] font-semibold uppercase tracking-[0.16em]">
             {mode === "login" ? "Connexion" : "Inscription"}

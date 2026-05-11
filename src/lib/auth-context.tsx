@@ -1,45 +1,170 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+
+export interface UserProfile {
+  userId: string;
+  username: string;
+  bio: string;
+  letterboxd: string;
+  avatarUrl: string | null;
+  role: string;
+  usernameFontSlug: string | null;
+  usernameColorSlug: string | null;
+}
 
 interface AuthState {
   user: User | null;
   username: string | null;
+  profile: UserProfile | null;
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
+  updateProfile: (
+    patch: Partial<
+      Pick<
+        UserProfile,
+        "bio" | "letterboxd" | "avatarUrl" | "usernameFontSlug" | "usernameColorSlug"
+      >
+    >
+  ) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthState>({
   user: null,
   username: null,
+  profile: null,
   loading: true,
   signUp: async () => null,
   signIn: async () => null,
   signOut: async () => {},
+  updateProfile: async () => null,
 });
+
+interface ProfileRow {
+  user_id: string;
+  username: string;
+  bio: string;
+  letterboxd: string;
+  avatar_url: string | null;
+  role: string;
+  username_font_slug: string | null;
+  username_color_slug: string | null;
+}
+
+function rowToProfile(row: ProfileRow): UserProfile {
+  return {
+    userId: row.user_id,
+    username: row.username,
+    bio: row.bio ?? "",
+    letterboxd: row.letterboxd ?? "",
+    avatarUrl: row.avatar_url,
+    role: row.role ?? "spectateur",
+    usernameFontSlug: row.username_font_slug,
+    usernameColorSlug: row.username_color_slug,
+  };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("user_id,username,bio,letterboxd,avatar_url,role,username_font_slug,username_color_slug")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error || !data) {
+      setProfile(null);
+      return;
+    }
+    setProfile(rowToProfile(data as ProfileRow));
+  }, []);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    let cancelled = false;
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (cancelled) return;
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) await fetchProfile(u.id);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        await fetchProfile(u.id);
+      } else {
+        setProfile(null);
+      }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
 
-  const username = user?.user_metadata?.username ?? null;
+  const username = profile?.username ?? user?.user_metadata?.username ?? null;
+
+  const updateProfile: AuthState["updateProfile"] = async (patch) => {
+    if (!user) return "non connecté";
+
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.bio !== undefined) dbPatch.bio = patch.bio;
+    if (patch.letterboxd !== undefined) dbPatch.letterboxd = patch.letterboxd;
+    if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl;
+    if (patch.usernameFontSlug !== undefined) dbPatch.username_font_slug = patch.usernameFontSlug;
+    if (patch.usernameColorSlug !== undefined) dbPatch.username_color_slug = patch.usernameColorSlug;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(dbPatch)
+      .eq("user_id", user.id)
+      .select("user_id,username,bio,letterboxd,avatar_url,role,username_font_slug,username_color_slug");
+
+    if (error) {
+      console.error("[updateProfile] supabase error:", error);
+      return error.message;
+    }
+
+    const rows = (data ?? []) as ProfileRow[];
+    if (rows.length === 0) {
+      const fallbackUsername =
+        profile?.username ??
+        (user.user_metadata?.username as string | undefined) ??
+        `spectateur_${user.id.slice(0, 8)}`;
+      const { data: insData, error: insErr } = await supabase
+        .from("profiles")
+        .insert({
+          user_id: user.id,
+          username: fallbackUsername,
+          bio: patch.bio ?? "",
+          letterboxd: patch.letterboxd ?? "",
+          avatar_url: patch.avatarUrl ?? null,
+          username_font_slug: patch.usernameFontSlug ?? null,
+          username_color_slug: patch.usernameColorSlug ?? null,
+        })
+        .select("user_id,username,bio,letterboxd,avatar_url,role,username_font_slug,username_color_slug")
+        .single();
+      if (insErr) {
+        console.error("[updateProfile] insert fallback error:", insErr);
+        return insErr.message;
+      }
+      if (insData) setProfile(rowToProfile(insData as ProfileRow));
+      return null;
+    }
+
+    setProfile(rowToProfile(rows[0]));
+    return null;
+  };
 
   const signUp = async (email: string, password: string, usernameInput: string): Promise<string | null> => {
     const { error } = await supabase.auth.signUp({
@@ -62,7 +187,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, username, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, username, profile, loading, signUp, signIn, signOut, updateProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );
