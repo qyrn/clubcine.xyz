@@ -51,14 +51,14 @@ export default function Hero({ initialSchedule }: Props = {}) {
         retryDelay = Math.min(retryDelay * 2, 30_000);
       }
     };
-    fetchSchedule();
+    if (!initialSchedule) fetchSchedule();
     const interval = setInterval(fetchSchedule, 60_000);
     return () => {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
       clearInterval(interval);
     };
-  }, []);
+  }, [initialSchedule]);
 
   if (!state) {
     return <section className="border-b border-line min-h-[60vh]" aria-hidden />;

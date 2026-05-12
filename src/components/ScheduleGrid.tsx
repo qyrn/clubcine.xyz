@@ -47,14 +47,14 @@ export default function ScheduleGrid({ initialSchedule }: Props = {}) {
       }
     };
 
-    fetchSchedule();
+    if (!initialSchedule) fetchSchedule();
     const interval = setInterval(fetchSchedule, 60_000);
     return () => {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
       clearInterval(interval);
     };
-  }, []);
+  }, [initialSchedule]);
 
   return (
     <section id="programme" className="px-10 py-15 border-b border-line max-md:px-5 max-md:py-10 scroll-mt-12">
