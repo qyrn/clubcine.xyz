@@ -15,8 +15,23 @@ interface HeroState {
   endMs: number;
 }
 
-export default function Hero() {
-  const [state, setState] = useState<HeroState | null>(null);
+function deriveState(schedule: ScheduleState): HeroState {
+  const now = Date.now();
+  const startMs = schedule.intermission
+    ? now + schedule.intermission.secondsLeft * 1000
+    : now - schedule.currentOffset * 1000;
+  const endMs = startMs + schedule.currentFilm.duration * 1000;
+  return { schedule, startMs, endMs };
+}
+
+interface Props {
+  initialSchedule?: ScheduleState;
+}
+
+export default function Hero({ initialSchedule }: Props = {}) {
+  const [state, setState] = useState<HeroState | null>(
+    initialSchedule ? deriveState(initialSchedule) : null
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -28,12 +43,7 @@ export default function Hero() {
         if (!res.ok) throw new Error(`status ${res.status}`);
         const data: ScheduleState = await res.json();
         if (cancelled) return;
-        const now = Date.now();
-        const startMs = data.intermission
-          ? now + data.intermission.secondsLeft * 1000
-          : now - data.currentOffset * 1000;
-        const endMs = startMs + data.currentFilm.duration * 1000;
-        setState({ schedule: data, startMs, endMs });
+        setState(deriveState(data));
         retryDelay = 1500;
       } catch {
         if (cancelled) return;

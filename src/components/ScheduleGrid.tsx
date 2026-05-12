@@ -12,8 +12,21 @@ function formatHour(ts: number): string {
   return `${d.getHours().toString().padStart(2, "0")}H${d.getMinutes().toString().padStart(2, "0")}`;
 }
 
-export default function ScheduleGrid() {
-  const [upcoming, setUpcoming] = useState<ScheduledFilm[]>([]);
+function toList(schedule: ScheduleState): ScheduledFilm[] {
+  return schedule.nextFilms.map((entry) => ({
+    ...entry.film,
+    startTime: entry.startTime,
+  }));
+}
+
+interface Props {
+  initialSchedule?: ScheduleState;
+}
+
+export default function ScheduleGrid({ initialSchedule }: Props = {}) {
+  const [upcoming, setUpcoming] = useState<ScheduledFilm[]>(
+    initialSchedule ? toList(initialSchedule) : []
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -25,12 +38,7 @@ export default function ScheduleGrid() {
         if (!res.ok) throw new Error(`status ${res.status}`);
         const data: ScheduleState = await res.json();
         if (cancelled) return;
-
-        const list: ScheduledFilm[] = data.nextFilms.map((entry) => ({
-          ...entry.film,
-          startTime: entry.startTime,
-        }));
-        setUpcoming(list);
+        setUpcoming(toList(data));
         retryDelay = 1500;
       } catch {
         if (cancelled) return;
