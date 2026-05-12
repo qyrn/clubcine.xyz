@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Film, ScheduleState } from "@/types";
 import { formatDuration } from "@/lib/schedule-engine";
@@ -86,10 +87,17 @@ export default function ScheduleGrid({ initialSchedule }: Props = {}) {
                   style={{ backgroundImage: `url(${film.poster})` }}
                 />
               )}
-              <div
-                className="relative aspect-[2/3] bg-cover bg-center transition-opacity group-hover:opacity-90 border border-line rounded-lg overflow-hidden"
-                style={{ backgroundImage: film.poster ? `url(${film.poster})` : undefined }}
-              />
+              <div className="relative aspect-[2/3] transition-opacity group-hover:opacity-90 border border-line rounded-lg overflow-hidden bg-bg">
+                {film.poster && (
+                  <Image
+                    src={film.poster}
+                    alt=""
+                    fill
+                    sizes="(max-width: 600px) 50vw, (max-width: 1100px) 33vw, 17vw"
+                    className="object-cover"
+                  />
+                )}
+              </div>
             </div>
             <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.04em]">
               <span className="text-red">{formatHour(film.startTime)}</span>
