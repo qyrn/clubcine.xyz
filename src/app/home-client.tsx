@@ -10,12 +10,12 @@ import Ticker from "@/components/Ticker";
 import Hero from "@/components/Hero";
 import ScheduleGrid from "@/components/ScheduleGrid";
 import SoireesGrid from "@/components/SoireesGrid";
+import Suggestions from "@/components/Suggestions";
+import Chat from "@/components/Chat";
+import Classement from "@/components/Classement";
+import BugReportButton from "@/components/BugReportButton";
 
-const Chat = dynamic(() => import("@/components/Chat"), { ssr: false });
-const Classement = dynamic(() => import("@/components/Classement"), { ssr: false });
-const Suggestions = dynamic(() => import("@/components/Suggestions"), { ssr: false });
 const SupportPopup = dynamic(() => import("@/components/SupportPopup"), { ssr: false });
-const BugReportButton = dynamic(() => import("@/components/BugReportButton"), { ssr: false });
 
 interface Props {
   initialSchedule: ScheduleState;
