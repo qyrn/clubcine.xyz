@@ -102,13 +102,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+
+    let hasStoredSession = false;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+          hasStoredSession = true;
+          break;
+        }
+      }
+    } catch {}
+
+    const init = async () => {
+      if (!hasStoredSession) {
+        setLoading(false);
+        return;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
       if (cancelled) return;
       const u = session?.user ?? null;
       setUser(u);
       if (u) await fetchProfile(u.id);
       setLoading(false);
-    });
+    };
+    init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const u = session?.user ?? null;

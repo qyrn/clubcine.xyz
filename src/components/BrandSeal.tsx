@@ -2,14 +2,16 @@ import circles from "@/lib/seal-circles.json";
 
 const SEAL_VIEW = 720;
 
+const CIRCLES_HTML = (circles as [number, number, number][])
+  .map(([cx, cy, r]) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>`)
+  .join("");
+
 interface BrandSealProps {
   size?: number;
   color?: string;
   className?: string;
   ariaLabel?: string;
 }
-
-const CIRCLES = circles as [number, number, number][];
 
 export default function BrandSeal({
   size = 32,
@@ -27,11 +29,7 @@ export default function BrandSeal({
       aria-label={ariaLabel}
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g fill={color}>
-        {CIRCLES.map(([cx, cy, r], i) => (
-          <circle key={i} cx={cx} cy={cy} r={r} />
-        ))}
-      </g>
+      <g fill={color} dangerouslySetInnerHTML={{ __html: CIRCLES_HTML }} />
     </svg>
   );
 }
