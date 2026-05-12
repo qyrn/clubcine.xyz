@@ -5,9 +5,7 @@ import { useEffect, useState } from "react";
 import { Film, ScheduleState } from "@/types";
 import { formatDuration } from "@/lib/schedule-engine";
 
-interface ScheduledFilm extends Film {
-  startTime: number;
-}
+type ScheduledFilm = Film & { startTime: number };
 
 function formatHour(ts: number): string {
   const d = new Date(ts);
@@ -19,27 +17,33 @@ export default function ScheduleGrid() {
 
   useEffect(() => {
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 1500;
     const fetchSchedule = async () => {
       try {
         const res = await fetch("/api/schedule");
+        if (!res.ok) throw new Error(`status ${res.status}`);
         const data: ScheduleState = await res.json();
         if (cancelled) return;
 
-        const remaining = data.currentFilm.duration - data.currentOffset;
-        let nextStart = Date.now() + remaining * 1000;
-        const list: ScheduledFilm[] = data.nextFilms.map((film) => {
-          const entry: ScheduledFilm = { ...film, startTime: nextStart };
-          nextStart += film.duration * 1000;
-          return entry;
-        });
+        const list: ScheduledFilm[] = data.nextFilms.map((entry) => ({
+          ...entry.film,
+          startTime: entry.startTime,
+        }));
         setUpcoming(list);
-      } catch {}
+        retryDelay = 1500;
+      } catch {
+        if (cancelled) return;
+        retryTimer = setTimeout(fetchSchedule, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30_000);
+      }
     };
 
     fetchSchedule();
     const interval = setInterval(fetchSchedule, 60_000);
     return () => {
       cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
       clearInterval(interval);
     };
   }, []);
@@ -78,8 +82,9 @@ export default function ScheduleGrid() {
                 style={{ backgroundImage: film.poster ? `url(${film.poster})` : undefined }}
               />
             </div>
-            <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.04em] text-red">
-              {formatHour(film.startTime)} · {formatDuration(film.duration)}
+            <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.04em]">
+              <span className="text-red">{formatHour(film.startTime)}</span>
+              <span className="text-ink-3"> · {formatDuration(film.duration)}</span>
             </div>
             <div className="font-semibold text-[15px] leading-[1.2] tracking-[-0.01em]">
               {film.title}

@@ -37,7 +37,9 @@ create table if not exists public.profiles (
 
 alter table public.profiles
   add column if not exists username_font_slug text,
-  add column if not exists username_color_slug text;
+  add column if not exists username_color_slug text,
+  add column if not exists twitter text not null default '',
+  add column if not exists instagram text not null default '';
 
 create index if not exists profiles_username_lower_idx on public.profiles (lower(username));
 

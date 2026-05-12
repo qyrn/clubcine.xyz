@@ -25,16 +25,27 @@ function getInitial(username: string | null): string {
   return first ? first.toUpperCase() : "?";
 }
 
-function ProfileButton({ username }: { username: string | null }) {
+function ProfileButton({
+  username,
+  avatarUrl,
+}: {
+  username: string | null;
+  avatarUrl: string | null;
+}) {
   const href = username ? `/u/${encodeURIComponent(username)}` : "/";
   return (
     <Link
       href={href}
       title={username ?? undefined}
       aria-label={username ? `Profil ${username}` : "Profil"}
-      className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-line-2 bg-transparent text-ink text-[12px] font-semibold uppercase tracking-wide hover:border-ink transition-colors"
+      className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-line-2 bg-transparent text-ink text-[12px] font-semibold uppercase tracking-wide hover:border-ink transition-colors overflow-hidden shrink-0"
     >
-      {getInitial(username)}
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+      ) : (
+        getInitial(username)
+      )}
     </Link>
   );
 }
@@ -60,7 +71,7 @@ function LogoutIcon() {
 }
 
 export default function Nav({ active }: { active?: string }) {
-  const { user, username, signOut, loading } = useAuth();
+  const { user, username, profile, signOut, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
 
   return (
@@ -91,7 +102,7 @@ export default function Nav({ active }: { active?: string }) {
             />
           ) : user ? (
             <>
-              <ProfileButton username={username} />
+              <ProfileButton username={username} avatarUrl={profile?.avatarUrl ?? null} />
               <button
                 onClick={() => signOut()}
                 aria-label="Se déconnecter"

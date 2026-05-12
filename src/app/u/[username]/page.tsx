@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { UserProfile, useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
@@ -17,6 +17,12 @@ import {
   normalizeLetterboxdProfile,
   letterboxdProfileHandle,
 } from "@/lib/letterboxd";
+import {
+  normalizeTwitter,
+  twitterHandle,
+  normalizeInstagram,
+  instagramHandle,
+} from "@/lib/socials";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { fontStack, findColor } from "@/lib/fonts";
@@ -35,6 +41,8 @@ interface ProfileRow {
   username: string;
   bio: string;
   letterboxd: string;
+  twitter: string | null;
+  instagram: string | null;
   avatar_url: string | null;
   role: string;
   created_at: string;
@@ -48,6 +56,8 @@ function rowToProfile(row: ProfileRow): UserProfile {
     username: row.username,
     bio: row.bio ?? "",
     letterboxd: row.letterboxd ?? "",
+    twitter: row.twitter ?? "",
+    instagram: row.instagram ?? "",
     avatarUrl: row.avatar_url,
     role: row.role ?? "spectateur",
     usernameFontSlug: row.username_font_slug,
@@ -123,6 +133,28 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
+function SocialLink({
+  href,
+  label,
+  handle,
+}: {
+  href: string;
+  label: string;
+  handle: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 hover:text-red transition-colors"
+    >
+      <span aria-hidden>★</span>
+      {label} / {handle || "qui"}
+    </a>
+  );
+}
+
 function BioBlock({
   profile,
   isMe,
@@ -132,7 +164,11 @@ function BioBlock({
   isMe: boolean;
   onEditClick: () => void;
 }) {
-  const handle = profile.letterboxd ? letterboxdProfileHandle(profile.letterboxd) : "";
+  const lbHandle = profile.letterboxd ? letterboxdProfileHandle(profile.letterboxd) : "";
+  const xHandle = profile.twitter ? twitterHandle(profile.twitter) : "";
+  const igHandle = profile.instagram ? instagramHandle(profile.instagram) : "";
+  const hasSocials = !!(profile.letterboxd || profile.twitter || profile.instagram);
+
   return (
     <div className="border border-dashed border-line-2 rounded-md p-4 flex flex-col gap-3 text-center">
       {profile.bio ? (
@@ -140,16 +176,18 @@ function BioBlock({
       ) : (
         <p className="text-[13px] text-ink-3 italic">Aucune bio définie.</p>
       )}
-      {profile.letterboxd && (
-        <a
-          href={profile.letterboxd}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 hover:text-red transition-colors mx-auto"
-        >
-          <span aria-hidden>★</span>
-          letterboxd / {handle || "qui"}
-        </a>
+      {hasSocials && (
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
+          {profile.letterboxd && (
+            <SocialLink href={profile.letterboxd} label="letterboxd" handle={lbHandle} />
+          )}
+          {profile.twitter && (
+            <SocialLink href={profile.twitter} label="x" handle={xHandle} />
+          )}
+          {profile.instagram && (
+            <SocialLink href={profile.instagram} label="instagram" handle={igHandle} />
+          )}
+        </div>
       )}
       {!profile.bio && isMe && (
         <button
@@ -161,6 +199,40 @@ function BioBlock({
         </button>
       )}
     </div>
+  );
+}
+
+function SocialField({
+  label,
+  prefix,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  prefix: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
+        {label}
+      </span>
+      <div className="flex items-stretch border border-line-2 focus-within:border-ink rounded-md overflow-hidden bg-transparent">
+        <span className="px-3 flex items-center font-mono text-[12px] text-ink-4 bg-line/40 select-none whitespace-nowrap">
+          {prefix}
+        </span>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 outline-none"
+        />
+      </div>
+    </label>
   );
 }
 
@@ -176,14 +248,45 @@ function ProfileEditModal({
   useBodyScrollLock(true);
   const [bio, setBio] = useState(profile.bio);
   const [letterboxd, setLetterboxd] = useState(letterboxdProfileHandle(profile.letterboxd));
+  const [twitter, setTwitter] = useState(twitterHandle(profile.twitter));
+  const [instagram, setInstagram] = useState(instagramHandle(profile.instagram));
   const [usernameFontSlug, setUsernameFontSlug] = useState<string>(
     profile.usernameFontSlug ?? "marker"
   );
   const [usernameColorSlug, setUsernameColorSlug] = useState<string>(
     profile.usernameColorSlug ?? "default"
   );
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [removeAvatar, setRemoveAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const blobPreview = useMemo(() => {
+    if (!avatarFile) return null;
+    return URL.createObjectURL(avatarFile);
+  }, [avatarFile]);
+
+  useEffect(() => {
+    if (!blobPreview) return;
+    return () => URL.revokeObjectURL(blobPreview);
+  }, [blobPreview]);
+
+  const previewUrl = removeAvatar
+    ? null
+    : blobPreview ?? profile.avatarUrl;
+
+  const onSelectFile = (file: File) => {
+    setRemoveAvatar(false);
+    setAvatarFile(file);
+  };
+
+  const onRemove = () => {
+    if (avatarFile) {
+      setAvatarFile(null);
+      return;
+    }
+    setRemoveAvatar(true);
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,15 +294,49 @@ function ProfileEditModal({
     setSaving(true);
     setErr(null);
     try {
-      const result = await updateProfile({
+      let avatarUrl: string | null | undefined = undefined;
+
+      if (avatarFile) {
+        const ext = avatarFile.name.split(".").pop()?.toLowerCase() ?? "jpg";
+        const path = `${profile.userId}/avatar.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, avatarFile, {
+            upsert: true,
+            cacheControl: "3600",
+            contentType: avatarFile.type,
+          });
+        if (upErr) {
+          setErr(upErr.message);
+          return;
+        }
+        const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+        avatarUrl = `${pub.publicUrl}?t=${Date.now()}`;
+      } else if (removeAvatar && profile.avatarUrl) {
+        try {
+          const u = new URL(profile.avatarUrl);
+          const segs = u.pathname.split("/");
+          const idx = segs.findIndex((s) => s === "avatars");
+          const path = idx >= 0 ? segs.slice(idx + 1).join("/") : null;
+          if (path) await supabase.storage.from("avatars").remove([path]);
+        } catch {}
+        avatarUrl = null;
+      }
+
+      const patch: Parameters<typeof updateProfile>[0] = {
         bio: bio.trim(),
         letterboxd: letterboxd.trim() ? normalizeLetterboxdProfile(letterboxd) : "",
+        twitter: twitter.trim() ? normalizeTwitter(twitter) : "",
+        instagram: instagram.trim() ? normalizeInstagram(instagram) : "",
         usernameFontSlug:
           usernameFontSlug === "marker" || usernameFontSlug === "default"
             ? null
             : usernameFontSlug,
         usernameColorSlug: usernameColorSlug === "default" ? null : usernameColorSlug,
-      });
+      };
+      if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl;
+
+      const result = await updateProfile(patch);
       if (result) {
         setErr(result);
         return;
@@ -236,10 +373,13 @@ function ProfileEditModal({
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 flex flex-col gap-4">
-          <div className="flex flex-col items-center gap-2">
-            <ProfileAvatar username={profile.username} src={profile.avatarUrl} />
-            <AvatarUpload profile={profile} />
-          </div>
+          <AvatarUpload
+            username={profile.username}
+            previewUrl={previewUrl}
+            hasCurrentAvatar={!!profile.avatarUrl || !!avatarFile}
+            onSelectFile={onSelectFile}
+            onRemove={onRemove}
+          />
 
           <label className="flex flex-col gap-1.5">
             <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
@@ -258,23 +398,29 @@ function ProfileEditModal({
             </span>
           </label>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
-              Letterboxd
-            </span>
-            <div className="flex items-stretch border border-line-2 focus-within:border-ink rounded-md overflow-hidden bg-transparent">
-              <span className="px-3 flex items-center font-mono text-[12px] text-ink-4 bg-line/40 select-none whitespace-nowrap">
-                letterboxd.com/
-              </span>
-              <input
-                type="text"
-                value={letterboxd}
-                onChange={(e) => setLetterboxd(e.target.value)}
-                placeholder="ton-pseudo"
-                className="flex-1 bg-transparent px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 outline-none"
-              />
-            </div>
-          </label>
+          <SocialField
+            label="Letterboxd"
+            prefix="letterboxd.com/"
+            value={letterboxd}
+            onChange={setLetterboxd}
+            placeholder="ton-pseudo"
+          />
+
+          <SocialField
+            label="X (Twitter)"
+            prefix="x.com/"
+            value={twitter}
+            onChange={setTwitter}
+            placeholder="ton-pseudo"
+          />
+
+          <SocialField
+            label="Instagram"
+            prefix="instagram.com/"
+            value={instagram}
+            onChange={setInstagram}
+            placeholder="ton-pseudo"
+          />
 
           <div className="border-t border-line pt-4 flex flex-col gap-4">
             <ColorPicker
@@ -303,7 +449,7 @@ function ProfileEditModal({
             disabled={saving}
             className="w-full px-4 py-2.5 border border-ink text-ink font-semibold text-[12px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30 rounded-md"
           >
-            {saving ? "…" : "Enregistrer"}
+            {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
         </div>
       </form>
@@ -336,7 +482,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
       const { data: profileRow } = await supabase
         .from("profiles")
         .select(
-          "user_id,username,bio,letterboxd,avatar_url,role,created_at,username_font_slug,username_color_slug"
+          "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,created_at,username_font_slug,username_color_slug"
         )
         .ilike("username", targetUsername)
         .maybeSingle();
@@ -594,6 +740,8 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
                 targetUsername,
               bio: "",
               letterboxd: "",
+              twitter: "",
+              instagram: "",
               avatarUrl: null,
               role: "spectateur",
               usernameFontSlug: null,

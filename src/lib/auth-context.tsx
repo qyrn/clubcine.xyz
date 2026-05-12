@@ -9,6 +9,8 @@ export interface UserProfile {
   username: string;
   bio: string;
   letterboxd: string;
+  twitter: string;
+  instagram: string;
   avatarUrl: string | null;
   role: string;
   usernameFontSlug: string | null;
@@ -27,7 +29,13 @@ interface AuthState {
     patch: Partial<
       Pick<
         UserProfile,
-        "bio" | "letterboxd" | "avatarUrl" | "usernameFontSlug" | "usernameColorSlug"
+        | "bio"
+        | "letterboxd"
+        | "twitter"
+        | "instagram"
+        | "avatarUrl"
+        | "usernameFontSlug"
+        | "usernameColorSlug"
       >
     >
   ) => Promise<string | null>;
@@ -49,6 +57,8 @@ interface ProfileRow {
   username: string;
   bio: string;
   letterboxd: string;
+  twitter: string | null;
+  instagram: string | null;
   avatar_url: string | null;
   role: string;
   username_font_slug: string | null;
@@ -61,6 +71,8 @@ function rowToProfile(row: ProfileRow): UserProfile {
     username: row.username,
     bio: row.bio ?? "",
     letterboxd: row.letterboxd ?? "",
+    twitter: row.twitter ?? "",
+    instagram: row.instagram ?? "",
     avatarUrl: row.avatar_url,
     role: row.role ?? "spectateur",
     usernameFontSlug: row.username_font_slug,
@@ -76,7 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("user_id,username,bio,letterboxd,avatar_url,role,username_font_slug,username_color_slug")
+      .select(
+        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug"
+      )
       .eq("user_id", userId)
       .maybeSingle();
     if (error || !data) {
@@ -120,6 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const dbPatch: Record<string, unknown> = {};
     if (patch.bio !== undefined) dbPatch.bio = patch.bio;
     if (patch.letterboxd !== undefined) dbPatch.letterboxd = patch.letterboxd;
+    if (patch.twitter !== undefined) dbPatch.twitter = patch.twitter;
+    if (patch.instagram !== undefined) dbPatch.instagram = patch.instagram;
     if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl;
     if (patch.usernameFontSlug !== undefined) dbPatch.username_font_slug = patch.usernameFontSlug;
     if (patch.usernameColorSlug !== undefined) dbPatch.username_color_slug = patch.usernameColorSlug;
@@ -128,7 +144,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .from("profiles")
       .update(dbPatch)
       .eq("user_id", user.id)
-      .select("user_id,username,bio,letterboxd,avatar_url,role,username_font_slug,username_color_slug");
+      .select(
+        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug"
+      );
 
     if (error) {
       console.error("[updateProfile] supabase error:", error);
@@ -148,11 +166,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           username: fallbackUsername,
           bio: patch.bio ?? "",
           letterboxd: patch.letterboxd ?? "",
+          twitter: patch.twitter ?? "",
+          instagram: patch.instagram ?? "",
           avatar_url: patch.avatarUrl ?? null,
           username_font_slug: patch.usernameFontSlug ?? null,
           username_color_slug: patch.usernameColorSlug ?? null,
         })
-        .select("user_id,username,bio,letterboxd,avatar_url,role,username_font_slug,username_color_slug")
+        .select(
+          "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug"
+        )
         .single();
       if (insErr) {
         console.error("[updateProfile] insert fallback error:", insErr);

@@ -20,9 +20,12 @@ export default function Hero() {
 
   useEffect(() => {
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 1500;
     const fetchSchedule = async () => {
       try {
         const res = await fetch("/api/schedule");
+        if (!res.ok) throw new Error(`status ${res.status}`);
         const data: ScheduleState = await res.json();
         if (cancelled) return;
         const now = Date.now();
@@ -31,12 +34,18 @@ export default function Hero() {
           : now - data.currentOffset * 1000;
         const endMs = startMs + data.currentFilm.duration * 1000;
         setState({ schedule: data, startMs, endMs });
-      } catch {}
+        retryDelay = 1500;
+      } catch {
+        if (cancelled) return;
+        retryTimer = setTimeout(fetchSchedule, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30_000);
+      }
     };
     fetchSchedule();
     const interval = setInterval(fetchSchedule, 60_000);
     return () => {
       cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
       clearInterval(interval);
     };
   }, []);

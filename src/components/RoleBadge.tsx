@@ -36,7 +36,7 @@ export function Icon({ name, size = 14, className }: IconProps) {
     case "crown":
       return (
         <svg {...props}>
-          <path d="M2 4l5 4 5-6 5 6 5-4-2 14H4L2 4zm3 10h14v2H5v-2z" />
+          <path d="M2 7l5 4 5-6 5 6 5-4-2 14H4L2 7zm3 10h14v2H5v-2z" />
         </svg>
       );
     case "star-filled":
@@ -176,14 +176,14 @@ interface RoleBadgeProps {
 export function RoleBadge({ role, size = "sm", showLabel = false, className }: RoleBadgeProps) {
   const conf = ROLE_ICONS[role];
   if (!conf) return null;
-  const px = size === "sm" ? 12 : 14;
+  const px = size === "sm" ? 13 : 15;
   return (
     <span
       aria-label={conf.label}
       className={`relative inline-flex items-center align-middle gap-1 group/role ${className ?? ""}`.trim()}
       style={{ color: conf.color, lineHeight: 0 }}
     >
-      <Icon name={conf.icon} size={px} />
+      <Icon name={conf.icon} size={px} className="translate-y-[0.5px]" />
       {showLabel && (
         <span className="font-mono text-[10px] tracking-[0.16em] uppercase font-bold leading-none">
           {conf.label}
@@ -192,7 +192,7 @@ export function RoleBadge({ role, size = "sm", showLabel = false, className }: R
       {!showLabel && (
         <span
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-bg border border-line-2 rounded font-mono text-[9px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap text-red opacity-0 translate-y-1 group-hover/role:opacity-100 group-hover/role:translate-y-0 transition-all duration-150 z-20"
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-bg border border-line-2 rounded font-mono text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap text-red opacity-0 translate-y-1 group-hover/role:opacity-100 group-hover/role:translate-y-0 transition-all duration-150 z-30 shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
         >
           {conf.label}
         </span>
@@ -228,14 +228,14 @@ interface TierBadgeProps {
 
 export function TierBadge({ kind, tier, label, size = "sm", showLabel = false, className }: TierBadgeProps) {
   const icon = (kind === "viewer" ? VIEWER_TIER_ICONS[tier] : CHATTER_TIER_ICONS[tier]) ?? "spark";
-  const px = size === "sm" ? 12 : 14;
+  const px = size === "sm" ? 13 : 15;
   return (
     <span
       aria-label={label}
       className={`relative inline-flex items-center align-middle gap-1 group/tier ${className ?? ""}`.trim()}
       style={{ color: "var(--color-ink-2)", lineHeight: 0 }}
     >
-      <Icon name={icon} size={px} />
+      <Icon name={icon} size={px} className="translate-y-[0.5px]" />
       {showLabel && (
         <span className="font-mono text-[10px] tracking-[0.16em] uppercase font-bold leading-none">
           {label}
@@ -244,7 +244,7 @@ export function TierBadge({ kind, tier, label, size = "sm", showLabel = false, c
       {!showLabel && (
         <span
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-bg border border-line-2 rounded font-mono text-[9px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap text-ink opacity-0 translate-y-1 group-hover/tier:opacity-100 group-hover/tier:translate-y-0 transition-all duration-150 z-20"
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-bg border border-line-2 rounded font-mono text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap text-ink opacity-0 translate-y-1 group-hover/tier:opacity-100 group-hover/tier:translate-y-0 transition-all duration-150 z-30 shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
         >
           {label}
         </span>

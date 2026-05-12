@@ -1,4 +1,4 @@
-import { Film, ScheduleState } from "@/types";
+import { Film, ScheduleState, ScheduledFilmEntry } from "@/types";
 import { FILMS, CYCLE_EPOCH } from "@/data/schedule";
 
 const SLOT_SECONDS = 30 * 60;
@@ -67,11 +67,18 @@ export function getCurrentSchedule(now: number = Date.now(), nextCount = 6): Sch
     };
   }
 
-  const startOfNextFilm = intermission ? currentIndex + 1 : currentIndex + 1;
-  const nextFilms: Film[] = [];
+  const cycleAbsoluteStart = now - elapsed * 1000;
+  const startOfNextFilm = currentIndex + 1;
+  const nextFilms: ScheduledFilmEntry[] = [];
   for (let i = 0; i < nextCount; i++) {
-    const idx = (startOfNextFilm + i) % slots.length;
-    nextFilms.push(slots[idx].film);
+    const globalIdx = startOfNextFilm + i;
+    const idx = globalIdx % slots.length;
+    const lap = Math.floor(globalIdx / slots.length);
+    const cycleOffset = lap * total + slots[idx].start;
+    nextFilms.push({
+      film: slots[idx].film,
+      startTime: cycleAbsoluteStart + cycleOffset * 1000,
+    });
   }
 
   return {

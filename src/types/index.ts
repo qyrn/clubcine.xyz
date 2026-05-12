@@ -19,11 +19,16 @@ export interface IntermissionState {
   prevFilm: Film | null;
 }
 
+export interface ScheduledFilmEntry {
+  film: Film;
+  startTime: number;
+}
+
 export interface ScheduleState {
   currentFilm: Film;
   currentOffset: number;
   intermission: IntermissionState | null;
-  nextFilms: Film[];
+  nextFilms: ScheduledFilmEntry[];
   cycleStart: number;
   totalCycleDuration: number;
   serverTime?: number;

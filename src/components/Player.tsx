@@ -19,8 +19,8 @@ type SubsSettings = {
 
 const DEFAULT_SUBS_SETTINGS: SubsSettings = {
   offset: 0,
-  size: 100,
-  position: 12,
+  size: 80,
+  position: 14,
   color: "#ffffff",
 };
 
@@ -359,6 +359,9 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     } catch {}
     const video = videoRef.current;
     if (!video) return;
+    const effectivePosition = showControls
+      ? Math.max(subsSettings.position, 26)
+      : subsSettings.position;
     for (const track of Array.from(video.textTracks)) {
       if (!track.cues) continue;
       for (const cue of Array.from(track.cues)) {
@@ -369,10 +372,10 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         }
         const vtt = cue as VTTCue;
         vtt.snapToLines = false;
-        vtt.line = 100 - subsSettings.position;
+        vtt.line = 100 - effectivePosition;
       }
     }
-  }, [subsSettings]);
+  }, [subsSettings, showControls]);
 
   useEffect(() => {
     const video = videoRef.current;

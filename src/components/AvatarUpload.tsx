@@ -1,25 +1,31 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useAuth, UserProfile } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
 
 const MAX_BYTES = 1_024 * 1_024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 
 interface Props {
-  profile: UserProfile;
+  username: string;
+  previewUrl: string | null;
+  hasCurrentAvatar: boolean;
+  onSelectFile: (file: File) => void;
+  onRemove: () => void;
 }
 
-export default function AvatarUpload({ profile }: Props) {
-  const { updateProfile } = useAuth();
+export default function AvatarUpload({
+  username,
+  previewUrl,
+  hasCurrentAvatar,
+  onSelectFile,
+  onRemove,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const onPick = () => inputRef.current?.click();
 
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
@@ -34,49 +40,14 @@ export default function AvatarUpload({ profile }: Props) {
     }
 
     setErr(null);
-    setUploading(true);
-    try {
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const path = `${profile.userId}/avatar.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file.type });
-      if (upErr) {
-        setErr(upErr.message);
-        return;
-      }
-      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-      const cacheBusted = `${pub.publicUrl}?t=${Date.now()}`;
-      const upderr = await updateProfile({ avatarUrl: cacheBusted });
-      if (upderr) setErr(upderr);
-    } catch (err) {
-      setErr(err instanceof Error ? err.message : "Erreur inconnue");
-    } finally {
-      setUploading(false);
-    }
+    onSelectFile(file);
   };
 
-  const onRemove = async () => {
-    if (!profile.avatarUrl || uploading) return;
-    setUploading(true);
-    setErr(null);
-    try {
-      const url = new URL(profile.avatarUrl);
-      const segments = url.pathname.split("/");
-      const idx = segments.findIndex((s) => s === "avatars");
-      const path = idx >= 0 ? segments.slice(idx + 1).join("/") : null;
-      if (path) await supabase.storage.from("avatars").remove([path]);
-      const upderr = await updateProfile({ avatarUrl: null });
-      if (upderr) setErr(upderr);
-    } catch (err) {
-      setErr(err instanceof Error ? err.message : "Erreur inconnue");
-    } finally {
-      setUploading(false);
-    }
-  };
+  const letter = username.trim().slice(0, 2).toUpperCase() || "?";
+  const canRemove = previewUrl !== null && hasCurrentAvatar;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-3">
       <input
         ref={inputRef}
         type="file"
@@ -84,16 +55,51 @@ export default function AvatarUpload({ profile }: Props) {
         onChange={onFile}
         className="hidden"
       />
+      <button
+        type="button"
+        onClick={onPick}
+        aria-label="Changer la photo"
+        title="Changer la photo"
+        className="w-[140px] h-[140px] rounded-md overflow-hidden border border-red bg-bg shrink-0 relative cursor-pointer group/avatar hover:border-ink transition-colors"
+      >
+        {previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewUrl}
+            alt={username}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center bg-bg"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,0.02) 2px 3px)",
+            }}
+          >
+            <span
+              className="text-ink-3 leading-none font-bold tracking-[-0.04em] select-none"
+              style={{ fontSize: "clamp(40px, 6vw, 56px)" }}
+            >
+              {letter}
+            </span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none">
+          <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink">
+            {previewUrl ? "Changer" : "Choisir"}
+          </span>
+        </div>
+      </button>
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={onPick}
-          disabled={uploading}
-          className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer disabled:opacity-50"
+          className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer"
         >
-          {uploading ? "Upload…" : profile.avatarUrl ? "Changer la photo" : "Ajouter une photo"}
+          {previewUrl ? "Changer la photo" : "Ajouter une photo"}
         </button>
-        {profile.avatarUrl && !uploading && (
+        {canRemove && (
           <>
             <span className="text-ink-4">·</span>
             <button
