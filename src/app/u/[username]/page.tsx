@@ -614,7 +614,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
                     </div>
 
                     {createdAt && (
-                      <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-4 -mt-1 max-md:text-center">
+                      <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3 -mt-1 max-md:text-center">
                         Membre depuis le {formatDate(createdAt)}
                       </div>
                     )}
@@ -723,7 +723,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
         </div>
       )}
 
-      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-4 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
+      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
         <span>CLUBCINE.XYZ · CHANNEL 01 · 2026</span>
         <Link href="/" className="hover:text-ink transition-colors">
           ← RETOUR

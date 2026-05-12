@@ -23,25 +23,27 @@ function PageContent() {
       <Ticker />
       <Nav />
 
-      <Hero />
+      <main>
+        <Hero />
 
-      <ScheduleGrid />
+        <ScheduleGrid />
 
-      <SoireesGrid />
+        <SoireesGrid />
 
-      <section className="grid grid-cols-[1.2fr_0.8fr_1fr] border-b border-line max-[900px]:grid-cols-1">
-        <div className="border-r border-line max-[900px]:border-r-0 max-[900px]:border-b max-[900px]:border-line min-h-[440px] flex flex-col">
-          <Chat />
-        </div>
-        <div className="border-r border-line max-[900px]:border-r-0 max-[900px]:border-b max-[900px]:border-line">
-          <Classement />
-        </div>
-        <div id="suggestions" className="scroll-mt-24">
-          <Suggestions />
-        </div>
-      </section>
+        <section className="grid grid-cols-[1.2fr_0.8fr_1fr] border-b border-line max-[900px]:grid-cols-1">
+          <div className="border-r border-line max-[900px]:border-r-0 max-[900px]:border-b max-[900px]:border-line min-h-[440px] flex flex-col">
+            <Chat />
+          </div>
+          <div className="border-r border-line max-[900px]:border-r-0 max-[900px]:border-b max-[900px]:border-line">
+            <Classement />
+          </div>
+          <div id="suggestions" className="scroll-mt-24">
+            <Suggestions />
+          </div>
+        </section>
+      </main>
 
-      <footer className="px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-4 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
+      <footer className="px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
         <span>CLUBCINE.XYZ · CHANNEL 01 · 2026</span>
         <span className="flex gap-3">
           <a

@@ -117,7 +117,7 @@ export default function Suggestions() {
           />
 
           <div className="flex items-stretch border border-line-2 focus-within:border-ink rounded-md overflow-hidden">
-            <span className="px-2.5 flex items-center font-mono text-[11px] text-ink-4 bg-line/40 select-none whitespace-nowrap">
+            <span className="px-2.5 flex items-center font-mono text-[11px] text-ink-3 bg-line/40 select-none whitespace-nowrap">
               letterboxd.com/{letterboxd.startsWith("imdb/") ? "" : "film/"}
             </span>
             <input
@@ -144,7 +144,7 @@ export default function Suggestions() {
                 {title && (
                   <span className="text-[12px] text-ink truncate">{title}</span>
                 )}
-                <span className="font-mono text-[10px] text-ink-4 tracking-[0.04em]">
+                <span className="font-mono text-[10px] text-ink-3 tracking-[0.04em]">
                   {posterChoices.length > 1 ? `${posterChoices.length} posters dispo` : "poster auto"}
                 </span>
               </div>
@@ -156,7 +156,7 @@ export default function Suggestions() {
                   setPosterChoices([]);
                   setLetterboxd("");
                 }}
-                className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-4 hover:text-red transition-colors cursor-pointer shrink-0"
+                className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer shrink-0"
               >
                 Vider
               </button>
@@ -201,7 +201,7 @@ export default function Suggestions() {
               </span>{" "}
               dans la programmation
               {!username && (
-                <span className="text-ink-4"> · connexion requise</span>
+                <span className="text-ink-3"> · connexion requise</span>
               )}
             </span>
           </label>

@@ -22,7 +22,7 @@ export default function Brand({
     <Link
       href={href}
       className={`inline-flex items-center gap-3 transition-opacity hover:opacity-80 select-none ${className ?? ""}`.trim()}
-      aria-label="club ciné, accueil"
+      aria-label="club · ciné, accueil"
       onContextMenu={(e) => e.preventDefault()}
       onDragStart={(e) => e.preventDefault()}
       draggable={false}

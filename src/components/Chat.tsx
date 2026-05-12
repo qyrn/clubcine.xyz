@@ -133,7 +133,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
           {messages.map((msg) => (
             <div key={msg.id} className="text-[12px] leading-[1.6] break-words flex items-center gap-1.5">
-              <span className="text-ink-4 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
+              <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
               <UserChip
                 username={msg.username}
                 profile={profileMap.get(msg.username.toLowerCase())}
@@ -182,7 +182,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
         {messages.map((msg) => (
           <div key={msg.id} className="py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2">
-            <span className="text-ink-4 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
+            <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
             <UserChip
               username={msg.username}
               profile={profileMap.get(msg.username.toLowerCase())}

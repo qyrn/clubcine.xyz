@@ -59,8 +59,8 @@ export default function BugReportButton({ inline = false }: { inline?: boolean }
       onClick={() => setOpen(true)}
       className={
         inline
-          ? "font-mono text-[11px] tracking-[0.04em] uppercase text-ink-4 hover:text-red transition-colors cursor-pointer"
-          : "font-mono text-[11px] tracking-[0.04em] uppercase text-ink-4 hover:text-red transition-colors cursor-pointer"
+          ? "font-mono text-[11px] tracking-[0.04em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer"
+          : "font-mono text-[11px] tracking-[0.04em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer"
       }
     >
       Signaler un bug
@@ -107,7 +107,7 @@ export default function BugReportButton({ inline = false }: { inline?: boolean }
                 required
               />
               <div className="flex items-center justify-between gap-3">
-                <span className="font-mono text-[10px] text-ink-4 tracking-[0.04em]">
+                <span className="font-mono text-[10px] text-ink-3 tracking-[0.04em]">
                   {message.length}/1000 · URL et user-agent capturés auto
                 </span>
                 <button
