@@ -113,6 +113,7 @@ export default function Hero({ initialSchedule }: Props = {}) {
 
         <Link
           href="/movie"
+          prefetch={false}
           className="inline-flex items-center gap-3 px-6 py-4 border border-ink bg-transparent text-ink font-semibold text-[13px] tracking-wide w-fit mt-2 transition-colors hover:border-red hover:text-red"
         >
           REJOINDRE LA SALLE
@@ -130,6 +131,7 @@ export default function Hero({ initialSchedule }: Props = {}) {
         )}
         <Link
           href="/movie"
+          prefetch={false}
           className="relative block w-full aspect-[2/3] border border-line bg-cover bg-center rounded-lg overflow-hidden"
           style={{
             backgroundImage: film.poster ? `url(${film.poster})` : undefined,

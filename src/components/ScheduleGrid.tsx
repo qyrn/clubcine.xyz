@@ -75,6 +75,7 @@ export default function ScheduleGrid({ initialSchedule }: Props = {}) {
           <Link
             key={`${film.id}-${i}`}
             href="/movie"
+            prefetch={false}
             className="flex flex-col gap-3 group cursor-pointer"
           >
             <div className="relative">

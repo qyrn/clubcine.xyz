@@ -84,6 +84,7 @@ export default function Nav({ active }: { active?: string }) {
             <Link
               key={l.href}
               href={l.href}
+              prefetch={false}
               className={`text-[13px] font-medium transition-colors ${
                 active === l.key ? "text-ink" : "text-ink-2 hover:text-ink"
               }`}
