@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ScheduleState } from "@/types";
 import { formatDuration } from "@/lib/schedule-engine";
@@ -132,13 +133,23 @@ export default function Hero({ initialSchedule }: Props = {}) {
         <Link
           href="/movie"
           prefetch={false}
-          className="relative block w-full aspect-[2/3] border border-line bg-cover bg-center rounded-lg overflow-hidden"
+          className="relative block w-full aspect-[2/3] border border-line bg-bg rounded-lg overflow-hidden"
           style={{
-            backgroundImage: film.poster ? `url(${film.poster})` : undefined,
             boxShadow: "0 20px 50px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)",
           }}
           aria-label={`Affiche : ${film.title}`}
-        />
+        >
+          {film.poster && (
+            <Image
+              src={film.poster}
+              alt=""
+              fill
+              priority
+              sizes="(max-width: 1000px) 360px, 460px"
+              className="object-cover"
+            />
+          )}
+        </Link>
       </div>
     </section>
   );
