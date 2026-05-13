@@ -231,6 +231,12 @@ function UsersAdminContent() {
           >
             → bugs
           </Link>
+          <Link
+            href="/admin/emotes"
+            className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors"
+          >
+            → emotes
+          </Link>
         </div>
       </header>
 

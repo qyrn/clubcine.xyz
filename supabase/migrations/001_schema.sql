@@ -11,9 +11,10 @@
 --   5. guestbook
 --   6. follows
 --   7. bug_reports
---   8. avatars (storage policies — bucket à créer manuellement, voir tout en bas)
+--   8. avatars (storage policies, bucket à créer manuellement)
 --   9. tiers automatiques (viewing / chat / suggestions / bug-hunter)
 --  10. backfills (badges paliers à partir des données existantes)
+--  11. emotes (table + RLS + storage policies, bucket à créer manuellement)
 --
 -- =============================================================================
 
@@ -623,3 +624,86 @@ begin
     end if;
   end loop;
 end $$;
+
+
+-- =============================================================================
+-- 11. emotes (table + RLS + storage policies)
+-- =============================================================================
+-- Catalogue d'emotes uploadées par les admins et les soutiens, parsées dans
+-- les messages du chat sous la forme `:slug:`.
+--
+-- Le bucket Storage "emotes" doit être créé MANUELLEMENT depuis le dashboard
+-- Supabase AVANT d'exécuter ce bloc :
+--   - name: emotes
+--   - public: true
+--   - file size limit: 1 MB
+--   - allowed mime types: image/png, image/webp, image/gif
+-- Convention de chemin : emotes/{user_id}/{slug}.<ext>
+
+create table if not exists public.emotes (
+  slug          text primary key
+                check (slug ~ '^[a-z0-9-]{2,32}$'),
+  label         text not null default '',
+  image_url     text not null,
+  image_path    text not null,
+  uploader_id   uuid references auth.users(id) on delete set null,
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists emotes_created_at_idx on public.emotes (created_at desc);
+create index if not exists emotes_uploader_idx on public.emotes (uploader_id);
+
+alter table public.emotes enable row level security;
+
+drop policy if exists "emotes read all" on public.emotes;
+create policy "emotes read all" on public.emotes for select using (true);
+
+drop policy if exists "emotes insert admin or soutien" on public.emotes;
+create policy "emotes insert admin or soutien" on public.emotes for insert
+  with check (
+    exists (
+      select 1 from public.profiles p
+      where p.user_id = auth.uid()
+        and p.role in ('admin', 'soutien')
+    )
+    and auth.uid() = uploader_id
+  );
+
+drop policy if exists "emotes delete admin or owner" on public.emotes;
+create policy "emotes delete admin or owner" on public.emotes for delete
+  using (
+    auth.uid() = uploader_id
+    or exists (
+      select 1 from public.profiles p
+      where p.user_id = auth.uid() and p.role = 'admin'
+    )
+  );
+
+drop policy if exists "emotes storage read all" on storage.objects;
+create policy "emotes storage read all" on storage.objects for select
+  using (bucket_id = 'emotes');
+
+drop policy if exists "emotes storage insert admin or soutien" on storage.objects;
+create policy "emotes storage insert admin or soutien" on storage.objects for insert
+  with check (
+    bucket_id = 'emotes'
+    and auth.uid()::text = (storage.foldername(name))[1]
+    and exists (
+      select 1 from public.profiles p
+      where p.user_id = auth.uid()
+        and p.role in ('admin', 'soutien')
+    )
+  );
+
+drop policy if exists "emotes storage delete admin or owner" on storage.objects;
+create policy "emotes storage delete admin or owner" on storage.objects for delete
+  using (
+    bucket_id = 'emotes'
+    and (
+      auth.uid()::text = (storage.foldername(name))[1]
+      or exists (
+        select 1 from public.profiles p
+        where p.user_id = auth.uid() and p.role = 'admin'
+      )
+    )
+  );

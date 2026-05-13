@@ -4,8 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useProfilesByUsername } from "@/lib/use-profiles";
+import { useEmotes } from "@/lib/use-emotes";
 import { ChatMessage } from "@/types";
 import UserChip from "./UserChip";
+import EmoteText from "./EmoteText";
+import EmotePicker from "./EmotePicker";
 
 function generateUsername(): string {
   const prefixes = [
@@ -37,6 +40,8 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const emotes = useEmotes();
 
   const username = authUsername || anonUsername;
 
@@ -87,6 +92,29 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     [messages]
   );
   const profileMap = useProfilesByUsername(usernames);
+
+  const insertAtCaret = (snippet: string) => {
+    const el = inputRef.current;
+    if (!el) {
+      setInput((v) => v + snippet);
+      return;
+    }
+    const start = el.selectionStart ?? input.length;
+    const end = el.selectionEnd ?? input.length;
+    const before = input.slice(0, start);
+    const after = input.slice(end);
+    const needsSpaceBefore = before.length > 0 && !before.endsWith(" ");
+    const needsSpaceAfter = after.length > 0 && !after.startsWith(" ");
+    const insertion =
+      (needsSpaceBefore ? " " : "") + snippet + (needsSpaceAfter ? " " : "");
+    const next = before + insertion + after;
+    setInput(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const caret = before.length + insertion.length;
+      el.setSelectionRange(caret, caret);
+    });
+  };
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,19 +168,30 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                 size="sm"
                 className="font-semibold text-ink"
               />
-              <span className="text-ink-2">{msg.text}</span>
+              <EmoteText
+                text={msg.text}
+                emotes={emotes}
+                size={18}
+                className="text-ink-2"
+              />
             </div>
           ))}
         </div>
 
         <form onSubmit={sendMessage} className="border-t border-line p-2 flex gap-1.5">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="…"
             maxLength={280}
             className="flex-1 bg-transparent border border-line-2 px-2 py-1.5 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
+          />
+          <EmotePicker
+            emotes={emotes}
+            onPick={(slug) => insertAtCaret(`:${slug}:`)}
+            compact
           />
           <button
             type="submit"
@@ -189,19 +228,29 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               size="sm"
               className="font-semibold text-ink"
             />
-            <span className="text-ink-2">{msg.text}</span>
+            <EmoteText
+              text={msg.text}
+              emotes={emotes}
+              size={22}
+              className="text-ink-2"
+            />
           </div>
         ))}
       </div>
 
       <form onSubmit={sendMessage} className="flex gap-2">
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Envoyer un message"
           maxLength={280}
           className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
+        />
+        <EmotePicker
+          emotes={emotes}
+          onPick={(slug) => insertAtCaret(`:${slug}:`)}
         />
         <button
           type="submit"
