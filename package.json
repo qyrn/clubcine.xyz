@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "award:soirees": "tsx scripts/award-soiree-badges.ts"
+    "award:soirees": "tsx --env-file=.env.local scripts/award-soiree-badges.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
