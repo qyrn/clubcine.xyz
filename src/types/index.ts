@@ -24,6 +24,30 @@ export interface ScheduledFilmEntry {
   startTime: number;
 }
 
+export interface SoireeRuntime {
+  id: string;
+  title: string;
+  subtitle?: string;
+  films: Film[];
+  currentIndex: number;
+  startsAt: number;
+  endsAt: number;
+  posterFilmId?: string;
+  posterCustomUrl?: string;
+  creditedSuggestionId?: string;
+}
+
+export interface UpcomingSoiree {
+  id: string;
+  title: string;
+  films: Film[];
+  startsAt: number;
+  endsAt: number;
+  posterFilmId?: string;
+  posterCustomUrl?: string;
+  creditedSuggestionId?: string;
+}
+
 export interface ScheduleState {
   currentFilm: Film;
   currentOffset: number;
@@ -31,6 +55,8 @@ export interface ScheduleState {
   nextFilms: ScheduledFilmEntry[];
   cycleStart: number;
   totalCycleDuration: number;
+  soiree: SoireeRuntime | null;
+  upcomingSoirees: UpcomingSoiree[];
   serverTime?: number;
 }
 
