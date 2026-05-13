@@ -76,6 +76,7 @@ function toUpcomingSoiree(s: ResolvedSoiree): UpcomingSoiree {
     posterFilmId: s.def.posterFilmId,
     posterCustomUrl: s.def.posterCustomUrl,
     creditedSuggestionId: s.def.creditedSuggestionId,
+    creditedUsername: s.def.creditedUsername,
   };
 }
 
@@ -118,6 +119,7 @@ function buildSoireeRuntime(s: ResolvedSoiree, offsetInSoiree: number): {
           posterFilmId: s.def.posterFilmId,
           posterCustomUrl: s.def.posterCustomUrl,
           creditedSuggestionId: s.def.creditedSuggestionId,
+          creditedUsername: s.def.creditedUsername,
         },
         currentFilm: film,
         currentOffset: offsetInSoiree - cursor,
@@ -138,6 +140,7 @@ function buildSoireeRuntime(s: ResolvedSoiree, offsetInSoiree: number): {
           posterFilmId: s.def.posterFilmId,
           posterCustomUrl: s.def.posterCustomUrl,
           creditedSuggestionId: s.def.creditedSuggestionId,
+          creditedUsername: s.def.creditedUsername,
         },
         currentFilm: nextFilm,
         currentOffset: 0,
@@ -162,6 +165,7 @@ function buildSoireeRuntime(s: ResolvedSoiree, offsetInSoiree: number): {
       posterFilmId: s.def.posterFilmId,
       posterCustomUrl: s.def.posterCustomUrl,
       creditedSuggestionId: s.def.creditedSuggestionId,
+      creditedUsername: s.def.creditedUsername,
     },
     currentFilm: lastFilm,
     currentOffset: lastFilm.duration,

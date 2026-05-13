@@ -83,6 +83,18 @@ function SoireeHero({ schedule }: { schedule: ScheduleState }) {
           {currentFilm.synopsis && <> · {currentFilm.synopsis}</>}
         </p>
 
+        {soiree.creditedUsername && (
+          <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
+            ★ Suggérée par{" "}
+            <Link
+              href={`/u/${encodeURIComponent(soiree.creditedUsername)}`}
+              className="text-ink-2 hover:text-ink transition-colors"
+            >
+              @{soiree.creditedUsername}
+            </Link>
+          </div>
+        )}
+
         <Link
           href="/movie"
           prefetch={false}

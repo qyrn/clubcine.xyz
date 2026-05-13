@@ -114,6 +114,17 @@ function UpcomingCard({ soiree }: { soiree: UpcomingSoiree }) {
           <li key={f.id}>★ {f.title}</li>
         ))}
       </ul>
+      {soiree.creditedUsername && (
+        <div className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
+          Suggérée par{" "}
+          <Link
+            href={`/u/${encodeURIComponent(soiree.creditedUsername)}`}
+            className="text-ink-2 hover:text-ink transition-colors"
+          >
+            @{soiree.creditedUsername}
+          </Link>
+        </div>
+      )}
     </article>
   );
 }

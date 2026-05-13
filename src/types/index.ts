@@ -35,6 +35,7 @@ export interface SoireeRuntime {
   posterFilmId?: string;
   posterCustomUrl?: string;
   creditedSuggestionId?: string;
+  creditedUsername?: string;
 }
 
 export interface UpcomingSoiree {
@@ -46,6 +47,7 @@ export interface UpcomingSoiree {
   posterFilmId?: string;
   posterCustomUrl?: string;
   creditedSuggestionId?: string;
+  creditedUsername?: string;
 }
 
 export interface ScheduleState {

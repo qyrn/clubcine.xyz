@@ -26,6 +26,7 @@ function toView(
     posterFilmId: def.posterFilmId,
     posterCustomUrl: def.posterCustomUrl,
     creditedSuggestionId: def.creditedSuggestionId,
+    creditedUsername: def.creditedUsername,
   };
 }
 
@@ -52,6 +53,7 @@ export default function SoireesPage() {
         posterFilmId: schedule.soiree.posterFilmId,
         posterCustomUrl: schedule.soiree.posterCustomUrl,
         creditedSuggestionId: schedule.soiree.creditedSuggestionId,
+        creditedUsername: schedule.soiree.creditedUsername,
       }
     : null;
 

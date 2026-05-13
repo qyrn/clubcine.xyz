@@ -8,6 +8,7 @@ export interface SoireeDef {
   films: string[];
   startISO: string;
   creditedSuggestionId?: string;
+  creditedUsername?: string;
   posterFilmId?: string;
   posterCustomUrl?: string;
 }

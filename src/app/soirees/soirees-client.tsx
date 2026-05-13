@@ -26,6 +26,7 @@ export interface SoireeView {
   posterFilmId?: string;
   posterCustomUrl?: string;
   creditedSuggestionId?: string;
+  creditedUsername?: string;
 }
 
 export interface LiveSoireeView extends SoireeView {
@@ -142,6 +143,17 @@ function LiveHero({ soiree }: { soiree: LiveSoireeView }) {
             Film en cours : <span className="text-ink font-semibold">{currentFilm.title}</span> ·{" "}
             {currentFilm.director}, {currentFilm.year}.
           </p>
+          {soiree.creditedUsername && (
+            <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
+              ★ Suggérée par{" "}
+              <Link
+                href={`/u/${encodeURIComponent(soiree.creditedUsername)}`}
+                className="text-ink-2 hover:text-ink transition-colors"
+              >
+                @{soiree.creditedUsername}
+              </Link>
+            </div>
+          )}
           <Link
             href="/movie"
             prefetch={false}
@@ -201,6 +213,17 @@ function UpcomingCard({ soiree }: { soiree: SoireeView }) {
           <li key={f.id}>★ {f.title}</li>
         ))}
       </ul>
+      {soiree.creditedUsername && (
+        <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
+          ★ Suggérée par{" "}
+          <Link
+            href={`/u/${encodeURIComponent(soiree.creditedUsername)}`}
+            className="text-ink-2 hover:text-ink transition-colors"
+          >
+            @{soiree.creditedUsername}
+          </Link>
+        </div>
+      )}
       <NotifyButton soireeId={soiree.id} />
     </article>
   );
@@ -229,6 +252,17 @@ function PastCard({ soiree }: { soiree: SoireeView }) {
         <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
           {soiree.films.map((f) => f.title).join(" · ")}
         </div>
+        {soiree.creditedUsername && (
+          <div className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
+            Suggérée par{" "}
+            <Link
+              href={`/u/${encodeURIComponent(soiree.creditedUsername)}`}
+              className="text-ink-2 hover:text-ink transition-colors"
+            >
+              @{soiree.creditedUsername}
+            </Link>
+          </div>
+        )}
       </div>
     </article>
   );

@@ -260,6 +260,7 @@ insert into public.badges (slug, label, description, color) values
   ('soiree-suggest-1',     'Première soirée proposée', 'A envoyé sa première suggestion de soirée.',              '#ff0033'),
   ('soiree-suggest-5',     'Animateur de soirées',     'A envoyé 5 suggestions de soirées.',                      '#ff0033'),
   ('soiree-suggest-10',    'Programmateur en chef',    'A envoyé 10 suggestions de soirées.',                     '#ff0033'),
+  ('soiree-jouee',         'Soirée jouée',             'Une soirée suggérée est passée à l''antenne.',            '#ff0033'),
   ('bug-hunter',           'Bug hunter',               'A signalé un bug accepté par l''équipe.',                 '#ff0033')
 on conflict (slug) do update set
   label = excluded.label,
