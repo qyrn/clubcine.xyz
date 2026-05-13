@@ -35,7 +35,7 @@ export default function HomeClient({ initialSchedule }: Props) {
 
         <ScheduleGrid initialSchedule={initialSchedule} />
 
-        <SoireesGrid />
+        <SoireesGrid initialSchedule={initialSchedule} />
 
         <section className="grid grid-cols-[1.2fr_0.8fr_1fr] border-b border-line max-[900px]:grid-cols-1">
           <div className="border-r border-line max-[900px]:border-r-0 max-[900px]:border-b max-[900px]:border-line min-h-[440px] flex flex-col">
