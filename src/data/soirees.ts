@@ -26,7 +26,7 @@ export const SOIREES: SoireeDef[] = [
   {
     id: "2026-05-23-mauvais-plan",
     title: "Mauvais plan",
-    films: ["dog-day-afternoon", "heat", "good-time"],
+    films: ["dog-day-afternoon", "heat", "dead-mans-wire"],
     startISO: "2026-05-23T21:00:00+02:00",
     posterFilmId: "heat",
   },
