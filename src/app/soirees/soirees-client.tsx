@@ -171,7 +171,7 @@ function LiveHero({ soiree }: { soiree: LiveSoireeView }) {
               style={{ backgroundImage: `url(${poster})` }}
             />
           )}
-          <div className="relative aspect-[3/4] border border-line bg-bg rounded-lg overflow-hidden">
+          <div className="relative aspect-[2/3] border border-line bg-bg rounded-lg overflow-hidden">
             {poster && (
               <Image
                 src={poster}
@@ -193,7 +193,7 @@ function UpcomingCard({ soiree }: { soiree: SoireeView }) {
   const poster = getPoster(soiree);
   return (
     <article className="flex flex-col gap-4 border border-line rounded-lg p-5">
-      <div className="relative aspect-[3/4] border border-line rounded-md overflow-hidden bg-bg">
+      <div className="relative aspect-[2/3] border border-line rounded-md overflow-hidden bg-bg">
         {poster && (
           <Image
             src={poster}
@@ -208,11 +208,13 @@ function UpcomingCard({ soiree }: { soiree: SoireeView }) {
         ★ {formatSoireeDate(soiree.startsAt)}
       </div>
       <h3 className="font-bold text-[22px] leading-[1.1] tracking-[-0.02em]">{soiree.title}</h3>
-      <ul className="font-mono text-[11px] tracking-[0.04em] text-ink-3 flex flex-wrap gap-x-2 gap-y-1">
-        {soiree.films.map((f) => (
-          <li key={f.id}>★ {f.title}</li>
-        ))}
-      </ul>
+      {!soiree.posterCustomUrl && (
+        <ul className="font-mono text-[11px] tracking-[0.04em] text-ink-3 flex flex-wrap gap-x-2 gap-y-1">
+          {soiree.films.map((f) => (
+            <li key={f.id}>★ {f.title}</li>
+          ))}
+        </ul>
+      )}
       {soiree.creditedUsername && (
         <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
           ★ Suggérée par{" "}
@@ -233,7 +235,7 @@ function PastCard({ soiree }: { soiree: SoireeView }) {
   const poster = getPoster(soiree);
   return (
     <article className="flex gap-4 border border-line rounded-lg p-4 max-md:flex-col">
-      <div className="relative w-[90px] aspect-[3/4] border border-line rounded-md overflow-hidden bg-bg shrink-0 max-md:w-full max-md:aspect-[16/9]">
+      <div className="relative w-[90px] aspect-[2/3] border border-line rounded-md overflow-hidden bg-bg shrink-0 max-md:w-full max-md:aspect-[16/9]">
         {poster && (
           <Image
             src={poster}

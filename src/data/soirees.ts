@@ -17,32 +17,36 @@ export const SOIREES_TIMEZONE = "Europe/Paris";
 
 export const SOIREES: SoireeDef[] = [
   {
-    id: "2026-05-16-affaires-non-classees",
+    id: "2026-06-06-affaires-non-classees",
     title: "Affaires non classées",
     films: ["manhunter", "seven", "zodiac"],
-    startISO: "2026-05-16T21:00:00+02:00",
+    startISO: "2026-06-06T21:00:00+02:00",
     posterFilmId: "zodiac",
+    posterCustomUrl: "/posters-soirees/affaires-non-classees.webp",
   },
   {
-    id: "2026-05-23-mauvais-plan",
+    id: "2026-06-13-mauvais-plan",
     title: "Mauvais plan",
     films: ["dog-day-afternoon", "heat", "dead-mans-wire"],
-    startISO: "2026-05-23T21:00:00+02:00",
+    startISO: "2026-06-13T21:00:00+02:00",
     posterFilmId: "heat",
+    posterCustomUrl: "/posters-soirees/mauvais-plan.webp",
   },
   {
-    id: "2026-05-30-histoires-de-famille",
+    id: "2026-06-20-histoires-de-famille",
     title: "Histoires de famille",
     films: ["magnolia", "shoplifters", "family-resemblances"],
-    startISO: "2026-05-30T21:00:00+02:00",
+    startISO: "2026-06-20T21:00:00+02:00",
     posterFilmId: "shoplifters",
+    posterCustomUrl: "/posters-soirees/histoires-de-famille.webp",
   },
   {
-    id: "2026-06-06-le-vieux-pays",
+    id: "2026-06-27-le-vieux-pays",
     title: "Le vieux pays",
     films: ["jesse-james", "no-country-for-old-men", "killers-of-the-flower-moon"],
-    startISO: "2026-06-06T21:00:00+02:00",
+    startISO: "2026-06-27T21:00:00+02:00",
     posterFilmId: "killers-of-the-flower-moon",
+    posterCustomUrl: "/posters-soirees/le-vieux-pays.webp",
   },
 ];
 

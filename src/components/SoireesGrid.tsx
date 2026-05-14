@@ -77,43 +77,55 @@ function NotifyButton({ soireeId }: { soireeId: string }) {
   );
 }
 
-function UpcomingCard({ soiree }: { soiree: UpcomingSoiree }) {
-  const poster = getSoireePoster(soiree.posterCustomUrl, soiree.posterFilmId, soiree.films);
-
+function SoireePoster({ poster }: { poster?: string }) {
   return (
-    <article className="relative flex flex-col gap-3 group">
-      <NotifyButton soireeId={soiree.id} />
-      <div className="relative aspect-[3/4] border border-line rounded-lg overflow-hidden bg-bg">
+    <div className="relative">
+      {poster && (
+        <div
+          aria-hidden
+          className="absolute inset-0 translate-y-1.5 -z-10 bg-cover bg-center blur-[18px] opacity-20 saturate-125"
+          style={{ backgroundImage: `url(${poster})` }}
+        />
+      )}
+      <div className="relative aspect-[2/3] border border-line rounded-lg overflow-hidden bg-bg transition-opacity group-hover:opacity-90">
         {poster && (
           <Image
             src={poster}
             alt=""
             fill
             sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 25vw"
-            className="object-cover opacity-90 transition-opacity group-hover:opacity-100"
+            className="object-cover"
           />
         )}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-bg via-bg/40 to-transparent"
-        />
-        <div className="absolute inset-0 flex flex-col justify-end p-5 gap-2">
-          <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
-            ★ À venir
-          </div>
-          <h3 className="font-bold text-[20px] leading-[1.1] tracking-[-0.01em]">
-            {soiree.title}
-          </h3>
-          <div className="font-mono text-[11px] tracking-[0.04em] text-ink-2 capitalize">
-            {formatSoireeDate(soiree.startsAt)}
-          </div>
-        </div>
       </div>
-      <ul className="font-mono text-[11px] tracking-[0.04em] text-ink-3 flex flex-wrap gap-x-2 gap-y-1">
-        {soiree.films.map((f) => (
-          <li key={f.id}>★ {f.title}</li>
-        ))}
-      </ul>
+    </div>
+  );
+}
+
+function UpcomingCard({ soiree }: { soiree: UpcomingSoiree }) {
+  const poster = getSoireePoster(soiree.posterCustomUrl, soiree.posterFilmId, soiree.films);
+  const custom = !!soiree.posterCustomUrl;
+
+  return (
+    <article className="relative flex flex-col gap-3 group">
+      <NotifyButton soireeId={soiree.id} />
+      <SoireePoster poster={poster} />
+      <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
+        ★ À venir
+      </div>
+      <div className="font-mono text-[11px] leading-none tracking-[0.04em] text-ink-3 capitalize -mt-1">
+        {formatSoireeDate(soiree.startsAt)}
+      </div>
+      <h3 className="font-bold text-[20px] leading-[1.1] tracking-[-0.01em] -mt-1">
+        {soiree.title}
+      </h3>
+      {!custom && (
+        <ul className="font-mono text-[11px] tracking-[0.04em] text-ink-3 flex flex-wrap gap-x-2 gap-y-1 -mt-1">
+          {soiree.films.map((f) => (
+            <li key={f.id}>★ {f.title}</li>
+          ))}
+        </ul>
+      )}
       {soiree.creditedUsername && (
         <div className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
           Suggérée par{" "}
@@ -134,33 +146,16 @@ function LiveCard({ soiree }: { soiree: SoireeRuntime }) {
   const poster = getSoireePoster(soiree.posterCustomUrl, soiree.posterFilmId, soiree.films);
 
   return (
-    <Link
-      href="/movie"
-      prefetch={false}
-      className="relative flex flex-col gap-3 group col-span-2 max-[700px]:col-span-1"
-    >
-      <div className="relative aspect-[16/9] border border-line rounded-lg overflow-hidden bg-bg">
-        {poster && (
-          <Image
-            src={poster}
-            alt=""
-            fill
-            sizes="(max-width: 700px) 100vw, 50vw"
-            className="object-cover opacity-90 transition-opacity group-hover:opacity-100"
-          />
-        )}
-        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-bg via-bg/50 to-transparent" />
-        <div className="absolute inset-0 flex flex-col justify-end p-6 gap-2">
-          <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
-            ★ Soirée en cours
-          </div>
-          <h3 className="font-bold text-[28px] leading-[1.05] tracking-[-0.02em]">
-            {soiree.title}
-          </h3>
-          <div className="font-mono text-[11px] tracking-[0.04em] text-ink-2">
-            ★ À l&apos;antenne · {currentFilm.title}
-          </div>
-        </div>
+    <Link href="/movie" prefetch={false} className="relative flex flex-col gap-3 group">
+      <SoireePoster poster={poster} />
+      <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
+        ★ Soirée en cours
+      </div>
+      <h3 className="font-bold text-[20px] leading-[1.1] tracking-[-0.01em] -mt-1">
+        {soiree.title}
+      </h3>
+      <div className="font-mono text-[11px] tracking-[0.04em] text-ink-2 -mt-1">
+        ★ À l&apos;antenne · {currentFilm.title}
       </div>
     </Link>
   );
