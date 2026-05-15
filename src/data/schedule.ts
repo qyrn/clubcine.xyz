@@ -1336,9 +1336,4 @@ export const FILMS: Film[] = FILMS_DATA.map(({ slug, hasMusic, ...film }) => ({
   music: hasMusic ? buildMusic(slug ?? film.id) : DEFAULT_MUSIC,
 }));
 
-export function getFilmsByTag(tag: string): Film[] {
-  if (!tag) return [];
-  return FILMS.filter((f) => f.tags?.includes(tag));
-}
-
 export const CYCLE_EPOCH = new Date("2026-01-01T00:00:00Z").getTime();
