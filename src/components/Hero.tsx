@@ -25,7 +25,7 @@ interface HeroState {
 }
 
 function deriveState(schedule: ScheduleState): HeroState {
-  const now = Date.now();
+  const now = schedule.serverTime ?? Date.now();
   const startMs = schedule.intermission
     ? now + schedule.intermission.secondsLeft * 1000
     : now - schedule.currentOffset * 1000;
@@ -46,7 +46,8 @@ function SoireeHero({ schedule }: { schedule: ScheduleState }) {
   const soiree = schedule.soiree!;
   const currentFilm = schedule.currentFilm;
   const poster = getSoireePoster(soiree, currentFilm);
-  const remainingSec = Math.max(0, Math.floor((soiree.endsAt - Date.now()) / 1000));
+  const now = schedule.serverTime ?? Date.now();
+  const remainingSec = Math.max(0, Math.floor((soiree.endsAt - now) / 1000));
 
   return (
     <section className="grid grid-cols-[1fr_460px] gap-16 px-10 py-20 items-center border-b border-line max-[1000px]:grid-cols-1 max-[1000px]:px-8 max-[1000px]:py-12 max-[1000px]:gap-10">
