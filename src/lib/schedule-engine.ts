@@ -34,10 +34,6 @@ function buildSlots(): { slots: Slot[]; total: number } {
   return { slots, total: cursor };
 }
 
-export function getTotalCycleDuration(): number {
-  return buildSlots().total;
-}
-
 function computePausedSeconds(nowSec: number): number {
   const soirees = getResolvedSoirees();
   let paused = 0;
@@ -340,12 +336,6 @@ export function getProgrammeForHours(hours: number, now: number = Date.now()): {
     if (out.length > 200) break;
   }
   return out;
-}
-
-export function getTimeUntilNext(now: number = Date.now()): number {
-  const schedule = getCurrentSchedule(now);
-  if (schedule.intermission) return schedule.intermission.secondsLeft;
-  return schedule.currentFilm.duration - schedule.currentOffset;
 }
 
 export function formatDuration(seconds: number): string {

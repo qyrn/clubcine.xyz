@@ -51,8 +51,6 @@ export const FONTS: FontDef[] = [
   },
 ];
 
-export const DEFAULT_FONT_SLUG = "default";
-
 export function findFont(slug?: string | null): FontDef {
   if (!slug) return FONTS[0];
   return FONTS.find((f) => f.slug === slug) ?? FONTS[0];
@@ -73,7 +71,6 @@ export const USERNAME_COLORS: { slug: string; label: string; value: string }[] =
   { slug: "rose", label: "Rose", value: "#fda4af" },
 ];
 
-export const DEFAULT_COLOR_SLUG = "default";
 const HEX_REGEX = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 export function isHexColor(value?: string | null): boolean {

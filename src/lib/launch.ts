@@ -1,5 +1,5 @@
 export const LAUNCH_ISO = "2026-06-01T00:00:00+02:00";
-export const LAUNCH_MS = Date.parse(LAUNCH_ISO);
+const LAUNCH_MS = Date.parse(LAUNCH_ISO);
 
 export function isSiteLocked(): boolean {
   return process.env.NODE_ENV === "production" && Date.now() < LAUNCH_MS;

@@ -13,8 +13,6 @@ export interface SoireeDef {
   posterCustomUrl?: string;
 }
 
-export const SOIREES_TIMEZONE = "Europe/Paris";
-
 export const SOIREES: SoireeDef[] = [
   {
     id: "2026-06-06-affaires-non-classees",
