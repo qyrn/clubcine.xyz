@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import type { ScheduleState, SoireeRuntime } from "@/types";
 import Brand from "./Brand";
 import ViewerCount from "./ViewerCount";
 import AuthModal from "./AuthModal";
@@ -50,6 +51,27 @@ function ProfileButton({
   );
 }
 
+function LivePill({ soiree }: { soiree: SoireeRuntime | null }) {
+  return (
+    <Link
+      href="/movie"
+      prefetch={false}
+      className="inline-flex items-center gap-2 text-[11px] font-mono font-semibold tracking-[0.16em] uppercase text-ink hover:opacity-80 transition-opacity max-md:hidden"
+    >
+      <span
+        aria-hidden
+        className="w-2 h-2 rounded-full bg-red animate-[pulse-dot_2s_ease-in-out_infinite]"
+      />
+      <span>En direct</span>
+      {soiree && (
+        <span className="text-ink-3 normal-case font-medium tracking-[0.04em]">
+          · soirée
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function LogoutIcon() {
   return (
     <svg
@@ -73,6 +95,34 @@ function LogoutIcon() {
 export default function Nav({ active }: { active?: string }) {
   const { user, username, profile, signOut, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
+  const [soiree, setSoiree] = useState<SoireeRuntime | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 1500;
+    const fetchSchedule = async () => {
+      try {
+        const res = await fetch("/api/schedule");
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const data: ScheduleState = await res.json();
+        if (cancelled) return;
+        setSoiree(data.soiree ?? null);
+        retryDelay = 1500;
+      } catch {
+        if (cancelled) return;
+        retryTimer = setTimeout(fetchSchedule, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30_000);
+      }
+    };
+    fetchSchedule();
+    const interval = setInterval(fetchSchedule, 60_000);
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <>
@@ -95,6 +145,7 @@ export default function Nav({ active }: { active?: string }) {
         </div>
 
         <div className="flex items-center gap-4 text-[12px] text-ink-3 max-md:gap-3">
+          <LivePill soiree={soiree} />
           <ViewerCount />
           {loading ? (
             <span
