@@ -43,40 +43,6 @@ function getSoireePoster(
   return films[0]?.poster;
 }
 
-function NotifyButton({ soireeId }: { soireeId: string }) {
-  const [alerted, setAlerted] = useState(false);
-
-  useEffect(() => {
-    try {
-      setAlerted(window.localStorage.getItem(`clubcine-soiree-alerted-${soireeId}`) === "1");
-    } catch {}
-  }, [soireeId]);
-
-  const toggle = () => {
-    const next = !alerted;
-    setAlerted(next);
-    try {
-      if (next) window.localStorage.setItem(`clubcine-soiree-alerted-${soireeId}`, "1");
-      else window.localStorage.removeItem(`clubcine-soiree-alerted-${soireeId}`);
-    } catch {}
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      className={`absolute top-3 right-3 px-2.5 py-1 font-mono font-semibold text-[10px] tracking-[0.12em] uppercase rounded-sm transition-colors cursor-pointer ${
-        alerted
-          ? "bg-ink text-bg border border-ink"
-          : "bg-bg/80 text-ink-3 border border-line-2 hover:border-ink hover:text-ink"
-      }`}
-      aria-pressed={alerted}
-    >
-      {alerted ? "Averti" : "M'avertir"}
-    </button>
-  );
-}
-
 function SoireePoster({ poster }: { poster?: string }) {
   return (
     <div className="relative">
@@ -108,7 +74,6 @@ function UpcomingCard({ soiree }: { soiree: UpcomingSoiree }) {
 
   return (
     <article className="relative flex flex-col gap-3 group">
-      <NotifyButton soireeId={soiree.id} />
       <SoireePoster poster={poster} />
       <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
         ★ À venir

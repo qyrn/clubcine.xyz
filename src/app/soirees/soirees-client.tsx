@@ -72,40 +72,6 @@ function getPoster(soiree: SoireeView): string | undefined {
   return soiree.films[0]?.poster;
 }
 
-function NotifyButton({ soireeId }: { soireeId: string }) {
-  const [alerted, setAlerted] = useState(false);
-
-  useEffect(() => {
-    try {
-      setAlerted(window.localStorage.getItem(`clubcine-soiree-alerted-${soireeId}`) === "1");
-    } catch {}
-  }, [soireeId]);
-
-  const toggle = () => {
-    const next = !alerted;
-    setAlerted(next);
-    try {
-      if (next) window.localStorage.setItem(`clubcine-soiree-alerted-${soireeId}`, "1");
-      else window.localStorage.removeItem(`clubcine-soiree-alerted-${soireeId}`);
-    } catch {}
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      className={`px-4 py-2 font-mono font-semibold text-[11px] tracking-[0.12em] uppercase rounded-sm transition-colors cursor-pointer w-fit ${
-        alerted
-          ? "bg-ink text-bg border border-ink"
-          : "bg-transparent text-ink-2 border border-line-2 hover:border-ink hover:text-ink"
-      }`}
-      aria-pressed={alerted}
-    >
-      {alerted ? "★ Averti" : "M'avertir"}
-    </button>
-  );
-}
-
 function LiveHero({ soiree }: { soiree: LiveSoireeView }) {
   const poster = getPoster(soiree);
   const currentFilm = soiree.films[soiree.currentIndex];
@@ -226,7 +192,6 @@ function UpcomingCard({ soiree }: { soiree: SoireeView }) {
           </Link>
         </div>
       )}
-      <NotifyButton soireeId={soiree.id} />
     </article>
   );
 }
