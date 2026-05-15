@@ -15,6 +15,7 @@
 --   9. tiers automatiques (viewing / chat / suggestions / bug-hunter)
 --  10. backfills (badges paliers à partir des données existantes)
 --  11. emotes (table + RLS + storage policies, bucket à créer manuellement)
+--  12. cleanup auto des messages > 30j (pg_cron, daily 04:00 UTC)
 --
 -- =============================================================================
 
@@ -708,3 +709,34 @@ create policy "emotes storage delete admin or owner" on storage.objects for dele
       )
     )
   );
+
+-- =============================================================================
+-- 12. cleanup auto des messages > 30j (pg_cron, daily 04:00 UTC)
+-- =============================================================================
+-- `messages.timestamp` est stocké en epoch millis (Date.now() côté client).
+-- Le job tourne tous les jours à 04:00 UTC et purge les lignes > 30 jours.
+-- Idempotent : on tue le job existant avant de le replanifier.
+
+create extension if not exists pg_cron;
+
+create or replace function public.cleanup_old_messages()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.messages
+  where timestamp < (extract(epoch from now() - interval '30 days') * 1000)::bigint;
+$$;
+
+do $$
+begin
+  if exists (select 1 from cron.job where jobname = 'cleanup-old-messages') then
+    perform cron.unschedule('cleanup-old-messages');
+  end if;
+  perform cron.schedule(
+    'cleanup-old-messages',
+    '0 4 * * *',
+    $cron$ select public.cleanup_old_messages(); $cron$
+  );
+end $$;
