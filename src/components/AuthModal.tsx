@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { supabase } from "@/lib/supabase";
 
 type Mode = "login" | "register";
 
@@ -20,7 +21,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +30,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     setSubmitting(true);
 
     if (mode === "register") {
-      if (username.trim().length < 3) {
+      const trimmed = username.trim();
+      if (trimmed.length < 3) {
         setError("pseudo trop court (3 caractères min)");
         setSubmitting(false);
         return;
@@ -39,9 +41,20 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         setSubmitting(false);
         return;
       }
-      const err = await signUp(email, password, username.trim());
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("username")
+        .ilike("username", trimmed)
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        setError("pseudo déjà pris, choisis-en un autre");
+        setSubmitting(false);
+        return;
+      }
+      const err = await signUp(email, password, trimmed);
       if (err) setError(err);
-      else setSuccess(true);
+      else setRegisteredEmail(email);
     } else {
       const err = await signIn(email, password);
       if (err) setError(err);
@@ -51,9 +64,45 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     setSubmitting(false);
   };
 
-  if (success) {
-    onClose();
-    return null;
+  if (registeredEmail) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/85"
+        onClick={onClose}
+      >
+        <div
+          className="border border-line bg-bg max-w-xs w-full mx-4 p-6 text-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-5">
+            <span className="text-[14px] font-semibold uppercase tracking-[0.16em]">
+              Vérifie ta boîte
+            </span>
+            <button
+              onClick={onClose}
+              className="text-ink-3 hover:text-ink text-[12px] cursor-pointer transition-colors"
+            >
+              fermer
+            </button>
+          </div>
+          <p className="text-[13px] text-ink-2 leading-relaxed mb-3">
+            On vient de t'envoyer un mail de confirmation à
+          </p>
+          <p className="text-[13px] text-ink font-mono break-all mb-4">
+            {registeredEmail}
+          </p>
+          <p className="text-[11px] text-ink-3 leading-relaxed mb-5">
+            Clique sur le lien dedans pour activer ton compte. Pense à vérifier les spams si rien n'arrive sous 2 minutes.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full border border-ink bg-transparent text-ink text-[12px] font-semibold py-2.5 hover:border-red hover:text-red cursor-pointer transition-colors uppercase tracking-[0.12em]"
+          >
+            Compris
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
