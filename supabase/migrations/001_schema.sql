@@ -16,6 +16,7 @@
 --  10. backfills (badges paliers à partir des données existantes)
 --  11. emotes (table + RLS + storage policies, bucket à créer manuellement)
 --  12. cleanup auto des messages > 30j (pg_cron, daily 04:00 UTC)
+--  13. security hardening (guard role, username case-insensitive, rate limits)
 --
 -- =============================================================================
 
@@ -740,3 +741,121 @@ begin
     $cron$ select public.cleanup_old_messages(); $cron$
   );
 end $$;
+
+-- =============================================================================
+-- 13. security hardening
+-- =============================================================================
+-- a) guard role change : un user ne peut pas se promouvoir admin via update self.
+-- b) username case-insensitive unique : empêche "lynch" / "Lynch" coexistence.
+-- c) rate limits applicatifs sur messages / suggestions / bug_reports.
+
+-- a) guard role change
+create or replace function public.guard_profiles_role_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  is_admin boolean;
+begin
+  if new.role is distinct from old.role then
+    select exists (
+      select 1 from public.profiles
+      where user_id = auth.uid() and role = 'admin'
+    ) into is_admin;
+    if not is_admin then
+      raise exception 'role change requires admin privilege';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_guard_role on public.profiles;
+create trigger profiles_guard_role
+  before update of role on public.profiles
+  for each row execute function public.guard_profiles_role_change();
+
+-- b) username case-insensitive uniqueness
+-- Le `unique` column-level reste mais on ajoute un index unique sur lower().
+-- Échoue si la table contient déjà des doublons à la casse (le user les nettoie
+-- manuellement avant ré-exécution).
+create unique index if not exists profiles_username_lower_unique
+  on public.profiles (lower(username));
+
+-- c) rate limit messages : 10 inserts max par username sur les 10 dernières secondes
+create or replace function public.rate_limit_messages()
+returns trigger language plpgsql as $$
+declare
+  recent_count int;
+begin
+  select count(*) into recent_count
+  from public.messages
+  where username = new.username
+    and timestamp > (extract(epoch from now() - interval '10 seconds') * 1000)::bigint;
+  if recent_count >= 10 then
+    raise exception 'trop de messages, ralentis un peu';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists messages_rate_limit on public.messages;
+create trigger messages_rate_limit
+  before insert on public.messages
+  for each row execute function public.rate_limit_messages();
+
+-- c) rate limit suggestions : 5 inserts max par user_id (ou username si anon) / heure
+create or replace function public.rate_limit_suggestions()
+returns trigger language plpgsql as $$
+declare
+  recent_count int;
+begin
+  if new.user_id is not null then
+    select count(*) into recent_count
+    from public.suggestions
+    where user_id = new.user_id
+      and created_at > now() - interval '1 hour';
+  else
+    select count(*) into recent_count
+    from public.suggestions
+    where username = new.username
+      and created_at > now() - interval '1 hour';
+  end if;
+  if recent_count >= 5 then
+    raise exception 'trop de suggestions sur la dernière heure, réessaie plus tard';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists suggestions_rate_limit on public.suggestions;
+create trigger suggestions_rate_limit
+  before insert on public.suggestions
+  for each row execute function public.rate_limit_suggestions();
+
+-- c) rate limit bug_reports : 5 inserts max par user_id (ou username si anon) / heure
+create or replace function public.rate_limit_bug_reports()
+returns trigger language plpgsql as $$
+declare
+  recent_count int;
+begin
+  if new.user_id is not null then
+    select count(*) into recent_count
+    from public.bug_reports
+    where user_id = new.user_id
+      and created_at > now() - interval '1 hour';
+  else
+    select count(*) into recent_count
+    from public.bug_reports
+    where username = new.username
+      and created_at > now() - interval '1 hour';
+  end if;
+  if recent_count >= 5 then
+    raise exception 'trop de signalements sur la dernière heure, réessaie plus tard';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists bug_reports_rate_limit on public.bug_reports;
+create trigger bug_reports_rate_limit
+  before insert on public.bug_reports
+  for each row execute function public.rate_limit_bug_reports();
