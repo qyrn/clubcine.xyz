@@ -5,25 +5,21 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useProfilesByUsername } from "@/lib/use-profiles";
 import { useEmotes } from "@/lib/use-emotes";
+import { ANON_PSEUDOS } from "@/data/anon-pseudos";
 import { ChatMessage } from "@/types";
 import UserChip from "./UserChip";
 import EmoteText from "./EmoteText";
 import EmotePicker from "./EmotePicker";
 
 function generateUsername(): string {
-  const prefixes = [
-    "kubrick", "godard", "tarkovski", "fellini", "lynch",
-    "melies", "murnau", "wiene", "eisenstein", "pasolini",
-    "jodorowsky", "gaspar", "haneke", "kiarostami", "apichatpong",
-  ];
-  const suffixes = [
-    "fan", "vhs", "35mm", "noir", "cut",
-    "reel", "rush", "dub", "sub", "raw",
-  ];
-  const p = prefixes[Math.floor(Math.random() * prefixes.length)];
-  const s = suffixes[Math.floor(Math.random() * suffixes.length)];
-  const n = Math.floor(Math.random() * 99);
-  return `${p}_${s}${n}`;
+  const p = ANON_PSEUDOS[Math.floor(Math.random() * ANON_PSEUDOS.length)];
+  const n = Math.floor(Math.random() * 100);
+  return Math.random() < 0.5 ? p : `${p}_${String(n).padStart(2, "0")}`;
+}
+
+function isFromCurrentPool(name: string): boolean {
+  const base = name.replace(/_\d{2}$/, "");
+  return (ANON_PSEUDOS as readonly string[]).includes(base);
 }
 
 const MAX_MESSAGES = 50;
@@ -47,7 +43,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   useEffect(() => {
     const stored = localStorage.getItem("clubcine-username");
-    const name = stored ?? generateUsername();
+    const name = stored && isFromCurrentPool(stored) ? stored : generateUsername();
     localStorage.setItem("clubcine-username", name);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnonUsername(name);
