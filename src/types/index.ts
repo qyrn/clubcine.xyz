@@ -12,6 +12,7 @@ export interface Film {
   country?: string;
   genre?: string;
   movement?: string;
+  tags?: string[];
 }
 
 export interface IntermissionState {
