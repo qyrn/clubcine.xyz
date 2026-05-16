@@ -31,7 +31,7 @@ interface ChatProps {
 
 export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const compact = !!onCollapse;
-  const { username: authUsername } = useAuth();
+  const { username: authUsername, profile } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
@@ -40,6 +40,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const emotes = useEmotes();
 
   const username = authUsername || anonUsername;
+  const canModerate = profile?.role === "admin" || profile?.role === "moderateur";
 
   useEffect(() => {
     const stored = localStorage.getItem("clubcine-username");
@@ -69,6 +70,15 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             const next = [...prev, payload.new as ChatMessage];
             return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
           });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "messages" },
+        (payload) => {
+          const oldId = (payload.old as { id?: number | string }).id;
+          if (oldId === undefined) return;
+          setMessages((prev) => prev.filter((m) => m.id !== oldId));
         }
       )
       .subscribe();
@@ -126,6 +136,21 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     });
   };
 
+  const deleteMessage = async (msg: ChatMessage) => {
+    if (!canModerate) return;
+    const ok = window.confirm(`Supprimer ce message de @${msg.username} ?`);
+    if (!ok) return;
+    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+    const { error } = await supabase.from("messages").delete().eq("id", msg.id);
+    if (error) {
+      console.error("[chat] delete error:", error);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg].sort((a, b) => a.timestamp - b.timestamp);
+      });
+    }
+  };
+
   const formatTime = (ts: number) => {
     const d = new Date(ts);
     return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
@@ -156,7 +181,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           )}
 
           {messages.map((msg) => (
-            <div key={msg.id} className="text-[12px] leading-[1.6] break-words flex items-center gap-1.5">
+            <div key={msg.id} className="group text-[12px] leading-[1.6] break-words flex items-center gap-1.5">
               <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
               <UserChip
                 username={msg.username}
@@ -164,12 +189,25 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                 size="sm"
                 className="font-semibold text-ink"
               />
-              <EmoteText
-                text={msg.text}
-                emotes={emotes}
-                size={18}
-                className="text-ink-2"
-              />
+              <span className="flex-1 min-w-0">
+                <EmoteText
+                  text={msg.text}
+                  emotes={emotes}
+                  size={18}
+                  className="text-ink-2"
+                />
+              </span>
+              {canModerate && (
+                <button
+                  type="button"
+                  onClick={() => deleteMessage(msg)}
+                  title="supprimer le message"
+                  aria-label="supprimer le message"
+                  className="shrink-0 text-ink-3 hover:text-red opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer leading-none text-[14px] px-1"
+                >
+                  ×
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -216,7 +254,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className="py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2">
+          <div key={msg.id} className="group py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2">
             <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
             <UserChip
               username={msg.username}
@@ -224,12 +262,25 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               size="sm"
               className="font-semibold text-ink"
             />
-            <EmoteText
-              text={msg.text}
-              emotes={emotes}
-              size={22}
-              className="text-ink-2"
-            />
+            <span className="flex-1 min-w-0">
+              <EmoteText
+                text={msg.text}
+                emotes={emotes}
+                size={22}
+                className="text-ink-2"
+              />
+            </span>
+            {canModerate && (
+              <button
+                type="button"
+                onClick={() => deleteMessage(msg)}
+                title="supprimer le message"
+                aria-label="supprimer le message"
+                className="shrink-0 text-ink-3 hover:text-red opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer leading-none text-[16px] px-1"
+              >
+                ×
+              </button>
+            )}
           </div>
         ))}
       </div>

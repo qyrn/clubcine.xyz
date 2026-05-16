@@ -31,7 +31,7 @@ create table if not exists public.profiles (
   letterboxd           text not null default '',
   avatar_url           text,
   role                 text not null default 'spectateur'
-                       check (role in ('spectateur', 'soutien', 'admin')),
+                       check (role in ('spectateur', 'soutien', 'moderateur', 'admin')),
   username_font_slug   text,
   username_color_slug  text,
   created_at           timestamptz not null default now(),
@@ -43,6 +43,20 @@ alter table public.profiles
   add column if not exists username_color_slug text,
   add column if not exists twitter text not null default '',
   add column if not exists instagram text not null default '';
+
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_role_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles drop constraint profiles_role_check;
+  end if;
+  alter table public.profiles
+    add constraint profiles_role_check
+    check (role in ('spectateur', 'soutien', 'moderateur', 'admin'));
+end $$;
 
 create index if not exists profiles_username_lower_idx on public.profiles (lower(username));
 
@@ -741,6 +755,23 @@ begin
     $cron$ select public.cleanup_old_messages(); $cron$
   );
 end $$;
+
+-- =============================================================================
+-- 12bis. modération chat (delete admin OU modérateur)
+-- =============================================================================
+-- La table `public.messages` est préexistante (créée hors migrations). On garde
+-- son schéma intact, on ajoute juste une policy delete pour la modération.
+-- Realtime DELETE doit aussi être activé côté Supabase pour propager la suppression.
+
+drop policy if exists "messages delete admin or moderator" on public.messages;
+create policy "messages delete admin or moderator" on public.messages for delete
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.user_id = auth.uid()
+        and p.role in ('admin', 'moderateur')
+    )
+  );
 
 -- =============================================================================
 -- 13. security hardening

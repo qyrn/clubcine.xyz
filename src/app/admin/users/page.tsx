@@ -8,7 +8,7 @@ import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
 import { BadgeIcon } from "@/components/RoleBadge";
 
-const ROLES = ["spectateur", "soutien", "admin"] as const;
+const ROLES = ["spectateur", "soutien", "moderateur", "admin"] as const;
 type Role = (typeof ROLES)[number];
 
 interface ProfileRow {

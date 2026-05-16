@@ -5,6 +5,7 @@ export type IconName =
   | "star-filled"
   | "diamond"
   | "skull"
+  | "shield"
   | "bolt"
   | "eye"
   | "flame"
@@ -55,6 +56,12 @@ export function Icon({ name, size = 14, className }: IconProps) {
       return (
         <svg {...props}>
           <path d="M12 2C7 2 4 5.5 4 10v4l2 2v3a1 1 0 001 1h2v-3h2v3h2v-3h2v3h2a1 1 0 001-1v-3l2-2v-4c0-4.5-3-8-8-8zm-3 8a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm6 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
+        </svg>
+      );
+    case "shield":
+      return (
+        <svg {...props}>
+          <path d="M12 2L3 5v7c0 5 3.8 9.4 9 10 5.2-.6 9-5 9-10V5l-9-3zm0 2.2l7 2.3V12c0 3.9-2.9 7.5-7 8-4.1-.5-7-4.1-7-8V6.5l7-2.3z" />
         </svg>
       );
     case "bolt":
@@ -121,11 +128,12 @@ export function Icon({ name, size = 14, className }: IconProps) {
 }
 
 export const ROLE_ICONS: Record<string, { icon: IconName; color: string; label: string }> = {
-  admin: { icon: "crown", color: "var(--color-red)", label: "ADMIN" },
-  soutien: { icon: "star-filled", color: "var(--color-red)", label: "SOUTIEN" },
-  equipe: { icon: "diamond", color: "var(--color-red)", label: "ÉQUIPE" },
-  vip: { icon: "diamond", color: "var(--color-red)", label: "VIP" },
-  pirate: { icon: "skull", color: "var(--color-red)", label: "PIRATE" },
+  admin: { icon: "crown", color: "#ff0033", label: "ADMIN" },
+  moderateur: { icon: "shield", color: "#3b82f6", label: "MODÉRATEUR" },
+  soutien: { icon: "star-filled", color: "#facc15", label: "SOUTIEN" },
+  equipe: { icon: "diamond", color: "#06b6d4", label: "ÉQUIPE" },
+  vip: { icon: "diamond", color: "#a855f7", label: "VIP" },
+  pirate: { icon: "skull", color: "#16a34a", label: "PIRATE" },
 };
 
 export const BADGE_ICONS: Record<string, IconName> = {
@@ -192,7 +200,8 @@ export function RoleBadge({ role, size = "sm", showLabel = false, className }: R
       {!showLabel && (
         <span
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-bg border border-line-2 rounded font-mono text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap text-red opacity-0 translate-y-1 group-hover/role:opacity-100 group-hover/role:translate-y-0 transition-all duration-150 z-30 shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+          style={{ color: conf.color }}
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-bg border border-line-2 rounded font-mono text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap opacity-0 translate-y-1 group-hover/role:opacity-100 group-hover/role:translate-y-0 transition-all duration-150 z-30 shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
         >
           {conf.label}
         </span>
