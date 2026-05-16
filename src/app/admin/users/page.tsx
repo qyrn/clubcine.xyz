@@ -218,7 +218,13 @@ function UsersAdminContent() {
         <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3">
           Donne / retire un rôle ou un badge en un clic. Plus de SQL à écrire.
         </p>
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex items-center gap-3 flex-wrap">
+          <Link
+            href="/admin/dashboard"
+            className="text-[12px] font-mono uppercase tracking-[0.16em] text-red font-bold hover:text-ink transition-colors"
+          >
+            ★ dashboard
+          </Link>
           <Link
             href="/admin/suggestions"
             className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors"
