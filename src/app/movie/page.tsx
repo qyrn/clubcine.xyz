@@ -10,9 +10,18 @@ import Brand from "@/components/Brand";
 import { ScheduleState } from "@/types";
 import { formatDuration } from "@/lib/schedule-engine";
 
+function formatHM(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${m.toString().padStart(2, "0")}`;
+}
+
 function FilmInfo({ visible }: { visible: boolean }) {
   const [schedule, setSchedule] = useState<ScheduleState | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +43,10 @@ function FilmInfo({ visible }: { visible: boolean }) {
   }, []);
 
   useEffect(() => {
-    const tick = setInterval(() => setElapsed((p) => p + 1), 1000);
+    const tick = setInterval(() => {
+      setElapsed((p) => p + 1);
+      setNowMs(Date.now());
+    }, 1000);
     return () => clearInterval(tick);
   }, []);
 
@@ -44,8 +56,13 @@ function FilmInfo({ visible }: { visible: boolean }) {
 
   if (!schedule || schedule.intermission) return null;
 
-  const { currentFilm } = schedule;
+  const { currentFilm, soiree } = schedule;
   const progress = Math.min((elapsed / currentFilm.duration) * 100, 100);
+  const soireeRemaining = soiree
+    ? Math.max(0, Math.floor((soiree.endsAt - nowMs) / 1000))
+    : 0;
+  const soireeFilmCount = soiree?.films.length ?? 0;
+  const soireeFilmIndex = soiree ? soiree.currentIndex + 1 : 0;
 
   return (
     <div
@@ -59,6 +76,21 @@ function FilmInfo({ visible }: { visible: boolean }) {
             "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)",
         }}
       >
+        {soiree && (
+          <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-ink-3 mb-3 drop-shadow-lg flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>
+              ★ <strong className="text-red font-bold">Soirée</strong>
+              {" · "}
+              <span className="text-ink-2 normal-case tracking-[0.04em]">{soiree.title}</span>
+            </span>
+            <span className="text-ink-4">·</span>
+            <span>
+              Film {soireeFilmIndex}/{soireeFilmCount}
+            </span>
+            <span className="text-ink-4">·</span>
+            <span>{formatHM(soireeRemaining)} restant</span>
+          </div>
+        )}
         <div className="flex items-end justify-between gap-4 mb-2">
           <div className="flex items-end gap-4 min-w-0">
             {currentFilm.poster && (
