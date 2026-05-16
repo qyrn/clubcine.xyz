@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Inter,
   Permanent_Marker,
@@ -7,6 +7,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import PWARegister from "@/components/PWARegister";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -43,12 +44,27 @@ export const metadata: Metadata = {
   },
   description: "Une chaîne de cinéma de contrebande. 100 films d'auteur en boucle, diffusés en synchrone, 24h/24.",
   manifest: "/favicon/site.webmanifest",
+  applicationName: "club ciné",
+  appleWebApp: {
+    capable: true,
+    title: "club ciné",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: [
       { url: "/favicon/seal.png", type: "image/png" },
     ],
-    apple: "/favicon/seal.png",
+    apple: [
+      { url: "/favicon/seal.png", sizes: "180x180", type: "image/png" },
+    ],
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -63,6 +79,7 @@ export default function RootLayout({
     >
       <body className="h-full">
         <Providers>{children}</Providers>
+        <PWARegister />
       </body>
     </html>
   );
