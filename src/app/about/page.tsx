@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
+import StaffApplyButton from "@/components/StaffApplyButton";
 
 interface SocialLink {
   label: string;
@@ -182,6 +183,24 @@ function AboutContent() {
             )
           )}
         </div>
+      </section>
+
+      <section className="px-10 py-20 border-b border-line flex flex-col items-center text-center gap-6 max-md:px-5 max-md:py-16">
+        <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.16em] uppercase text-ink-3">
+          ★ <span className="text-red font-bold">Recrutement</span>
+          {" · Channel 01"}
+        </div>
+        <h2
+          className="font-bold leading-[1] tracking-[-0.03em] uppercase"
+          style={{ fontSize: "clamp(32px, 4.5vw, 56px)" }}
+        >
+          On cherche des modérateurs
+        </h2>
+        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[520px]">
+          Tu traînes sur le chat, tu connais le catalogue, tu veux aider à
+          garder l&apos;ambiance saine ? Postule. On répond.
+        </p>
+        <StaffApplyButton />
       </section>
 
       <footer className="px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-4 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">

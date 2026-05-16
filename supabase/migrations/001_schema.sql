@@ -774,6 +774,85 @@ create policy "messages delete admin or moderator" on public.messages for delete
   );
 
 -- =============================================================================
+-- 12ter. staff_applications (candidatures pour rejoindre l'équipe)
+-- =============================================================================
+-- Un user connecté peut postuler pour devenir modérateur. L'admin accepte
+-- depuis /admin/staff : statut → 'accepted' + promotion manuelle via le bouton
+-- (deux appels SQL séparés côté client, pas de trigger auto).
+
+create table if not exists public.staff_applications (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users(id) on delete cascade,
+  username      text not null,
+  role_wanted   text not null default 'moderateur'
+                check (role_wanted in ('moderateur')),
+  motivation    text not null check (length(motivation) between 30 and 1500),
+  status        text not null default 'pending'
+                check (status in ('pending', 'accepted', 'rejected')),
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists staff_applications_status_idx
+  on public.staff_applications (status, created_at desc);
+create index if not exists staff_applications_user_idx
+  on public.staff_applications (user_id);
+
+alter table public.staff_applications enable row level security;
+
+drop policy if exists "staff insert auth" on public.staff_applications;
+create policy "staff insert auth" on public.staff_applications for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "staff select own" on public.staff_applications;
+create policy "staff select own" on public.staff_applications for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "staff select admin" on public.staff_applications;
+create policy "staff select admin" on public.staff_applications for select
+  using (
+    exists (select 1 from public.profiles p where p.user_id = auth.uid() and p.role = 'admin')
+  );
+
+drop policy if exists "staff update admin" on public.staff_applications;
+create policy "staff update admin" on public.staff_applications for update
+  using (
+    exists (select 1 from public.profiles p where p.user_id = auth.uid() and p.role = 'admin')
+  )
+  with check (
+    exists (select 1 from public.profiles p where p.user_id = auth.uid() and p.role = 'admin')
+  );
+
+-- Rate limit : 1 candidature pending max par user (et 1 candidature / 7j si déjà refusée)
+create or replace function public.rate_limit_staff_applications()
+returns trigger language plpgsql as $$
+declare
+  pending_count int;
+  recent_count int;
+begin
+  select count(*) into pending_count
+  from public.staff_applications
+  where user_id = new.user_id and status = 'pending';
+  if pending_count >= 1 then
+    raise exception 'tu as déjà une candidature en attente';
+  end if;
+
+  select count(*) into recent_count
+  from public.staff_applications
+  where user_id = new.user_id
+    and created_at > now() - interval '7 days';
+  if recent_count >= 1 then
+    raise exception 'attends 7 jours entre deux candidatures';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists staff_applications_rate_limit on public.staff_applications;
+create trigger staff_applications_rate_limit
+  before insert on public.staff_applications
+  for each row execute function public.rate_limit_staff_applications();
+
+-- =============================================================================
 -- 13. security hardening
 -- =============================================================================
 -- a) guard role change : un user ne peut pas se promouvoir admin via update self.

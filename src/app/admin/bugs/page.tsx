@@ -160,6 +160,7 @@ function BugsAdminContent() {
           <Link href="/admin/users" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ users</Link>
           <Link href="/admin/suggestions" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ suggestions</Link>
           <Link href="/admin/emotes" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ emotes</Link>
+          <Link href="/admin/staff" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ staff</Link>
         </div>
       </header>
 

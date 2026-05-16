@@ -237,6 +237,12 @@ function UsersAdminContent() {
           >
             → emotes
           </Link>
+          <Link
+            href="/admin/staff"
+            className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors"
+          >
+            → staff
+          </Link>
         </div>
       </header>
 

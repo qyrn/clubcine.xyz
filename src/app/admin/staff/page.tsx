@@ -7,28 +7,20 @@ import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
 
-type Kind = "film" | "soiree";
 type Status = "pending" | "accepted" | "rejected";
 
-interface Suggestion {
+interface Application {
   id: string;
-  kind: Kind;
-  user_id: string | null;
-  username: string | null;
-  payload: Record<string, unknown>;
-  credit: boolean;
+  user_id: string;
+  username: string;
+  role_wanted: string;
+  motivation: string;
   status: Status;
   created_at: string;
 }
 
-const KIND_LABELS: Record<Kind | "all", string> = {
-  all: "Tous",
-  film: "Films",
-  soiree: "Soirées",
-};
-
 const STATUS_LABELS: Record<Status | "all", string> = {
-  all: "Tous",
+  all: "Toutes",
   pending: "En attente",
   accepted: "Acceptées",
   rejected: "Rejetées",
@@ -50,54 +42,13 @@ function formatDate(iso: string) {
   });
 }
 
-function PayloadView({ kind, payload }: { kind: Kind; payload: Record<string, unknown> }) {
-  if (kind === "film") {
-    const letterboxd = String(payload.letterboxd ?? "");
-    const poster = payload.poster ? String(payload.poster) : null;
-    const title = payload.title ? String(payload.title) : null;
-    return (
-      <div className="flex gap-3 items-start">
-        {poster && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={poster}
-            alt=""
-            className="w-12 h-[72px] object-cover border border-line rounded-md shrink-0"
-          />
-        )}
-        <div className="flex flex-col gap-1 min-w-0">
-          {title && (
-            <span className="text-[14px] font-semibold text-ink">{title}</span>
-          )}
-          <a
-            href={letterboxd}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[12px] text-ink-2 hover:text-red transition-colors break-all"
-          >
-            {letterboxd}
-          </a>
-        </div>
-      </div>
-    );
-  }
-  const theme = String(payload.theme ?? "");
-  const films = String(payload.films ?? "");
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[14px] font-semibold text-ink">{theme}</span>
-      <span className="text-[12px] text-ink-2 leading-[1.5] whitespace-pre-wrap">{films}</span>
-    </div>
-  );
-}
-
-function SuggestionsAdminContent() {
+function StaffAdminContent() {
   const { user, profile, loading: authLoading } = useAuth();
-  const [items, setItems] = useState<Suggestion[]>([]);
+  const [items, setItems] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const [kindFilter, setKindFilter] = useState<Kind | "all">("all");
   const [statusFilter, setStatusFilter] = useState<Status | "all">("pending");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   const isAdmin = profile?.role === "admin";
 
@@ -107,37 +58,69 @@ function SuggestionsAdminContent() {
     const load = async () => {
       setLoading(true);
       let query = supabase
-        .from("suggestions")
-        .select("id,kind,user_id,username,payload,credit,status,created_at")
+        .from("staff_applications")
+        .select("id,user_id,username,role_wanted,motivation,status,created_at")
         .order("created_at", { ascending: false })
         .limit(200);
-      if (kindFilter !== "all") query = query.eq("kind", kindFilter);
       if (statusFilter !== "all") query = query.eq("status", statusFilter);
       const { data } = await query;
       if (cancelled) return;
-      setItems((data ?? []) as Suggestion[]);
+      setItems((data ?? []) as Application[]);
       setLoading(false);
     };
     load();
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, kindFilter, statusFilter]);
+  }, [isAdmin, statusFilter]);
 
-  const updateStatus = async (id: string, next: Status) => {
-    setUpdating(id);
-    const { error } = await supabase
-      .from("suggestions")
+  useEffect(() => {
+    if (!feedback) return;
+    const t = setTimeout(() => setFeedback(null), 3000);
+    return () => clearTimeout(t);
+  }, [feedback]);
+
+  const updateStatus = async (app: Application, next: Status) => {
+    setUpdating(app.id);
+
+    const { error: statusErr } = await supabase
+      .from("staff_applications")
       .update({ status: next })
-      .eq("id", id);
-    setUpdating(null);
-    if (!error) {
-      setItems((prev) =>
-        statusFilter === "all" || statusFilter === next
-          ? prev.map((s) => (s.id === id ? { ...s, status: next } : s))
-          : prev.filter((s) => s.id !== id)
-      );
+      .eq("id", app.id);
+
+    if (statusErr) {
+      setUpdating(null);
+      setFeedback({ kind: "err", text: statusErr.message });
+      return;
     }
+
+    if (next === "accepted") {
+      const { error: roleErr } = await supabase
+        .from("profiles")
+        .update({ role: app.role_wanted })
+        .eq("user_id", app.user_id);
+      if (roleErr) {
+        setUpdating(null);
+        setFeedback({
+          kind: "err",
+          text: `Statut OK, promotion échouée : ${roleErr.message}`,
+        });
+      } else {
+        setFeedback({
+          kind: "ok",
+          text: `@${app.username} promu ${app.role_wanted}`,
+        });
+      }
+    } else {
+      setFeedback({ kind: "ok", text: `Statut → ${next}` });
+    }
+
+    setUpdating(null);
+    setItems((prev) =>
+      statusFilter === "all" || statusFilter === next
+        ? prev.map((s) => (s.id === app.id ? { ...s, status: next } : s))
+        : prev.filter((s) => s.id !== app.id)
+    );
   };
 
   if (authLoading) {
@@ -167,10 +150,6 @@ function SuggestionsAdminContent() {
           >
             Réservé aux admins
           </h1>
-          <p className="text-[14px] text-ink-2 max-w-[420px]">
-            Cette page est protégée. Connecte-toi avec un compte qui a le rôle
-            <span className="font-mono text-ink"> admin </span> dans Supabase.
-          </p>
           <Link
             href="/"
             className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors rounded-md"
@@ -197,56 +176,43 @@ function SuggestionsAdminContent() {
           className="font-bold leading-[0.95] tracking-[-0.04em]"
           style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
         >
-          Suggestions
+          Staff
         </h1>
         <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3">
-          Boîte de réception des propositions de films et de soirées envoyées
-          depuis le site.
+          Candidatures pour rejoindre l&apos;équipe. Accepter promeut
+          automatiquement le user au rôle demandé.
         </p>
-        <div className="mt-4 flex items-center gap-4">
+        <div className="mt-4 flex items-center gap-4 flex-wrap">
           <Link href="/admin/users" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ users</Link>
+          <Link href="/admin/suggestions" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ suggestions</Link>
           <Link href="/admin/bugs" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ bugs</Link>
           <Link href="/admin/emotes" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ emotes</Link>
-          <Link href="/admin/staff" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ staff</Link>
         </div>
       </header>
 
-      <div className="px-10 py-6 border-b border-line flex flex-wrap items-center gap-6 max-md:px-5">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">Type</span>
-          {(["all", "film", "soiree"] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => setKindFilter(k)}
-              className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.08em] uppercase border rounded-md transition-colors cursor-pointer ${
-                kindFilter === k
-                  ? "border-ink text-ink"
-                  : "border-line-2 text-ink-3 hover:text-ink hover:border-line-2"
-              }`}
-            >
-              {KIND_LABELS[k]}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">Statut</span>
-          {(["all", "pending", "accepted", "rejected"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.08em] uppercase border rounded-md transition-colors cursor-pointer ${
-                statusFilter === s
-                  ? "border-ink text-ink"
-                  : "border-line-2 text-ink-3 hover:text-ink hover:border-line-2"
-              }`}
-            >
-              {STATUS_LABELS[s]}
-            </button>
-          ))}
-        </div>
+      <div className="px-10 py-6 border-b border-line flex flex-wrap items-center gap-4 max-md:px-5">
+        <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">Statut</span>
+        {(["all", "pending", "accepted", "rejected"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.08em] uppercase border rounded-md transition-colors cursor-pointer ${
+              statusFilter === s
+                ? "border-ink text-ink"
+                : "border-line-2 text-ink-3 hover:text-ink hover:border-line-2"
+            }`}
+          >
+            {STATUS_LABELS[s]}
+          </button>
+        ))}
         <div className="ml-auto font-mono text-[11px] tracking-[0.04em] text-ink-3">
           {loading ? "…" : `${items.length} item${items.length > 1 ? "s" : ""}`}
         </div>
+        {feedback && (
+          <div className="font-mono text-[11px] tracking-[0.04em] text-red basis-full">
+            {feedback.kind === "ok" ? "★" : "✕"} {feedback.text}
+          </div>
+        )}
       </div>
 
       <main className="px-10 py-8 max-md:px-5">
@@ -260,65 +226,60 @@ function SuggestionsAdminContent() {
           </div>
         ) : (
           <ul className="flex flex-col">
-            {items.map((s) => (
+            {items.map((a) => (
               <li
-                key={s.id}
-                className="border-t border-line first:border-t-0 py-5 grid grid-cols-[100px_120px_1fr_auto] items-start gap-6 max-md:grid-cols-1 max-md:gap-3"
+                key={a.id}
+                className="border-t border-line first:border-t-0 py-5 grid grid-cols-[110px_160px_1fr_auto] items-start gap-6 max-md:grid-cols-1 max-md:gap-3"
               >
                 <div className="font-mono text-[10px] tracking-[0.16em] uppercase">
-                  <div className={`${STATUS_COLORS[s.status]} font-semibold`}>
-                    {STATUS_LABELS[s.status]}
+                  <div className={`${STATUS_COLORS[a.status]} font-semibold`}>
+                    {STATUS_LABELS[a.status]}
                   </div>
-                  <div className="text-ink-3 mt-1">{s.kind}</div>
                 </div>
 
-                <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
-                  <div>{formatDate(s.created_at)}</div>
-                  {s.username ? (
-                    <Link
-                      href={`/u/${encodeURIComponent(s.username)}`}
-                      className="text-ink-2 hover:text-red transition-colors"
-                    >
-                      @{s.username}
-                    </Link>
-                  ) : (
-                    <span className="text-ink-4">anonyme</span>
-                  )}
-                  {s.credit && (
-                    <div className="text-red mt-1">★ avec attribution</div>
-                  )}
+                <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3 flex flex-col gap-0.5">
+                  <span>{formatDate(a.created_at)}</span>
+                  <Link
+                    href={`/u/${encodeURIComponent(a.username)}`}
+                    className="text-ink-2 hover:text-red transition-colors"
+                  >
+                    @{a.username}
+                  </Link>
+                  <span className="text-ink-4">vise {a.role_wanted}</span>
                 </div>
 
-                <div className="min-w-0">
-                  <PayloadView kind={s.kind} payload={s.payload} />
+                <div className="min-w-0 flex flex-col gap-2">
+                  <p className="text-[13px] leading-[1.6] text-ink whitespace-pre-wrap break-words">
+                    {a.motivation}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 max-md:flex-wrap">
-                  {s.status !== "accepted" && (
+                  {a.status !== "accepted" && (
                     <button
                       type="button"
-                      onClick={() => updateStatus(s.id, "accepted")}
-                      disabled={updating === s.id}
+                      onClick={() => updateStatus(a, "accepted")}
+                      disabled={updating === a.id}
                       className="px-3 py-1.5 border border-ink text-ink font-semibold text-[10px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30 rounded-md"
                     >
-                      Accepter
+                      Accepter + promouvoir
                     </button>
                   )}
-                  {s.status !== "rejected" && (
+                  {a.status !== "rejected" && (
                     <button
                       type="button"
-                      onClick={() => updateStatus(s.id, "rejected")}
-                      disabled={updating === s.id}
+                      onClick={() => updateStatus(a, "rejected")}
+                      disabled={updating === a.id}
                       className="px-3 py-1.5 border border-line-2 text-ink-3 font-semibold text-[10px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30 rounded-md"
                     >
                       Rejeter
                     </button>
                   )}
-                  {s.status !== "pending" && (
+                  {a.status !== "pending" && (
                     <button
                       type="button"
-                      onClick={() => updateStatus(s.id, "pending")}
-                      disabled={updating === s.id}
+                      onClick={() => updateStatus(a, "pending")}
+                      disabled={updating === a.id}
                       className="px-3 py-1.5 border border-line-2 text-ink-4 font-semibold text-[10px] uppercase tracking-[0.08em] hover:text-ink hover:border-ink transition-colors cursor-pointer disabled:opacity-30 rounded-md"
                     >
                       Re-pending
@@ -341,6 +302,6 @@ function SuggestionsAdminContent() {
   );
 }
 
-export default function SuggestionsAdminPage() {
-  return <SuggestionsAdminContent />;
+export default function StaffAdminPage() {
+  return <StaffAdminContent />;
 }
