@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
 import Player from "@/components/Player";
@@ -13,15 +14,74 @@ import { formatDuration } from "@/lib/schedule-engine";
 function formatHM(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  if (h === 0) return `${m}min`;
-  if (m === 0) return `${h}h`;
-  return `${h}h${m.toString().padStart(2, "0")}`;
+  const s = seconds % 60;
+  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}`;
+  if (m > 0) return `${m}m${s.toString().padStart(2, "0")}s`;
+  return `${s}s`;
+}
+
+function SoireePill() {
+  const [schedule, setSchedule] = useState<ScheduleState | null>(null);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchSchedule = async () => {
+      try {
+        const res = await fetch("/api/schedule");
+        const data: ScheduleState = await res.json();
+        if (cancelled) return;
+        setSchedule(data);
+      } catch {}
+    };
+    fetchSchedule();
+    const interval = setInterval(fetchSchedule, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    const tick = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  const soiree = schedule?.soiree;
+  if (!soiree) return null;
+
+  const remaining = Math.max(0, Math.floor((soiree.endsAt - nowMs) / 1000));
+  const filmIndex = soiree.currentIndex + 1;
+  const filmCount = soiree.films.length;
+
+  return (
+    <div className="pointer-events-auto font-mono font-semibold tracking-[0.16em] uppercase whitespace-nowrap leading-[1]">
+      <Link
+        href="/soirees"
+        title={`${soiree.title} · voir la programmation`}
+        aria-label={`Soirée : ${soiree.title}, film ${filmIndex} sur ${filmCount}, ${formatHM(remaining)} restant`}
+        style={{ color: "var(--color-red)" }}
+        className="align-middle font-extrabold text-[14px] rounded-sm outline-1 outline-transparent hover:outline-red outline-offset-2 transition-[outline-color] duration-150"
+      >
+        ★ Soirée
+      </Link>
+      <span className="align-middle text-ink-4 mx-2 text-[12px]">·</span>
+      <span className="align-middle text-ink text-[12px]">{soiree.title}</span>
+      <span className="align-middle text-ink-4 mx-2 text-[11px]">·</span>
+      <span className="align-middle text-ink-3 text-[11px]">
+        Film {filmIndex}/{filmCount}
+      </span>
+      <span className="align-middle text-ink-4 mx-2 text-[10px]">·</span>
+      <span className="align-middle text-ink-3 text-[10px] tabular-nums">
+        {formatHM(remaining)} restant
+      </span>
+    </div>
+  );
 }
 
 function FilmInfo({ visible }: { visible: boolean }) {
   const [schedule, setSchedule] = useState<ScheduleState | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
@@ -43,10 +103,7 @@ function FilmInfo({ visible }: { visible: boolean }) {
   }, []);
 
   useEffect(() => {
-    const tick = setInterval(() => {
-      setElapsed((p) => p + 1);
-      setNowMs(Date.now());
-    }, 1000);
+    const tick = setInterval(() => setElapsed((p) => p + 1), 1000);
     return () => clearInterval(tick);
   }, []);
 
@@ -56,13 +113,8 @@ function FilmInfo({ visible }: { visible: boolean }) {
 
   if (!schedule || schedule.intermission) return null;
 
-  const { currentFilm, soiree } = schedule;
+  const { currentFilm } = schedule;
   const progress = Math.min((elapsed / currentFilm.duration) * 100, 100);
-  const soireeRemaining = soiree
-    ? Math.max(0, Math.floor((soiree.endsAt - nowMs) / 1000))
-    : 0;
-  const soireeFilmCount = soiree?.films.length ?? 0;
-  const soireeFilmIndex = soiree ? soiree.currentIndex + 1 : 0;
 
   return (
     <div
@@ -76,21 +128,6 @@ function FilmInfo({ visible }: { visible: boolean }) {
             "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)",
         }}
       >
-        {soiree && (
-          <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-ink-3 mb-3 drop-shadow-lg flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>
-              ★ <strong className="text-red font-bold">Soirée</strong>
-              {" · "}
-              <span className="text-ink-2 normal-case tracking-[0.04em]">{soiree.title}</span>
-            </span>
-            <span className="text-ink-4">·</span>
-            <span>
-              Film {soireeFilmIndex}/{soireeFilmCount}
-            </span>
-            <span className="text-ink-4">·</span>
-            <span>{formatHM(soireeRemaining)} restant</span>
-          </div>
-        )}
         <div className="flex items-end justify-between gap-4 mb-2">
           <div className="flex items-end gap-4 min-w-0">
             {currentFilm.poster && (
@@ -150,12 +187,52 @@ function FilmInfo({ visible }: { visible: boolean }) {
   );
 }
 
+const OVERLAY_HIDE_DELAY_MS = 6000;
+
 function MovieContent() {
   const { username } = useAuth();
   useWatchHeartbeat(username);
   const [chatOpen, setChatOpen] = useState(true);
-  const [overlayVisible, setOverlayVisible] = useState(false);
+  const [overlayVisible, setOverlayVisible] = useState(true);
   const pageRef = useRef<HTMLDivElement>(null);
+  const hideTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!page) return;
+
+    const clearHideTimer = () => {
+      if (hideTimerRef.current !== null) {
+        window.clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
+
+    const showOverlay = () => {
+      setOverlayVisible(true);
+      clearHideTimer();
+      hideTimerRef.current = window.setTimeout(() => {
+        setOverlayVisible(false);
+        hideTimerRef.current = null;
+      }, OVERLAY_HIDE_DELAY_MS);
+    };
+
+    const onMove = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("aside")) return;
+      showOverlay();
+    };
+
+    page.addEventListener("mousemove", onMove);
+    page.addEventListener("touchstart", showOverlay, { passive: true });
+    showOverlay();
+
+    return () => {
+      page.removeEventListener("mousemove", onMove);
+      page.removeEventListener("touchstart", showOverlay);
+      clearHideTimer();
+    };
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -174,7 +251,7 @@ function MovieContent() {
   return (
     <div ref={pageRef} className="flex flex-col h-screen overflow-hidden bg-black">
       <header
-        className="flex items-center justify-between px-4 py-2.5 shrink-0 transition-all duration-500 z-20 absolute top-0 left-0 right-0"
+        className="flex items-center gap-4 px-4 py-2.5 shrink-0 transition-all duration-500 z-20 absolute top-0 left-0 right-0"
         style={{
           opacity: overlayVisible ? 1 : 0,
           transform: overlayVisible ? "translateY(0)" : "translateY(-100%)",
@@ -184,11 +261,12 @@ function MovieContent() {
         }}
       >
         <Brand href="/" sealSize={26} fontSize={17} />
+        <SoireePill />
       </header>
 
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 relative min-w-0">
-          <Player onControlsVisibleChange={setOverlayVisible} />
+          <Player />
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
