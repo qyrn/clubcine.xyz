@@ -49,6 +49,46 @@ export const FONTS: FontDef[] = [
     source: "local",
     note: "Display courbes",
   },
+  {
+    slug: "apple-garamond",
+    label: "Apple Garamond",
+    family: "Apple Garamond",
+    fallback: "Georgia, serif",
+    source: "local",
+    note: "Serif italique élégant",
+  },
+  {
+    slug: "druk-wide",
+    label: "Druk Wide",
+    family: "Druk Wide",
+    fallback: "Impact, sans-serif",
+    source: "local",
+    note: "Bold extra-large",
+  },
+  {
+    slug: "instrument-serif",
+    label: "Instrument Serif",
+    family: "Instrument Serif",
+    fallback: "Georgia, serif",
+    source: "local",
+    note: "Serif italique éditorial",
+  },
+  {
+    slug: "mea-culpa",
+    label: "Mea Culpa",
+    family: "Mea Culpa",
+    fallback: "cursive",
+    source: "local",
+    note: "Script calligraphique",
+  },
+  {
+    slug: "vogue",
+    label: "Vogue",
+    family: "Vogue Custom",
+    fallback: "serif",
+    source: "local",
+    note: "Serif mode chic",
+  },
 ];
 
 export function findFont(slug?: string | null): FontDef {
