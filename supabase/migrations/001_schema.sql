@@ -859,13 +859,16 @@ create trigger staff_applications_rate_limit
 -- b) username case-insensitive unique : empêche "lynch" / "Lynch" coexistence.
 -- c) rate limits applicatifs sur messages / suggestions / bug_reports.
 
--- a) guard role change
+-- a) guard role change (auth.uid() IS NULL = bypass owner SQL Editor / service_role)
 create or replace function public.guard_profiles_role_change()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
   is_admin boolean;
 begin
   if new.role is distinct from old.role then
+    if auth.uid() is null then
+      return new;
+    end if;
     select exists (
       select 1 from public.profiles
       where user_id = auth.uid() and role = 'admin'
