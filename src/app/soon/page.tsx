@@ -39,7 +39,7 @@ export default function SoonPage() {
       </div>
 
       <p
-        className="relative text-ink-3 text-[11px] tracking-[0.28em] uppercase"
+        className="relative text-ink-3 text-[11px] tracking-[0.28em] uppercase text-balance"
         style={{ fontFamily: "var(--font-mono)" }}
       >
         ★ Ouverture de la salle ★
@@ -48,7 +48,7 @@ export default function SoonPage() {
       <Countdown targetISO={LAUNCH_ISO} />
 
       <p
-        className="relative text-ink-3 text-[12px] tracking-[0.18em]"
+        className="relative text-ink-3 text-[12px] tracking-[0.18em] text-balance"
         style={{ fontFamily: "var(--font-mono)" }}
       >
         1ER JUIN 2026 · MINUIT · PARIS

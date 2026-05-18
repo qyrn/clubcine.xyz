@@ -89,7 +89,7 @@ function LiveHero({ soiree }: { soiree: LiveSoireeView }) {
             {remainingH}h{remainingM.toString().padStart(2, "0")} restant
           </div>
           <h2
-            className="font-bold leading-[0.95] tracking-[-0.03em]"
+            className="font-bold leading-[0.95] tracking-[-0.03em] text-balance"
             style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
           >
             {soiree.title}
@@ -105,7 +105,7 @@ function LiveHero({ soiree }: { soiree: LiveSoireeView }) {
               );
             })}
           </ul>
-          <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[480px]">
+          <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[480px] text-balance">
             Film en cours : <span className="text-ink font-semibold">{currentFilm.title}</span> ·{" "}
             {currentFilm.director}, {currentFilm.year}.
           </p>
@@ -173,7 +173,7 @@ function UpcomingCard({ soiree }: { soiree: SoireeView }) {
       <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red capitalize">
         ★ {formatSoireeDate(soiree.startsAt)}
       </div>
-      <h3 className="font-bold text-[22px] leading-[1.1] tracking-[-0.02em]">{soiree.title}</h3>
+      <h3 className="font-bold text-[22px] leading-[1.1] tracking-[-0.02em] text-balance">{soiree.title}</h3>
       {!soiree.posterCustomUrl && (
         <ul className="font-mono text-[11px] tracking-[0.04em] text-ink-3 flex flex-wrap gap-x-2 gap-y-1">
           {soiree.films.map((f) => (
@@ -215,7 +215,7 @@ function PastCard({ soiree }: { soiree: SoireeView }) {
         <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-ink-3">
           {formatPastDate(soiree.startsAt)}
         </div>
-        <h3 className="font-bold text-[17px] leading-[1.15] tracking-[-0.01em]">{soiree.title}</h3>
+        <h3 className="font-bold text-[17px] leading-[1.15] tracking-[-0.01em] text-balance">{soiree.title}</h3>
         <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
           {soiree.films.map((f) => f.title).join(" · ")}
         </div>
@@ -331,12 +331,12 @@ export default function SoireesClient({ live, upcoming, past }: Props) {
           {" · 21h"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(56px, 8vw, 128px)" }}
         >
           Soirées
         </h1>
-        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px]">
+        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance">
           Une nuit à thème par semaine. Un trio de films liés par une idée, un cinéaste, une époque
           ou une obsession.
         </p>
@@ -347,7 +347,7 @@ export default function SoireesClient({ live, upcoming, past }: Props) {
       {upcoming.length > 0 && (
         <section className="px-10 py-14 border-b border-line max-md:px-5 max-md:py-10">
           <div className="flex justify-between items-baseline mb-8">
-            <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em]">
+            <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em] text-balance">
               {live ? "Soirées · ensuite" : "Soirées · à venir"}
             </h2>
             <span className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
@@ -365,7 +365,7 @@ export default function SoireesClient({ live, upcoming, past }: Props) {
       {past.length > 0 && (
         <section className="px-10 py-14 border-b border-line max-md:px-5 max-md:py-10">
           <div className="flex justify-between items-baseline mb-8">
-            <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em]">
+            <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em] text-balance">
               Soirées · passées
             </h2>
           </div>
@@ -384,10 +384,10 @@ export default function SoireesClient({ live, upcoming, past }: Props) {
         <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
           ★ Une idée ?
         </div>
-        <h2 className="font-bold text-[36px] leading-[1.05] tracking-[-0.02em] max-w-[560px] max-md:text-[28px]">
+        <h2 className="font-bold text-[36px] leading-[1.05] tracking-[-0.02em] max-w-[560px] max-md:text-[28px] text-balance">
           Proposer une soirée thématique
         </h2>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[480px]">
+        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[480px] text-balance">
           Trio de films, cinéaste, ambiance. Si elle passe à l&apos;antenne, ton nom est crédité.
         </p>
         <SuggestForm />

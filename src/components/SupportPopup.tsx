@@ -50,7 +50,7 @@ export default function SupportPopup() {
       </div>
 
       <div className="px-4 py-3 flex flex-col items-center gap-2.5">
-        <p className="text-[13px] leading-[1.65] text-ink-2 text-center">
+        <p className="text-[13px] leading-[1.65] text-ink-2 text-center text-balance">
           Les films sont diffusés 24/7
           <br />
           Pour que le site tienne dans le temps

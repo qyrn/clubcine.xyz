@@ -68,7 +68,7 @@ export default function BadgeList({ userId }: Props) {
 
   if (badges.length === 0) {
     return (
-      <p className="text-[13px] text-ink-3 italic text-center">
+      <p className="text-[13px] text-ink-3 italic text-center text-balance">
         Aucun badge encore.
       </p>
     );

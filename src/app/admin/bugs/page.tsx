@@ -65,16 +65,21 @@ function BugsAdminContent() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      let query = supabase
-        .from("bug_reports")
-        .select("id,user_id,username,message,page_url,user_agent,status,created_at")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (statusFilter !== "all") query = query.eq("status", statusFilter);
-      const { data } = await query;
-      if (cancelled) return;
-      setItems((data ?? []) as BugReport[]);
-      setLoading(false);
+      try {
+        let query = supabase
+          .from("bug_reports")
+          .select("id,user_id,username,message,page_url,user_agent,status,created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (statusFilter !== "all") query = query.eq("status", statusFilter);
+        const { data } = await query;
+        if (cancelled) return;
+        setItems((data ?? []) as BugReport[]);
+      } catch (e) {
+        console.error("[admin/bugs] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     load();
     return () => {
@@ -119,7 +124,7 @@ function BugsAdminContent() {
             ★ Accès refusé
           </div>
           <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em]"
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
             style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
           >
             Réservé aux admins
@@ -147,7 +152,7 @@ function BugsAdminContent() {
           {" · Channel 01"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
         >
           Bugs

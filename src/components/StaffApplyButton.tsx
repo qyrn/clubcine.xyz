@@ -107,18 +107,18 @@ export default function StaffApplyButton({ className, label = "Rejoindre l'équi
             </div>
 
             {!user ? (
-              <p className="text-[13px] leading-[1.6] text-ink-2">
+              <p className="text-[13px] leading-[1.6] text-ink-2 text-balance">
                 Connecte-toi pour postuler. La candidature est rattachée à ton
                 compte pour qu&apos;on puisse te promouvoir si elle est acceptée.
               </p>
             ) : alreadyStaff ? (
-              <p className="text-[13px] leading-[1.6] text-ink-2">
+              <p className="text-[13px] leading-[1.6] text-ink-2 text-balance">
                 Tu fais déjà partie de l&apos;équipe (
                 <span className="text-red">{profile?.role}</span>). Merci d&apos;être là.
               </p>
             ) : (
               <>
-                <p className="text-[12px] leading-[1.6] text-ink-2 mb-4">
+                <p className="text-[12px] leading-[1.6] text-ink-2 mb-4 text-balance">
                   On cherche des modérateurs pour le chat. Raconte-nous pourquoi
                   tu veux aider : ce que tu regardes, ce qui te tient à coeur,
                   combien de temps tu peux y mettre.

@@ -131,7 +131,7 @@ export default function IntermissionTest() {
           </span>
         </div>
 
-        <p className="text-[10px] text-ink-4 leading-[1.5]">
+        <p className="text-[10px] text-ink-4 leading-[1.5] text-balance">
           Cette page sert à prévisualiser l&apos;écran d&apos;entracte
           (countdown + musique) sans attendre une vraie transition.
         </p>

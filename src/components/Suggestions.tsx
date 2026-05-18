@@ -85,7 +85,7 @@ export default function Suggestions() {
         </div>
       </div>
 
-      <p className="text-[14px] leading-[1.6] text-ink-2">
+      <p className="text-[14px] leading-[1.6] text-ink-2 text-balance">
         La liste complète des films diffusés ce mois-ci est tenue à jour sur
         Letterboxd. Ordre, notes, réalisateurs, posters : tout y est.
       </p>

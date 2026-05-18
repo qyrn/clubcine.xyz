@@ -71,30 +71,35 @@ function EmotesAdminContent() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("emotes")
-        .select("slug,label,image_url,image_path,uploader_id,created_at")
-        .order("created_at", { ascending: false });
-      if (cancelled) return;
-      const rows = (data ?? []) as EmoteRow[];
-      setEmotes(rows.map(rowToEmote));
-
-      const ids = Array.from(
-        new Set(rows.map((r) => r.uploader_id).filter((x): x is string => !!x))
-      );
-      if (ids.length > 0) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id,username")
-          .in("user_id", ids);
+      try {
+        const { data } = await supabase
+          .from("emotes")
+          .select("slug,label,image_url,image_path,uploader_id,created_at")
+          .order("created_at", { ascending: false });
         if (cancelled) return;
-        const map = new Map<string, string>();
-        for (const p of (profs ?? []) as UploaderProfile[]) {
-          map.set(p.user_id, p.username);
+        const rows = (data ?? []) as EmoteRow[];
+        setEmotes(rows.map(rowToEmote));
+
+        const ids = Array.from(
+          new Set(rows.map((r) => r.uploader_id).filter((x): x is string => !!x))
+        );
+        if (ids.length > 0) {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("user_id,username")
+            .in("user_id", ids);
+          if (cancelled) return;
+          const map = new Map<string, string>();
+          for (const p of (profs ?? []) as UploaderProfile[]) {
+            map.set(p.user_id, p.username);
+          }
+          setUploaderNames(map);
         }
-        setUploaderNames(map);
+      } catch (e) {
+        console.error("[admin/emotes] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     };
     load();
     return () => {
@@ -255,7 +260,7 @@ function EmotesAdminContent() {
             ★ Accès refusé
           </div>
           <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em]"
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
             style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
           >
             Réservé aux admins et soutiens
@@ -283,7 +288,7 @@ function EmotesAdminContent() {
           {" · Channel 01"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
         >
           Emotes
@@ -302,7 +307,7 @@ function EmotesAdminContent() {
       </header>
 
       <section className="px-10 py-8 border-b border-line max-md:px-5">
-        <h2 className="font-mono font-semibold text-[11px] tracking-[0.16em] uppercase text-ink-3 mb-5">
+        <h2 className="font-mono font-semibold text-[11px] tracking-[0.16em] uppercase text-ink-3 mb-5 text-balance">
           Ajouter une emote
         </h2>
 
@@ -405,7 +410,7 @@ function EmotesAdminContent() {
 
       <main className="px-10 py-8 max-md:px-5">
         <div className="flex items-baseline justify-between mb-5">
-          <h2 className="font-mono font-semibold text-[11px] tracking-[0.16em] uppercase text-ink-3">
+          <h2 className="font-mono font-semibold text-[11px] tracking-[0.16em] uppercase text-ink-3 text-balance">
             Catalogue
           </h2>
           <span className="font-mono text-[11px] tracking-[0.04em] text-ink-3">

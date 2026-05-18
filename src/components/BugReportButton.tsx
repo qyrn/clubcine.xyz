@@ -91,7 +91,7 @@ export default function BugReportButton({ inline = false }: { inline?: boolean }
               </button>
             </div>
 
-            <p className="text-[12px] leading-[1.6] text-ink-2 mb-4">
+            <p className="text-[12px] leading-[1.6] text-ink-2 mb-4 text-balance">
               Décris ce qui ne va pas. Si on accepte le rapport, tu gagnes
               automatiquement le badge <span className="text-red">Bug hunter</span>.
             </p>

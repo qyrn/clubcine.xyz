@@ -107,17 +107,22 @@ function SuggestionsAdminContent() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      let query = supabase
-        .from("suggestions")
-        .select("id,kind,user_id,username,payload,credit,status,created_at")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (kindFilter !== "all") query = query.eq("kind", kindFilter);
-      if (statusFilter !== "all") query = query.eq("status", statusFilter);
-      const { data } = await query;
-      if (cancelled) return;
-      setItems((data ?? []) as Suggestion[]);
-      setLoading(false);
+      try {
+        let query = supabase
+          .from("suggestions")
+          .select("id,kind,user_id,username,payload,credit,status,created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (kindFilter !== "all") query = query.eq("kind", kindFilter);
+        if (statusFilter !== "all") query = query.eq("status", statusFilter);
+        const { data } = await query;
+        if (cancelled) return;
+        setItems((data ?? []) as Suggestion[]);
+      } catch (e) {
+        console.error("[admin/suggestions] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     load();
     return () => {
@@ -163,12 +168,12 @@ function SuggestionsAdminContent() {
             ★ Accès refusé
           </div>
           <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em]"
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
             style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
           >
             Réservé aux admins
           </h1>
-          <p className="text-[14px] text-ink-2 max-w-[420px]">
+          <p className="text-[14px] text-ink-2 max-w-[420px] text-balance">
             Cette page est protégée. Connecte-toi avec un compte qui a le rôle
             <span className="font-mono text-ink"> admin </span> dans Supabase.
           </p>
@@ -195,7 +200,7 @@ function SuggestionsAdminContent() {
           {" · Channel 01"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
         >
           Suggestions

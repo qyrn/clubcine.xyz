@@ -147,63 +147,68 @@ function DashboardContent() {
 
     const load = async () => {
       setLoading(true);
-      const [
-        profilesRes,
-        suggestionsRes,
-        bugsRes,
-        staffRes,
-        watchRes,
-        messagesRes,
-        followsRes,
-        emotesRes,
-      ] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("user_id,username,avatar_url,role,created_at")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("suggestions")
-          .select("id,kind,status,username,payload,created_at")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("bug_reports")
-          .select("id,status,username,message,created_at")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("staff_applications")
-          .select("id,status,username,motivation,created_at")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("watch_time")
-          .select("username,seconds")
-          .order("seconds", { ascending: false })
-          .limit(500),
-        supabase
-          .from("messages")
-          .select("*", { count: "exact", head: true }),
-        supabase
-          .from("follows")
-          .select("*", { count: "exact", head: true }),
-        supabase
-          .from("emotes")
-          .select("*", { count: "exact", head: true }),
-      ]);
+      try {
+        const [
+          profilesRes,
+          suggestionsRes,
+          bugsRes,
+          staffRes,
+          watchRes,
+          messagesRes,
+          followsRes,
+          emotesRes,
+        ] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("user_id,username,avatar_url,role,created_at")
+            .order("created_at", { ascending: false })
+            .limit(500),
+          supabase
+            .from("suggestions")
+            .select("id,kind,status,username,payload,created_at")
+            .order("created_at", { ascending: false })
+            .limit(500),
+          supabase
+            .from("bug_reports")
+            .select("id,status,username,message,created_at")
+            .order("created_at", { ascending: false })
+            .limit(500),
+          supabase
+            .from("staff_applications")
+            .select("id,status,username,motivation,created_at")
+            .order("created_at", { ascending: false })
+            .limit(500),
+          supabase
+            .from("watch_time")
+            .select("username,seconds")
+            .order("seconds", { ascending: false })
+            .limit(500),
+          supabase
+            .from("messages")
+            .select("*", { count: "exact", head: true }),
+          supabase
+            .from("follows")
+            .select("*", { count: "exact", head: true }),
+          supabase
+            .from("emotes")
+            .select("*", { count: "exact", head: true }),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      setProfiles((profilesRes.data ?? []) as ProfileRow[]);
-      setSuggestions((suggestionsRes.data ?? []) as SuggestionRow[]);
-      setBugs((bugsRes.data ?? []) as BugRow[]);
-      setStaff((staffRes.data ?? []) as StaffRow[]);
-      setWatch((watchRes.data ?? []) as WatchRow[]);
-      setMessageCount(messagesRes.count ?? 0);
-      setFollowsCount(followsRes.count ?? 0);
-      setEmotesCount(emotesRes.count ?? 0);
-      setLoading(false);
+        setProfiles((profilesRes.data ?? []) as ProfileRow[]);
+        setSuggestions((suggestionsRes.data ?? []) as SuggestionRow[]);
+        setBugs((bugsRes.data ?? []) as BugRow[]);
+        setStaff((staffRes.data ?? []) as StaffRow[]);
+        setWatch((watchRes.data ?? []) as WatchRow[]);
+        setMessageCount(messagesRes.count ?? 0);
+        setFollowsCount(followsRes.count ?? 0);
+        setEmotesCount(emotesRes.count ?? 0);
+      } catch (e) {
+        console.error("[admin/dashboard] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     load();
@@ -280,7 +285,7 @@ function DashboardContent() {
             ★ Accès refusé
           </div>
           <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em]"
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
             style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
           >
             Réservé aux admins
@@ -314,7 +319,7 @@ function DashboardContent() {
           {" · Channel 01"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
         >
           Dashboard
@@ -411,7 +416,7 @@ function DashboardContent() {
 
             <section className="grid grid-cols-[1.2fr_1fr] gap-10 max-[900px]:grid-cols-1 max-[900px]:gap-8">
               <div className="flex flex-col gap-5">
-                <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3">
+                <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3 text-balance">
                   ★ Top antenne
                 </h2>
                 {stats.topWatchers.length === 0 ? (
@@ -450,7 +455,7 @@ function DashboardContent() {
               </div>
 
               <div className="flex flex-col gap-5">
-                <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3">
+                <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3 text-balance">
                   ★ Dernières inscriptions
                 </h2>
                 {stats.recentSignups.length === 0 ? (
@@ -489,7 +494,7 @@ function DashboardContent() {
             <section className="grid grid-cols-2 gap-10 max-[900px]:grid-cols-1 max-[900px]:gap-8">
               <div className="flex flex-col gap-5">
                 <div className="flex items-baseline justify-between">
-                  <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3">
+                  <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3 text-balance">
                     ★ Candidatures staff à traiter
                   </h2>
                   <Link href="/admin/staff" className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors after:content-['_→']">
@@ -513,7 +518,7 @@ function DashboardContent() {
                             {formatDate(s.created_at)}
                           </span>
                         </div>
-                        <p className="text-[12px] leading-[1.5] text-ink-2 line-clamp-2">
+                        <p className="text-[12px] leading-[1.5] text-ink-2 line-clamp-2 text-balance">
                           {s.motivation}
                         </p>
                       </li>
@@ -524,7 +529,7 @@ function DashboardContent() {
 
               <div className="flex flex-col gap-5">
                 <div className="flex items-baseline justify-between">
-                  <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3">
+                  <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3 text-balance">
                     ★ Bugs à inspecter
                   </h2>
                   <Link href="/admin/bugs" className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors after:content-['_→']">
@@ -552,7 +557,7 @@ function DashboardContent() {
                             {formatDate(b.created_at)}
                           </span>
                         </div>
-                        <p className="text-[12px] leading-[1.5] text-ink-2 line-clamp-2">
+                        <p className="text-[12px] leading-[1.5] text-ink-2 line-clamp-2 text-balance">
                           {b.message}
                         </p>
                       </li>

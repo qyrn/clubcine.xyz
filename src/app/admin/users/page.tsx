@@ -86,29 +86,34 @@ function UsersAdminContent() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const [{ data: profs }, { data: bdgs }, { data: ubs }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("user_id,username,avatar_url,role,created_at")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("badges")
-          .select("slug,label,color")
-          .order("slug", { ascending: true }),
-        supabase.from("user_badges").select("user_id,badge_slug"),
-      ]);
-      if (cancelled) return;
-      setProfiles((profs ?? []) as ProfileRow[]);
-      setBadges((bdgs ?? []) as Badge[]);
-      const map = new Map<string, Set<string>>();
-      for (const ub of (ubs ?? []) as UserBadgeRow[]) {
-        const set = map.get(ub.user_id) ?? new Set();
-        set.add(ub.badge_slug);
-        map.set(ub.user_id, set);
+      try {
+        const [{ data: profs }, { data: bdgs }, { data: ubs }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("user_id,username,avatar_url,role,created_at")
+            .order("created_at", { ascending: false })
+            .limit(500),
+          supabase
+            .from("badges")
+            .select("slug,label,color")
+            .order("slug", { ascending: true }),
+          supabase.from("user_badges").select("user_id,badge_slug"),
+        ]);
+        if (cancelled) return;
+        setProfiles((profs ?? []) as ProfileRow[]);
+        setBadges((bdgs ?? []) as Badge[]);
+        const map = new Map<string, Set<string>>();
+        for (const ub of (ubs ?? []) as UserBadgeRow[]) {
+          const set = map.get(ub.user_id) ?? new Set();
+          set.add(ub.badge_slug);
+          map.set(ub.user_id, set);
+        }
+        setUserBadges(map);
+      } catch (e) {
+        console.error("[admin/users] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setUserBadges(map);
-      setLoading(false);
     };
     load();
     return () => {
@@ -206,7 +211,7 @@ function UsersAdminContent() {
             ★ Accès refusé
           </div>
           <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em]"
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
             style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
           >
             Réservé aux admins
@@ -234,7 +239,7 @@ function UsersAdminContent() {
           {" · Channel 01"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em] uppercase"
+          className="font-bold leading-[0.95] tracking-[-0.04em] uppercase text-balance"
           style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
         >
           Users

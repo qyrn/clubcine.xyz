@@ -60,7 +60,7 @@ export default function ScheduleGrid({ initialSchedule }: Props = {}) {
   return (
     <section id="programme" className="px-10 py-15 border-b border-line max-md:px-5 max-md:py-10 scroll-mt-12">
       <div className="flex justify-between items-baseline mb-8">
-        <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em]">
+        <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em] text-balance">
           Programme · cette nuit
         </h2>
         <Link

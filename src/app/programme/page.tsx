@@ -88,12 +88,12 @@ function ProgrammeContent() {
           {" · Channel 01"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(56px, 8vw, 128px)" }}
         >
           Programme
         </h1>
-        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px]">
+        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance">
           Le flux des prochaines 24 heures. La grille est synchrone : tout le
           monde regarde la même chose au même moment.
         </p>
@@ -108,7 +108,7 @@ function ProgrammeContent() {
           {grouped.map((day, dIdx) => (
             <section key={dIdx} className="border-b border-line px-10 py-12 max-md:px-5 max-md:py-10">
               <div className="flex justify-between items-baseline mb-8">
-                <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em]">
+                <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em] text-balance">
                   {day.label}
                 </h2>
                 <span className="font-mono text-[11px] tracking-[0.04em] text-ink-3">

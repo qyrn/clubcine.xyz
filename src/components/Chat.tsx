@@ -176,32 +176,61 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     });
   };
 
+  const rollback = (msgs: ChatMessage[]) => {
+    setMessages((prev) => {
+      const existingIds = new Set(prev.map((m) => m.id));
+      const missing = msgs.filter((m) => !existingIds.has(m.id));
+      return [...prev, ...missing].sort((a, b) => a.timestamp - b.timestamp);
+    });
+  };
+
   const deleteMessage = async (msg: ChatMessage) => {
     if (!canModerate) return;
     setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-    const { error } = await supabase.from("messages").delete().eq("id", msg.id);
+    const { data, error } = await supabase
+      .from("messages")
+      .delete()
+      .eq("id", msg.id)
+      .select("id");
     if (error) {
       console.error("[chat] delete error:", error);
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg].sort((a, b) => a.timestamp - b.timestamp);
-      });
+      rollback([msg]);
+      window.alert(`Erreur suppression : ${error.message}`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      console.error("[chat] delete RLS no-op for", msg.id);
+      rollback([msg]);
+      window.alert(
+        "La suppression a été refusée (RLS).\n" +
+          "Vérifie que ton rôle est bien admin/moderateur dans Supabase et que la policy 'messages delete admin or moderator' est appliquée."
+      );
     }
   };
 
   const deleteAllFromUser = async (msg: ChatMessage) => {
     if (!canModerate) return;
     const targetUser = msg.username;
-    const idsToDelete = messages.filter((m) => m.username === targetUser).map((m) => m.id);
+    const originals = messages.filter((m) => m.username === targetUser);
     setMessages((prev) => prev.filter((m) => m.username !== targetUser));
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .delete()
-      .eq("username", targetUser);
+      .eq("username", targetUser)
+      .select("id");
     if (error) {
       console.error("[chat] purge error:", error);
-      const restored = messages.filter((m) => idsToDelete.includes(m.id));
-      setMessages((prev) => [...prev, ...restored].sort((a, b) => a.timestamp - b.timestamp));
+      rollback(originals);
+      window.alert(`Erreur purge : ${error.message}`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      console.error("[chat] purge RLS no-op for", targetUser);
+      rollback(originals);
+      window.alert(
+        "La purge a été refusée (RLS).\n" +
+          "Vérifie que ton rôle est bien admin/moderateur dans Supabase."
+      );
     }
   };
 

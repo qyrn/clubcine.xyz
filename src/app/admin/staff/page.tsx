@@ -58,16 +58,21 @@ function StaffAdminContent() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      let query = supabase
-        .from("staff_applications")
-        .select("id,user_id,username,role_wanted,motivation,status,created_at")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (statusFilter !== "all") query = query.eq("status", statusFilter);
-      const { data } = await query;
-      if (cancelled) return;
-      setItems((data ?? []) as Application[]);
-      setLoading(false);
+      try {
+        let query = supabase
+          .from("staff_applications")
+          .select("id,user_id,username,role_wanted,motivation,status,created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (statusFilter !== "all") query = query.eq("status", statusFilter);
+        const { data } = await query;
+        if (cancelled) return;
+        setItems((data ?? []) as Application[]);
+      } catch (e) {
+        console.error("[admin/staff] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     load();
     return () => {
@@ -146,7 +151,7 @@ function StaffAdminContent() {
             ★ Accès refusé
           </div>
           <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em]"
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
             style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
           >
             Réservé aux admins
@@ -174,7 +179,7 @@ function StaffAdminContent() {
           {" · Channel 01"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
         >
           Staff

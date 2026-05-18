@@ -59,7 +59,7 @@ function SoireeHero({ schedule }: { schedule: ScheduleState }) {
         </div>
 
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(56px, 6.5vw, 104px)" }}
         >
           {soiree.title}
@@ -77,7 +77,7 @@ function SoireeHero({ schedule }: { schedule: ScheduleState }) {
           })}
         </ul>
 
-        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px]">
+        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance">
           <span className="text-ink font-semibold">{currentFilm.title}</span>
           {" · "}
           {currentFilm.director}, {currentFilm.year}
@@ -165,7 +165,7 @@ function CycleHero({ state }: { state: HeroState }) {
         </div>
 
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
           style={{ fontSize: "clamp(56px, 6.5vw, 104px)" }}
         >
           {film.title}
@@ -182,7 +182,7 @@ function CycleHero({ state }: { state: HeroState }) {
         </div>
 
         {film.synopsis && (
-          <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px]">{film.synopsis}</p>
+          <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance">{film.synopsis}</p>
         )}
 
         <Link

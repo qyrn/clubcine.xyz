@@ -172,9 +172,9 @@ function BioBlock({
   return (
     <div className="border border-dashed border-line-2 rounded-md p-4 flex flex-col gap-3 text-center">
       {profile.bio ? (
-        <p className="text-[13px] leading-[1.6] text-ink-2">{profile.bio}</p>
+        <p className="text-[13px] leading-[1.6] text-ink-2 text-balance">{profile.bio}</p>
       ) : (
-        <p className="text-[13px] text-ink-3 italic">Aucune bio définie.</p>
+        <p className="text-[13px] text-ink-3 italic text-balance">Aucune bio définie.</p>
       )}
       {hasSocials && (
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
@@ -551,12 +551,12 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
             ★ Inconnu au bataillon
           </div>
           <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em]"
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
             style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
           >
             @{targetUsername}
           </h1>
-          <p className="text-[14px] text-ink-2 max-w-[420px]">
+          <p className="text-[14px] text-ink-2 max-w-[420px] text-balance">
             Ce pseudo n&apos;existe pas (encore).
           </p>
           <Link
@@ -701,7 +701,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
 
           {!user && (
             <section className="px-8 py-10 border-b border-line text-center flex flex-col items-center gap-3 max-md:px-5">
-              <p className="text-[13px] text-ink-2 max-w-[420px]">
+              <p className="text-[13px] text-ink-2 max-w-[420px] text-balance">
                 Pas encore de compte ? Crée le tien depuis la home pour
                 apparaître dans le classement.
               </p>

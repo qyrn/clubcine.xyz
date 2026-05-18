@@ -140,12 +140,12 @@ function AboutContent() {
           {" · 100% indépendant"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em] uppercase"
+          className="font-bold leading-[0.95] tracking-[-0.04em] uppercase text-balance"
           style={{ fontSize: "clamp(48px, 7vw, 112px)" }}
         >
           L&apos;équipe <span className="text-red">club ciné</span>
         </h1>
-        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px]">
+        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance">
           club ciné diffuse des films 24h/24, en tout genre. Parlez-en à vos
           amis. Et surtout, suggérez les films que vous aimez.
         </p>
@@ -202,7 +202,7 @@ function AboutContent() {
           {" · Channel 01"}
         </div>
         <h2
-          className="font-bold leading-[1] tracking-[-0.03em] uppercase"
+          className="font-bold leading-[1] tracking-[-0.03em] uppercase text-balance"
           style={{ fontSize: "clamp(32px, 4.5vw, 56px)" }}
         >
           On cherche des modérateurs

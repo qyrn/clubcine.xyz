@@ -118,7 +118,7 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
             <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
               C&apos;est ton livre d&apos;or
             </div>
-            <p className="text-[12px] leading-[1.6] text-ink-2">
+            <p className="text-[12px] leading-[1.6] text-ink-2 text-balance">
               Les messages laissés ici par les autres apparaîtront à droite.
               Tu peux supprimer les messages que tu reçois.
             </p>
@@ -128,7 +128,7 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
             <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-red">
               Connexion requise
             </div>
-            <p className="text-[12px] leading-[1.6] text-ink-2">
+            <p className="text-[12px] leading-[1.6] text-ink-2 text-balance">
               Connecte-toi pour laisser un mot sur le profil de @{profileUsername}.
             </p>
           </>

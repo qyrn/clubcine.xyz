@@ -81,7 +81,7 @@ export default function TopFilms({ userId, editable = false }: Props) {
 
   if (!editable && films.size === 0) {
     return (
-      <p className="text-[13px] text-ink-3 italic text-center">
+      <p className="text-[13px] text-ink-3 italic text-center text-balance">
         Top 4 vide.
       </p>
     );
