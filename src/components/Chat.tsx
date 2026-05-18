@@ -120,8 +120,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          const raw = payload.new as ChatMessage;
-          const incoming = { ...raw, id: Number(raw.id) } as ChatMessage;
+          const incoming = payload.new as ChatMessage;
           if (deletedIdsRef.current.has(String(incoming.id))) return;
           setMessages((prev) => {
             if (prev.some((m) => String(m.id) === String(incoming.id))) return prev;
@@ -136,7 +135,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         (payload) => {
           const oldId = (payload.old as { id?: number | string }).id;
           if (oldId === undefined || oldId === null) return;
-          const key = String(Number(oldId));
+          const key = String(oldId);
           deletedIdsRef.current.add(key);
           setMessages((prev) => prev.filter((m) => String(m.id) !== key));
         }
@@ -206,15 +205,16 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const deleteMessage = async (msg: ChatMessage) => {
     if (!canModerate) return;
-    const numericId = Number(msg.id);
-    const key = String(numericId);
+    const key = String(msg.id);
+    console.log("[chat] DELETE attempt", { rawId: msg.id, idType: typeof msg.id, key });
     deletedIdsRef.current.add(key);
     setMessages((prev) => prev.filter((m) => String(m.id) !== key));
     const { data, error } = await supabase
       .from("messages")
       .delete()
-      .eq("id", numericId)
+      .eq("id", msg.id)
       .select("id");
+    console.log("[chat] DELETE response", { data, error });
     if (error) {
       deletedIdsRef.current.delete(key);
       rollback([msg]);
