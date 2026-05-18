@@ -191,7 +191,7 @@ export function RoleBadge({ role, size = "sm", showLabel = false, className }: R
       className={`relative inline-flex items-center align-middle gap-1 group/role leading-none ${className ?? ""}`.trim()}
       style={{ color: conf.color }}
     >
-      <Icon name={conf.icon} size={px} />
+      <Icon name={conf.icon} size={px} className="relative -top-[2px]" />
       {showLabel && (
         <span className="font-mono text-[10px] tracking-[0.16em] uppercase font-bold leading-none">
           {conf.label}
@@ -244,7 +244,7 @@ export function TierBadge({ kind, tier, label, size = "sm", showLabel = false, c
       className={`relative inline-flex items-center align-middle gap-1 group/tier leading-none ${className ?? ""}`.trim()}
       style={{ color: "var(--color-ink-2)" }}
     >
-      <Icon name={icon} size={px} />
+      <Icon name={icon} size={px} className="relative -top-[2px]" />
       {showLabel && (
         <span className="font-mono text-[10px] tracking-[0.16em] uppercase font-bold leading-none">
           {label}

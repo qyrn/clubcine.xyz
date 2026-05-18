@@ -75,12 +75,19 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
+  const [modError, setModError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emotes = useEmotes();
 
   const username = authUsername || anonUsername;
   const canModerate = profile?.role === "admin" || profile?.role === "moderateur";
+
+  useEffect(() => {
+    if (!modError) return;
+    const t = setTimeout(() => setModError(null), 6000);
+    return () => clearTimeout(t);
+  }, [modError]);
 
   useEffect(() => {
     const stored = localStorage.getItem("clubcine-username");
@@ -186,50 +193,52 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const deleteMessage = async (msg: ChatMessage) => {
     if (!canModerate) return;
+    console.log("[chat] deleteMessage", { id: msg.id, idType: typeof msg.id, role: profile?.role });
     setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-    const { data, error } = await supabase
+    const { data, error, status, statusText } = await supabase
       .from("messages")
       .delete()
       .eq("id", msg.id)
       .select("id");
+    console.log("[chat] delete result", { data, error, status, statusText });
     if (error) {
-      console.error("[chat] delete error:", error);
       rollback([msg]);
-      window.alert(`Erreur suppression : ${error.message}`);
+      setModError(`Erreur Supabase : ${error.message}`);
       return;
     }
     if (!data || data.length === 0) {
-      console.error("[chat] delete RLS no-op for", msg.id);
       rollback([msg]);
-      window.alert(
-        "La suppression a été refusée (RLS).\n" +
-          "Vérifie que ton rôle est bien admin/moderateur dans Supabase et que la policy 'messages delete admin or moderator' est appliquée."
+      setModError(
+        "RLS a refusé la suppression. Ton rôle = " +
+          (profile?.role ?? "null") +
+          ". Vérifie la policy 'messages delete admin or moderator' dans Supabase."
       );
     }
   };
 
   const deleteAllFromUser = async (msg: ChatMessage) => {
     if (!canModerate) return;
+    console.log("[chat] deleteAllFromUser", { username: msg.username, role: profile?.role });
     const targetUser = msg.username;
     const originals = messages.filter((m) => m.username === targetUser);
     setMessages((prev) => prev.filter((m) => m.username !== targetUser));
-    const { data, error } = await supabase
+    const { data, error, status, statusText } = await supabase
       .from("messages")
       .delete()
       .eq("username", targetUser)
       .select("id");
+    console.log("[chat] purge result", { data, error, status, statusText });
     if (error) {
-      console.error("[chat] purge error:", error);
       rollback(originals);
-      window.alert(`Erreur purge : ${error.message}`);
+      setModError(`Erreur Supabase : ${error.message}`);
       return;
     }
     if (!data || data.length === 0) {
-      console.error("[chat] purge RLS no-op for", targetUser);
       rollback(originals);
-      window.alert(
-        "La purge a été refusée (RLS).\n" +
-          "Vérifie que ton rôle est bien admin/moderateur dans Supabase."
+      setModError(
+        "RLS a refusé la purge. Ton rôle = " +
+          (profile?.role ?? "null") +
+          ". Vérifie la policy 'messages delete admin or moderator' dans Supabase."
       );
     }
   };
@@ -258,6 +267,19 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           {extra ?? <div className="w-[14px]" />}
         </div>
 
+        {modError && (
+          <div className="px-3 py-2 border-b border-red bg-red/10 text-[11px] text-red font-mono leading-[1.4] break-words">
+            ✕ {modError}
+            <button
+              type="button"
+              onClick={() => setModError(null)}
+              className="float-right text-red hover:text-ink text-[12px] cursor-pointer leading-none ml-2"
+              aria-label="fermer"
+            >
+              ×
+            </button>
+          </div>
+        )}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
           {messages.length === 0 && (
             <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
@@ -327,6 +349,19 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         </span>
       </div>
 
+      {modError && (
+        <div className="mb-3 px-3 py-2 border border-red bg-red/10 text-[12px] text-red font-mono leading-[1.4] break-words rounded-md">
+          ✕ {modError}
+          <button
+            type="button"
+            onClick={() => setModError(null)}
+            className="float-right text-red hover:text-ink text-[14px] cursor-pointer leading-none ml-2"
+            aria-label="fermer"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div ref={scrollRef} className="flex-1 min-h-[280px] overflow-y-auto mb-4">
         {messages.length === 0 && (
           <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>

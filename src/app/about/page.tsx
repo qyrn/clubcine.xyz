@@ -146,7 +146,7 @@ function AboutContent() {
           L&apos;équipe <span className="text-red">club ciné</span>
         </h1>
         <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance">
-          club ciné diffuse des films 24h/24, en tout genre. Parlez-en à vos
+          club ciné diffuse des films 24h/24, en tout genre. Parlez‑en à vos
           amis. Et surtout, suggérez les films que vous aimez.
         </p>
       </header>
