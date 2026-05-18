@@ -78,6 +78,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [modError, setModError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const deletedIdsRef = useRef<Set<string>>(new Set());
   const emotes = useEmotes();
 
   const username = authUsername || anonUsername;
@@ -104,7 +105,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       .order("timestamp", { ascending: false })
       .limit(MAX_MESSAGES)
       .then(({ data }) => {
-        if (data) setMessages(data.reverse() as ChatMessage[]);
+        if (data) {
+          const tombstones = deletedIdsRef.current;
+          const fresh = (data as ChatMessage[])
+            .filter((m) => !tombstones.has(String(m.id)))
+            .reverse();
+          setMessages(fresh);
+        }
       });
 
     const channel = supabase
@@ -113,8 +120,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
+          const incoming = payload.new as ChatMessage;
+          if (deletedIdsRef.current.has(String(incoming.id))) return;
           setMessages((prev) => {
-            const next = [...prev, payload.new as ChatMessage];
+            if (prev.some((m) => String(m.id) === String(incoming.id))) return prev;
+            const next = [...prev, incoming];
             return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
           });
         }
@@ -124,8 +134,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         { event: "DELETE", schema: "public", table: "messages" },
         (payload) => {
           const oldId = (payload.old as { id?: number | string }).id;
-          if (oldId === undefined) return;
-          setMessages((prev) => prev.filter((m) => m.id !== oldId));
+          if (oldId === undefined || oldId === null) return;
+          const key = String(oldId);
+          deletedIdsRef.current.add(key);
+          setMessages((prev) => prev.filter((m) => String(m.id) !== key));
         }
       )
       .subscribe();
@@ -193,20 +205,22 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const deleteMessage = async (msg: ChatMessage) => {
     if (!canModerate) return;
-    console.log("[chat] deleteMessage", { id: msg.id, idType: typeof msg.id, role: profile?.role });
-    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-    const { data, error, status, statusText } = await supabase
+    const key = String(msg.id);
+    deletedIdsRef.current.add(key);
+    setMessages((prev) => prev.filter((m) => String(m.id) !== key));
+    const { data, error } = await supabase
       .from("messages")
       .delete()
       .eq("id", msg.id)
       .select("id");
-    console.log("[chat] delete result", { data, error, status, statusText });
     if (error) {
+      deletedIdsRef.current.delete(key);
       rollback([msg]);
       setModError(`Erreur Supabase : ${error.message}`);
       return;
     }
     if (!data || data.length === 0) {
+      deletedIdsRef.current.delete(key);
       rollback([msg]);
       setModError(
         "RLS a refusé la suppression. Ton rôle = " +
@@ -218,22 +232,23 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const deleteAllFromUser = async (msg: ChatMessage) => {
     if (!canModerate) return;
-    console.log("[chat] deleteAllFromUser", { username: msg.username, role: profile?.role });
     const targetUser = msg.username;
     const originals = messages.filter((m) => m.username === targetUser);
+    for (const m of originals) deletedIdsRef.current.add(String(m.id));
     setMessages((prev) => prev.filter((m) => m.username !== targetUser));
-    const { data, error, status, statusText } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .delete()
       .eq("username", targetUser)
       .select("id");
-    console.log("[chat] purge result", { data, error, status, statusText });
     if (error) {
+      for (const m of originals) deletedIdsRef.current.delete(String(m.id));
       rollback(originals);
       setModError(`Erreur Supabase : ${error.message}`);
       return;
     }
     if (!data || data.length === 0) {
+      for (const m of originals) deletedIdsRef.current.delete(String(m.id));
       rollback(originals);
       setModError(
         "RLS a refusé la purge. Ton rôle = " +
