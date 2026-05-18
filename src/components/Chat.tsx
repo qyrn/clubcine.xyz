@@ -206,7 +206,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const deleteMessage = async (msg: ChatMessage) => {
     if (!canModerate) return;
     const key = String(msg.id);
-    console.log("[chat] DELETE attempt", { rawId: msg.id, idType: typeof msg.id, key });
+    if (deletedIdsRef.current.has(key)) return;
     deletedIdsRef.current.add(key);
     setMessages((prev) => prev.filter((m) => String(m.id) !== key));
     const { data, error } = await supabase
@@ -214,7 +214,6 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       .delete()
       .eq("id", msg.id)
       .select("id");
-    console.log("[chat] DELETE response", { data, error });
     if (error) {
       deletedIdsRef.current.delete(key);
       rollback([msg]);
