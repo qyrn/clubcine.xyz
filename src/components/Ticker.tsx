@@ -9,7 +9,7 @@ const SEGMENTS = [
   "BRANCHEZ-VOUS SUR LE LETTERBOXD",
 ];
 
-const LINE = SEGMENTS.map((s) => `/// ${s} `).join("") + "///";
+const LINE = SEGMENTS.join("   ///   ") + "   ///   ";
 
 export default function Ticker() {
   return (
@@ -19,8 +19,8 @@ export default function Ticker() {
         style={{ animation: "ticker 60s linear infinite" }}
         aria-hidden
       >
-        <span className="px-6 shrink-0">{LINE}</span>
-        <span className="px-6 shrink-0">{LINE}</span>
+        <span className="shrink-0">{LINE}</span>
+        <span className="shrink-0">{LINE}</span>
       </div>
     </div>
   );

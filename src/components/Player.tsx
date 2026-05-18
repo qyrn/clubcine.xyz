@@ -132,12 +132,10 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.details === "bufferFullError") return;
-        console.error("[HLS]", data.type, data.details, data.fatal ? "FATAL" : "warn");
-        if (data.fatal) {
-          setError("erreur HLS, resync...");
-          setTimeout(() => forceSyncRef.current?.(), 2000);
-        }
+        if (!data.fatal) return;
+        console.error("[HLS]", data.type, data.details, "FATAL");
+        setError("erreur HLS, resync...");
+        setTimeout(() => forceSyncRef.current?.(), 2000);
       });
 
       hls.attachMedia(video);

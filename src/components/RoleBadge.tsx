@@ -188,10 +188,10 @@ export function RoleBadge({ role, size = "sm", showLabel = false, className }: R
   return (
     <span
       aria-label={conf.label}
-      className={`relative inline-flex items-center align-middle gap-1 group/role ${className ?? ""}`.trim()}
-      style={{ color: conf.color, lineHeight: 0 }}
+      className={`relative inline-flex items-center align-middle gap-1 group/role leading-none ${className ?? ""}`.trim()}
+      style={{ color: conf.color }}
     >
-      <Icon name={conf.icon} size={px} className="translate-y-[0.5px]" />
+      <Icon name={conf.icon} size={px} />
       {showLabel && (
         <span className="font-mono text-[10px] tracking-[0.16em] uppercase font-bold leading-none">
           {conf.label}
@@ -241,10 +241,10 @@ export function TierBadge({ kind, tier, label, size = "sm", showLabel = false, c
   return (
     <span
       aria-label={label}
-      className={`relative inline-flex items-center align-middle gap-1 group/tier ${className ?? ""}`.trim()}
-      style={{ color: "var(--color-ink-2)", lineHeight: 0 }}
+      className={`relative inline-flex items-center align-middle gap-1 group/tier leading-none ${className ?? ""}`.trim()}
+      style={{ color: "var(--color-ink-2)" }}
     >
-      <Icon name={icon} size={px} className="translate-y-[0.5px]" />
+      <Icon name={icon} size={px} />
       {showLabel && (
         <span className="font-mono text-[10px] tracking-[0.16em] uppercase font-bold leading-none">
           {label}

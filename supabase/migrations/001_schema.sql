@@ -773,6 +773,9 @@ create policy "messages delete admin or moderator" on public.messages for delete
     )
   );
 
+-- Realtime DELETE payload.old.id requiert replica identity full
+alter table public.messages replica identity full;
+
 -- =============================================================================
 -- 12ter. staff_applications (candidatures pour rejoindre l'équipe)
 -- =============================================================================
