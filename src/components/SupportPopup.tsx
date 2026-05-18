@@ -22,11 +22,7 @@ export default function SupportPopup() {
     return () => clearTimeout(timer);
   }, []);
 
-  const dismissSession = () => {
-    setVisible(false);
-  };
-
-  const dismissLong = () => {
+  const dismiss = () => {
     setVisible(false);
     localStorage.setItem(STORAGE_KEY, Date.now().toString());
   };
@@ -44,9 +40,9 @@ export default function SupportPopup() {
           ★ Soutenir
         </div>
         <button
-          onClick={dismissSession}
-          aria-label="fermer pour cette session"
-          title="fermer (revient au prochain chargement)"
+          onClick={dismiss}
+          aria-label={`Ne plus afficher pendant ${REPROMPT_DAYS} jours`}
+          title={`Ne plus me redemander pendant ${REPROMPT_DAYS}j`}
           className="text-ink-3 hover:text-red text-[18px] leading-none cursor-pointer transition-colors"
         >
           ×
@@ -71,19 +67,11 @@ export default function SupportPopup() {
           href="https://ko-fi.com/clubcinefr"
           target="_blank"
           rel="noopener noreferrer"
-          onClick={dismissLong}
+          onClick={dismiss}
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors rounded-md mt-1"
         >
           Ko-fi <span aria-hidden>→</span>
         </a>
-
-        <button
-          type="button"
-          onClick={dismissLong}
-          className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-4 hover:text-ink-2 transition-colors cursor-pointer mt-0.5"
-        >
-          Ne plus me redemander pendant {REPROMPT_DAYS}j
-        </button>
       </div>
     </div>
   );

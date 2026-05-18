@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
 import { RoleBadge } from "@/components/RoleBadge";
+import AdminCrossNav from "@/components/AdminCrossNav";
 
 type Status = "pending" | "accepted" | "rejected";
 type SuggestKind = "film" | "soiree";
@@ -117,7 +118,7 @@ function KpiCard({ label, value, sub, href, cta, accent }: KpiCardProps) {
       {href && cta && (
         <Link
           href={href}
-          className="mt-auto font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors after:content-['_→']"
+          className="mt-auto font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors"
         >
           {cta}
         </Link>
@@ -318,7 +319,7 @@ function DashboardContent() {
         >
           Dashboard
         </h1>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3">
+        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3 text-balance">
           Vue d&apos;ensemble. {loading ? "Chargement…" : (
             <>
               <span className="text-red">{pendingTotal}</span> élément
@@ -326,12 +327,8 @@ function DashboardContent() {
             </>
           )}
         </p>
-        <div className="mt-4 flex items-center gap-4 flex-wrap">
-          <Link href="/admin/users" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ users</Link>
-          <Link href="/admin/suggestions" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ suggestions</Link>
-          <Link href="/admin/bugs" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ bugs</Link>
-          <Link href="/admin/emotes" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ emotes</Link>
-          <Link href="/admin/staff" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ staff</Link>
+        <div className="mt-4">
+          <AdminCrossNav current="/admin/dashboard" />
         </div>
       </header>
 

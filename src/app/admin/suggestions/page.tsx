@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
+import AdminCrossNav from "@/components/AdminCrossNav";
 
 type Kind = "film" | "soiree";
 type Status = "pending" | "accepted" | "rejected";
@@ -199,16 +200,12 @@ function SuggestionsAdminContent() {
         >
           Suggestions
         </h1>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3">
+        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3 text-balance">
           Boîte de réception des propositions de films et de soirées envoyées
           depuis le site.
         </p>
-        <div className="mt-4 flex items-center gap-4 flex-wrap">
-          <Link href="/admin/dashboard" className="text-[12px] font-mono uppercase tracking-[0.16em] text-red font-bold hover:text-ink transition-colors">★ dashboard</Link>
-          <Link href="/admin/users" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ users</Link>
-          <Link href="/admin/bugs" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ bugs</Link>
-          <Link href="/admin/emotes" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ emotes</Link>
-          <Link href="/admin/staff" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ staff</Link>
+        <div className="mt-4">
+          <AdminCrossNav current="/admin/suggestions" />
         </div>
       </header>
 

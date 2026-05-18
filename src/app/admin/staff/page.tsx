@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
+import AdminCrossNav from "@/components/AdminCrossNav";
 
 type Status = "pending" | "accepted" | "rejected";
 
@@ -178,16 +179,12 @@ function StaffAdminContent() {
         >
           Staff
         </h1>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3">
+        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3 text-balance">
           Candidatures pour rejoindre l&apos;équipe. Accepter promeut
           automatiquement le user au rôle demandé.
         </p>
-        <div className="mt-4 flex items-center gap-4 flex-wrap">
-          <Link href="/admin/dashboard" className="text-[12px] font-mono uppercase tracking-[0.16em] text-red font-bold hover:text-ink transition-colors">★ dashboard</Link>
-          <Link href="/admin/users" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ users</Link>
-          <Link href="/admin/suggestions" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ suggestions</Link>
-          <Link href="/admin/bugs" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ bugs</Link>
-          <Link href="/admin/emotes" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ emotes</Link>
+        <div className="mt-4">
+          <AdminCrossNav current="/admin/staff" />
         </div>
       </header>
 

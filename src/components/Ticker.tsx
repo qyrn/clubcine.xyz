@@ -9,7 +9,14 @@ const SEGMENTS = [
   "BRANCHEZ-VOUS SUR LE LETTERBOXD",
 ];
 
-const LINE = SEGMENTS.join("   ///   ") + "   ///   ";
+function renderLine(keyPrefix: string) {
+  return SEGMENTS.flatMap((s, i) => [
+    <span key={`${keyPrefix}-sep-${i}`} className="mx-8">///</span>,
+    <span key={`${keyPrefix}-seg-${i}`}>{s}</span>,
+  ]).concat(
+    <span key={`${keyPrefix}-sep-end`} className="mx-8">///</span>
+  );
+}
 
 export default function Ticker() {
   return (
@@ -19,8 +26,8 @@ export default function Ticker() {
         style={{ animation: "ticker 60s linear infinite" }}
         aria-hidden
       >
-        <span className="shrink-0">{LINE}</span>
-        <span className="shrink-0">{LINE}</span>
+        <div className="shrink-0 flex items-center">{renderLine("a")}</div>
+        <div className="shrink-0 flex items-center">{renderLine("b")}</div>
       </div>
     </div>
   );

@@ -29,53 +29,43 @@ interface ChatProps {
   extra?: React.ReactNode;
 }
 
-interface ModMenuProps {
-  msg: ChatMessage;
+interface ModToolsProps {
   onDeleteMessage: () => void;
   onPurgeUser: () => void;
-  onCancel: () => void;
+  username: string;
 }
 
-function ModMenu({ msg, onDeleteMessage, onPurgeUser, onCancel }: ModMenuProps) {
+function ModTools({ onDeleteMessage, onPurgeUser, username }: ModToolsProps) {
   return (
-    <div
-      data-mod-menu
-      role="menu"
-      className="absolute right-0 top-full mt-1 z-50 min-w-[220px] bg-bg border border-line-2 rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.7)] overflow-hidden"
-    >
-      <div className="px-3 py-2 border-b border-line bg-[#0a0a0a]">
-        <div className="font-mono text-[9px] font-bold tracking-[0.16em] uppercase text-ink-3">
-          Modérer
-        </div>
-        <div className="text-[12px] text-ink truncate mt-0.5">@{msg.username}</div>
-      </div>
+    <span className="shrink-0 inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
       <button
         type="button"
-        data-mod-menu
         onClick={onDeleteMessage}
-        className="w-full text-left px-3 py-2 text-[12px] text-ink hover:bg-line-2 hover:text-red transition-colors cursor-pointer flex items-center gap-2"
+        title="Supprimer ce message"
+        aria-label="Supprimer ce message"
+        className="p-1 text-ink-3 hover:text-red hover:bg-line transition-colors cursor-pointer rounded-sm leading-none inline-flex items-center justify-center"
       >
-        <span className="text-[14px] leading-none">×</span>
-        Supprimer ce message
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6" />
+          <path d="M14 11v6" />
+          <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+        </svg>
       </button>
       <button
         type="button"
-        data-mod-menu
         onClick={onPurgeUser}
-        className="w-full text-left px-3 py-2 text-[12px] text-ink hover:bg-line-2 hover:text-red transition-colors cursor-pointer border-t border-line flex items-center gap-2"
+        title={`Supprimer tous les messages de @${username}`}
+        aria-label={`Supprimer tous les messages de @${username}`}
+        className="p-1 text-ink-3 hover:text-red hover:bg-line transition-colors cursor-pointer rounded-sm leading-none inline-flex items-center justify-center"
       >
-        <span className="text-[14px] leading-none">⊘</span>
-        Supprimer tous ses messages
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+        </svg>
       </button>
-      <button
-        type="button"
-        data-mod-menu
-        onClick={onCancel}
-        className="w-full text-left px-3 py-2 text-[11px] font-mono tracking-[0.04em] uppercase text-ink-3 hover:bg-line-2 hover:text-ink transition-colors cursor-pointer border-t border-line"
-      >
-        Annuler
-      </button>
-    </div>
+    </span>
   );
 }
 
@@ -85,31 +75,12 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
-  const [modMenuId, setModMenuId] = useState<string | number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emotes = useEmotes();
 
   const username = authUsername || anonUsername;
   const canModerate = profile?.role === "admin" || profile?.role === "moderateur";
-
-  useEffect(() => {
-    if (modMenuId === null) return;
-    const onClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("[data-mod-menu]")) return;
-      setModMenuId(null);
-    };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setModMenuId(null);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [modMenuId]);
 
   useEffect(() => {
     const stored = localStorage.getItem("clubcine-username");
@@ -207,7 +178,6 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const deleteMessage = async (msg: ChatMessage) => {
     if (!canModerate) return;
-    setModMenuId(null);
     setMessages((prev) => prev.filter((m) => m.id !== msg.id));
     const { error } = await supabase.from("messages").delete().eq("id", msg.id);
     if (error) {
@@ -221,7 +191,6 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const deleteAllFromUser = async (msg: ChatMessage) => {
     if (!canModerate) return;
-    setModMenuId(null);
     const targetUser = msg.username;
     const idsToDelete = messages.filter((m) => m.username === targetUser).map((m) => m.id);
     setMessages((prev) => prev.filter((m) => m.username !== targetUser));
@@ -266,7 +235,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           )}
 
           {messages.map((msg) => (
-            <div key={msg.id} className="group relative text-[12px] leading-[1.6] break-words flex items-center gap-1.5">
+            <div key={msg.id} className="group text-[12px] leading-[1.6] break-words flex items-center gap-1.5">
               <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
               <UserChip
                 username={msg.username}
@@ -283,24 +252,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                 />
               </span>
               {canModerate && (
-                <button
-                  type="button"
-                  data-mod-menu
-                  onClick={() => setModMenuId((id) => (id === msg.id ? null : msg.id))}
-                  title="modérer le message"
-                  aria-label="modérer le message"
-                  aria-expanded={modMenuId === msg.id}
-                  className="shrink-0 text-ink-3 hover:text-red opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer leading-none text-[16px] px-1"
-                >
-                  ⋯
-                </button>
-              )}
-              {canModerate && modMenuId === msg.id && (
-                <ModMenu
-                  msg={msg}
+                <ModTools
+                  username={msg.username}
                   onDeleteMessage={() => deleteMessage(msg)}
                   onPurgeUser={() => deleteAllFromUser(msg)}
-                  onCancel={() => setModMenuId(null)}
                 />
               )}
             </div>
@@ -349,7 +304,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className="group relative py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2">
+          <div key={msg.id} className="group py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2">
             <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
             <UserChip
               username={msg.username}
@@ -366,24 +321,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               />
             </span>
             {canModerate && (
-              <button
-                type="button"
-                data-mod-menu
-                onClick={() => setModMenuId((id) => (id === msg.id ? null : msg.id))}
-                title="modérer le message"
-                aria-label="modérer le message"
-                aria-expanded={modMenuId === msg.id}
-                className="shrink-0 text-ink-3 hover:text-red opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer leading-none text-[18px] px-1"
-              >
-                ⋯
-              </button>
-            )}
-            {canModerate && modMenuId === msg.id && (
-              <ModMenu
-                msg={msg}
+              <ModTools
+                username={msg.username}
                 onDeleteMessage={() => deleteMessage(msg)}
                 onPurgeUser={() => deleteAllFromUser(msg)}
-                onCancel={() => setModMenuId(null)}
               />
             )}
           </div>

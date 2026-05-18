@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { invalidateEmotesCache, type Emote } from "@/lib/use-emotes";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
+import AdminCrossNav from "@/components/AdminCrossNav";
 
 const SLUG_REGEX = /^[a-z0-9-]{2,32}$/;
 const MAX_BYTES = 1024 * 1024;
@@ -287,19 +288,15 @@ function EmotesAdminContent() {
         >
           Emotes
         </h1>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[620px] mt-3">
+        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[620px] mt-3 text-balance">
           Catalogue des emotes affichées dans le chat. Insère un shortcode{" "}
           <span className="font-mono text-red">:slug:</span> dans un message
           pour qu&apos;il soit remplacé par l&apos;image. Formats acceptés :
           PNG, WebP, GIF animé (1 Mo max).
         </p>
         {isAdmin && (
-          <div className="mt-4 flex items-center gap-4 flex-wrap">
-            <Link href="/admin/dashboard" className="text-[12px] font-mono uppercase tracking-[0.16em] text-red font-bold hover:text-ink transition-colors">★ dashboard</Link>
-            <Link href="/admin/users" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ users</Link>
-            <Link href="/admin/suggestions" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ suggestions</Link>
-            <Link href="/admin/bugs" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ bugs</Link>
-            <Link href="/admin/staff" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ staff</Link>
+          <div className="mt-4">
+            <AdminCrossNav current="/admin/emotes" />
           </div>
         )}
       </header>

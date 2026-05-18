@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
 import { BadgeIcon } from "@/components/RoleBadge";
+import AdminCrossNav from "@/components/AdminCrossNav";
 
 const ROLES = ["spectateur", "soutien", "moderateur", "admin"] as const;
 type Role = (typeof ROLES)[number];
@@ -14,7 +15,7 @@ type Role = (typeof ROLES)[number];
 const BADGE_CATEGORIES: { label: string; slugs: string[] }[] = [
   {
     label: "Spéciaux",
-    slugs: ["supporter", "founding-viewer", "night-owl", "top-10", "curator", "admin", "bug-hunter", "soiree-jouee"],
+    slugs: ["admin", "founding-viewer", "top-10", "curator", "soiree-jouee", "supporter", "night-owl", "bug-hunter"],
   },
   {
     label: "Antenne",
@@ -238,13 +239,7 @@ function UsersAdminContent() {
         >
           Users
         </h1>
-        <div className="flex items-center justify-center gap-4 flex-wrap">
-          <Link href="/admin/dashboard" className="text-[12px] font-mono uppercase tracking-[0.16em] text-red font-bold hover:text-ink transition-colors">★ dashboard</Link>
-          <Link href="/admin/suggestions" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ suggestions</Link>
-          <Link href="/admin/bugs" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ bugs</Link>
-          <Link href="/admin/emotes" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ emotes</Link>
-          <Link href="/admin/staff" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ staff</Link>
-        </div>
+        <AdminCrossNav current="/admin/users" />
       </header>
 
       <div className="px-10 py-6 border-b border-line flex flex-wrap items-center gap-4 max-md:px-5">
