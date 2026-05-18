@@ -11,6 +11,29 @@ import { BadgeIcon } from "@/components/RoleBadge";
 const ROLES = ["spectateur", "soutien", "moderateur", "admin"] as const;
 type Role = (typeof ROLES)[number];
 
+const BADGE_CATEGORIES: { label: string; slugs: string[] }[] = [
+  {
+    label: "Spéciaux",
+    slugs: ["supporter", "founding-viewer", "night-owl", "top-10", "curator", "admin", "bug-hunter", "soiree-jouee"],
+  },
+  {
+    label: "Antenne",
+    slugs: ["viewer-habitue", "viewer-cinephile", "viewer-connaisseur", "viewer-cingle", "viewer-legende"],
+  },
+  {
+    label: "Chat",
+    slugs: ["chatter-bavard", "chatter-animateur", "chatter-voix"],
+  },
+  {
+    label: "Suggestions films",
+    slugs: ["film-suggest-1", "film-suggest-5", "film-suggest-10"],
+  },
+  {
+    label: "Suggestions soirées",
+    slugs: ["soiree-suggest-1", "soiree-suggest-5", "soiree-suggest-10"],
+  },
+];
+
 interface ProfileRow {
   user_id: string;
   username: string;
@@ -204,51 +227,23 @@ function UsersAdminContent() {
       <Ticker />
       <Nav />
 
-      <header className="px-10 py-16 border-b border-line max-md:px-5 max-md:py-12">
-        <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.16em] uppercase text-ink-3 mb-3">
+      <header className="px-10 py-24 border-b border-line flex flex-col items-center text-center gap-6 max-md:px-5 max-md:py-16">
+        <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.16em] uppercase text-ink-3">
           ★ <span className="text-red font-bold">Admin</span>
           {" · Channel 01"}
         </div>
         <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em]"
+          className="font-bold leading-[0.95] tracking-[-0.04em] uppercase"
           style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
         >
           Users
         </h1>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3">
-          Donne / retire un rôle ou un badge en un clic. Plus de SQL à écrire.
-        </p>
-        <div className="mt-4 flex items-center gap-3 flex-wrap">
-          <Link
-            href="/admin/dashboard"
-            className="text-[12px] font-mono uppercase tracking-[0.16em] text-red font-bold hover:text-ink transition-colors"
-          >
-            ★ dashboard
-          </Link>
-          <Link
-            href="/admin/suggestions"
-            className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors"
-          >
-            → suggestions
-          </Link>
-          <Link
-            href="/admin/bugs"
-            className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors"
-          >
-            → bugs
-          </Link>
-          <Link
-            href="/admin/emotes"
-            className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors"
-          >
-            → emotes
-          </Link>
-          <Link
-            href="/admin/staff"
-            className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors"
-          >
-            → staff
-          </Link>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <Link href="/admin/dashboard" className="text-[12px] font-mono uppercase tracking-[0.16em] text-red font-bold hover:text-ink transition-colors">★ dashboard</Link>
+          <Link href="/admin/suggestions" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ suggestions</Link>
+          <Link href="/admin/bugs" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ bugs</Link>
+          <Link href="/admin/emotes" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ emotes</Link>
+          <Link href="/admin/staff" className="text-[12px] font-mono uppercase tracking-[0.16em] text-ink-3 hover:text-red transition-colors">→ staff</Link>
         </div>
       </header>
 
@@ -305,26 +300,41 @@ function UsersAdminContent() {
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {badges.map((b) => {
-                        const has = userBadgesSet.has(b.slug);
-                        const loadingThis = busy === `badge:${p.user_id}:${b.slug}`;
+                    <div className="flex flex-col gap-3">
+                      {BADGE_CATEGORIES.map((cat) => {
+                        const catBadges = cat.slugs
+                          .map((slug) => badges.find((b) => b.slug === slug))
+                          .filter((b): b is Badge => !!b);
+                        if (catBadges.length === 0) return null;
                         return (
-                          <button
-                            key={b.slug}
-                            type="button"
-                            onClick={() => toggleBadge(p.user_id, b.slug, has)}
-                            disabled={loadingThis}
-                            title={b.label}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-[10px] font-mono tracking-[0.08em] uppercase rounded-md transition-colors cursor-pointer disabled:opacity-30 ${
-                              has
-                                ? "border-red text-ink"
-                                : "border-line-2 text-ink-4 hover:text-ink hover:border-ink"
-                            }`}
-                          >
-                            <BadgeIcon slug={b.slug} size={12} color={has ? b.color : undefined} />
-                            {b.label}
-                          </button>
+                          <div key={cat.label} className="flex items-baseline gap-3 flex-wrap">
+                            <span className="font-mono text-[9px] font-bold tracking-[0.16em] uppercase text-ink-4 shrink-0 min-w-[100px]">
+                              {cat.label}
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {catBadges.map((b) => {
+                                const has = userBadgesSet.has(b.slug);
+                                const loadingThis = busy === `badge:${p.user_id}:${b.slug}`;
+                                return (
+                                  <button
+                                    key={b.slug}
+                                    type="button"
+                                    onClick={() => toggleBadge(p.user_id, b.slug, has)}
+                                    disabled={loadingThis}
+                                    title={b.label}
+                                    className={`inline-flex items-center gap-1.5 px-2 py-1 border text-[10px] font-mono tracking-[0.08em] uppercase rounded-md transition-colors cursor-pointer disabled:opacity-30 ${
+                                      has
+                                        ? "border-red text-ink"
+                                        : "border-line-2 text-ink-4 hover:text-ink hover:border-ink"
+                                    }`}
+                                  >
+                                    <BadgeIcon slug={b.slug} size={12} color={has ? b.color : undefined} />
+                                    {b.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         );
                       })}
                     </div>

@@ -161,27 +161,38 @@ function AboutContent() {
         </div>
 
         <div className="mt-16 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-          {QUICK_LINKS.map((l) =>
-            l.external ? (
+          {QUICK_LINKS.map((l) => {
+            const Icon = l.external ? (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M14 3h7v7" />
+                <path d="M10 14L21 3" />
+                <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            );
+            const sharedClass = "inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors";
+            return l.external ? (
               <a
                 key={l.href}
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[11px] tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors after:content-['_→']"
+                className={sharedClass}
               >
                 {l.label}
+                {Icon}
               </a>
             ) : (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="font-mono text-[11px] tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors after:content-['_→']"
-              >
+              <Link key={l.href} href={l.href} className={sharedClass}>
                 {l.label}
+                {Icon}
               </Link>
-            )
-          )}
+            );
+          })}
         </div>
       </section>
 
@@ -196,9 +207,8 @@ function AboutContent() {
         >
           On cherche des modérateurs
         </h2>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[520px]">
-          Tu traînes sur le chat, tu connais le catalogue, tu veux aider à
-          garder l&apos;ambiance saine ? Postule. On répond.
+        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[620px] text-balance">
+          Tu traînes sur le chat, tu connais le catalogue, tu veux aider à garder l&apos;ambiance saine ? Postule. On répond.
         </p>
         <StaffApplyButton />
       </section>
