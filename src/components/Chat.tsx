@@ -203,6 +203,20 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     });
   };
 
+  const refetchMessages = async () => {
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .order("timestamp", { ascending: false })
+      .limit(MAX_MESSAGES);
+    if (!data) return;
+    const tombstones = deletedIdsRef.current;
+    const fresh = (data as ChatMessage[])
+      .filter((m) => !tombstones.has(String(m.id)))
+      .reverse();
+    setMessages(fresh);
+  };
+
   const deleteMessage = async (msg: ChatMessage) => {
     if (!canModerate) return;
     const key = String(msg.id);
@@ -221,14 +235,15 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       return;
     }
     if (!data || data.length === 0) {
-      deletedIdsRef.current.delete(key);
-      rollback([msg]);
       setModError(
         "RLS a refusé la suppression. Ton rôle = " +
           (profile?.role ?? "null") +
           ". Vérifie la policy 'messages delete admin or moderator' dans Supabase."
       );
+      await refetchMessages();
+      return;
     }
+    await refetchMessages();
   };
 
   const deleteAllFromUser = async (msg: ChatMessage) => {
@@ -249,14 +264,15 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       return;
     }
     if (!data || data.length === 0) {
-      for (const m of originals) deletedIdsRef.current.delete(String(m.id));
-      rollback(originals);
       setModError(
         "RLS a refusé la purge. Ton rôle = " +
           (profile?.role ?? "null") +
           ". Vérifie la policy 'messages delete admin or moderator' dans Supabase."
       );
+      await refetchMessages();
+      return;
     }
+    await refetchMessages();
   };
 
   const formatTime = (ts: number) => {
