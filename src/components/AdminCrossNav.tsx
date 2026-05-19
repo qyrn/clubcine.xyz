@@ -10,6 +10,7 @@ const LINKS: { label: string; href: string; primary?: boolean }[] = [
   { label: "Bugs", href: "/admin/bugs" },
   { label: "Emotes", href: "/admin/emotes" },
   { label: "Staff", href: "/admin/staff" },
+  { label: "Erreurs", href: "/admin/errors" },
 ];
 
 export default function AdminCrossNav({ current }: { current: string }) {
