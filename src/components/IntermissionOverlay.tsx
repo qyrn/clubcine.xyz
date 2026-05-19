@@ -53,11 +53,7 @@ export default function IntermissionOverlay({
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [currentTrackTitle, setCurrentTrackTitle] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
-  const [volume, setVolume] = useState(DEFAULT_VOLUME);
-
-  useEffect(() => {
-    setVolume(loadVolume());
-  }, []);
+  const [volume, setVolume] = useState<number>(() => loadVolume());
 
   useEffect(() => {
     if (typeof window === "undefined") return;

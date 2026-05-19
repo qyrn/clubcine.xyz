@@ -86,13 +86,13 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             </button>
           </div>
           <p className="text-[13px] text-ink-2 leading-relaxed mb-3 text-balance">
-            On vient de t'envoyer un mail de confirmation à
+            On vient de t&apos;envoyer un mail de confirmation à
           </p>
           <p className="text-[13px] text-ink font-mono break-all mb-4">
             {registeredEmail}
           </p>
           <p className="text-[11px] text-ink-3 leading-relaxed mb-5 text-balance">
-            Clique sur le lien dedans pour activer ton compte. Pense à vérifier les spams si rien n'arrive sous 2 minutes.
+            Clique sur le lien dedans pour activer ton compte. Pense à vérifier les spams si rien n&apos;arrive sous 2 minutes.
           </p>
           <button
             onClick={onClose}

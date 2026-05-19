@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ScheduleState } from "@/types";
 import { reportError } from "./report-error";
 
@@ -30,15 +30,19 @@ export function ScheduleProvider({
   const [schedule, setSchedule] = useState<ScheduleState | null>(initialSchedule);
   const [nowMs, setNowMs] = useState<number>(() => initialSchedule?.serverTime ?? 0);
   const fetchingRef = useRef(false);
+  const initialScheduleRef = useRef(initialSchedule);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
+      const before = Date.now();
       const res = await fetch("/api/schedule");
       if (!res.ok) throw new Error(`schedule ${res.status}`);
       const data = (await res.json()) as ScheduleState;
-      setSchedule(data);
+      const rtt = Date.now() - before;
+      const correctedOffset = data.currentOffset + rtt / 2000;
+      setSchedule({ ...data, currentOffset: correctedOffset });
     } catch (err) {
       reportError({
         source: "schedule-provider",
@@ -47,16 +51,17 @@ export function ScheduleProvider({
     } finally {
       fetchingRef.current = false;
     }
-  };
-
-  useEffect(() => {
-    setNowMs(Date.now());
-    const tick = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(tick);
   }, []);
 
   useEffect(() => {
-    if (!initialSchedule) refresh();
+    const tick = () => setNowMs(Date.now());
+    queueMicrotask(tick);
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (!initialScheduleRef.current) refresh();
     const poll = setInterval(refresh, pollIntervalMs);
     const onVisible = () => {
       if (document.visibilityState === "visible") refresh();
@@ -66,8 +71,7 @@ export function ScheduleProvider({
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisible);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pollIntervalMs]);
+  }, [pollIntervalMs, refresh]);
 
   return (
     <ScheduleContext.Provider value={{ schedule, nowMs, refresh }}>

@@ -25,8 +25,8 @@ interface HeroState {
   endMs: number;
 }
 
-function deriveState(schedule: ScheduleState): HeroState {
-  const now = schedule.serverTime ?? Date.now();
+function deriveState(schedule: ScheduleState, nowMs: number): HeroState {
+  const now = schedule.serverTime ?? nowMs;
   const startMs = schedule.intermission
     ? now + schedule.intermission.secondsLeft * 1000
     : now - schedule.currentOffset * 1000;
@@ -43,11 +43,11 @@ function getSoireePoster(soiree: SoireeRuntime, currentFilm: Film): string | und
   return currentFilm.poster;
 }
 
-function SoireeHero({ schedule }: { schedule: ScheduleState }) {
+function SoireeHero({ schedule, nowMs }: { schedule: ScheduleState; nowMs: number }) {
   const soiree = schedule.soiree!;
   const currentFilm = schedule.currentFilm;
   const poster = getSoireePoster(soiree, currentFilm);
-  const now = schedule.serverTime ?? Date.now();
+  const now = schedule.serverTime ?? nowMs;
   const remainingSec = Math.max(0, Math.floor((soiree.endsAt - now) / 1000));
 
   return (
@@ -230,10 +230,10 @@ function CycleHero({ state }: { state: HeroState }) {
 }
 
 export default function Hero() {
-  const { schedule } = useSchedule();
+  const { schedule, nowMs } = useSchedule();
   const state = useMemo<HeroState | null>(
-    () => (schedule ? deriveState(schedule) : null),
-    [schedule],
+    () => (schedule ? deriveState(schedule, nowMs) : null),
+    [schedule, nowMs],
   );
 
   if (!state) {
@@ -241,7 +241,7 @@ export default function Hero() {
   }
 
   if (state.schedule.soiree) {
-    return <SoireeHero schedule={state.schedule} />;
+    return <SoireeHero schedule={state.schedule} nowMs={nowMs} />;
   }
 
   return <CycleHero state={state} />;

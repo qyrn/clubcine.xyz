@@ -11,10 +11,10 @@ const SEGMENTS = [
 
 function renderLine(keyPrefix: string) {
   return SEGMENTS.flatMap((s, i) => [
-    <span key={`${keyPrefix}-sep-${i}`} className="mx-8">///</span>,
+    <span key={`${keyPrefix}-sep-${i}`} className="mx-8">{"///"}</span>,
     <span key={`${keyPrefix}-seg-${i}`}>{s}</span>,
   ]).concat(
-    <span key={`${keyPrefix}-sep-end`} className="mx-8">///</span>
+    <span key={`${keyPrefix}-sep-end`} className="mx-8">{"///"}</span>
   );
 }
 

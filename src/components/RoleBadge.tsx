@@ -1,20 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 type TooltipPos = { top: number; left: number } | null;
 
 function useTooltipPos() {
-  const ref = useRef<HTMLSpanElement>(null);
+  const elRef = useRef<HTMLSpanElement | null>(null);
   const [pos, setPos] = useState<TooltipPos>(null);
-  const show = () => {
-    const el = ref.current;
+  const setRef = useCallback((el: HTMLSpanElement | null) => {
+    elRef.current = el;
+  }, []);
+  const show = useCallback(() => {
+    const el = elRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
     setPos({ top: r.top, left: r.left + r.width / 2 });
-  };
-  const hide = () => setPos(null);
-  return { ref, pos, show, hide };
+  }, []);
+  const hide = useCallback(() => setPos(null), []);
+  return [setRef, pos, show, hide] as const;
 }
 
 export type IconName =
@@ -200,17 +203,17 @@ interface RoleBadgeProps {
 
 export function RoleBadge({ role, size = "sm", showLabel = false, className }: RoleBadgeProps) {
   const conf = ROLE_ICONS[role];
-  const tip = useTooltipPos();
+  const [setRef, pos, show, hide] = useTooltipPos();
   if (!conf) return null;
   const px = size === "sm" ? 13 : 15;
   return (
     <span
-      ref={tip.ref}
+      ref={setRef}
       aria-label={conf.label}
-      onMouseEnter={!showLabel ? tip.show : undefined}
-      onMouseLeave={!showLabel ? tip.hide : undefined}
-      onFocus={!showLabel ? tip.show : undefined}
-      onBlur={!showLabel ? tip.hide : undefined}
+      onMouseEnter={!showLabel ? show : undefined}
+      onMouseLeave={!showLabel ? hide : undefined}
+      onFocus={!showLabel ? show : undefined}
+      onBlur={!showLabel ? hide : undefined}
       className={`relative inline-flex items-center align-middle gap-1 leading-none ${className ?? ""}`.trim()}
       style={{ color: conf.color }}
     >
@@ -220,13 +223,13 @@ export function RoleBadge({ role, size = "sm", showLabel = false, className }: R
           {conf.label}
         </span>
       )}
-      {!showLabel && tip.pos && (
+      {!showLabel && pos && (
         <span
           role="tooltip"
           style={{
             position: "fixed",
-            top: tip.pos.top - 8,
-            left: tip.pos.left,
+            top: pos.top - 8,
+            left: pos.left,
             transform: "translate(-50%, -100%)",
             color: conf.color,
           }}
@@ -266,16 +269,16 @@ interface TierBadgeProps {
 
 export function TierBadge({ kind, tier, label, size = "sm", showLabel = false, className }: TierBadgeProps) {
   const icon = (kind === "viewer" ? VIEWER_TIER_ICONS[tier] : CHATTER_TIER_ICONS[tier]) ?? "spark";
-  const tip = useTooltipPos();
+  const [setRef, pos, show, hide] = useTooltipPos();
   const px = size === "sm" ? 13 : 15;
   return (
     <span
-      ref={tip.ref}
+      ref={setRef}
       aria-label={label}
-      onMouseEnter={!showLabel ? tip.show : undefined}
-      onMouseLeave={!showLabel ? tip.hide : undefined}
-      onFocus={!showLabel ? tip.show : undefined}
-      onBlur={!showLabel ? tip.hide : undefined}
+      onMouseEnter={!showLabel ? show : undefined}
+      onMouseLeave={!showLabel ? hide : undefined}
+      onFocus={!showLabel ? show : undefined}
+      onBlur={!showLabel ? hide : undefined}
       className={`relative inline-flex items-center align-middle gap-1 leading-none ${className ?? ""}`.trim()}
       style={{ color: "var(--color-ink-2)" }}
     >
@@ -285,13 +288,13 @@ export function TierBadge({ kind, tier, label, size = "sm", showLabel = false, c
           {label}
         </span>
       )}
-      {!showLabel && tip.pos && (
+      {!showLabel && pos && (
         <span
           role="tooltip"
           style={{
             position: "fixed",
-            top: tip.pos.top - 8,
-            left: tip.pos.left,
+            top: pos.top - 8,
+            left: pos.left,
             transform: "translate(-50%, -100%)",
           }}
           className="pointer-events-none px-2.5 py-1.5 bg-bg border border-line-2 rounded font-mono text-[11px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap text-ink z-50 shadow-[0_4px_12px_rgba(0,0,0,0.6)]"

@@ -3,7 +3,10 @@ import HomeClient from "./home-client";
 
 export const dynamic = "force-dynamic";
 
+function buildInitialSchedule() {
+  return { ...getCurrentSchedule(), serverTime: Date.now() };
+}
+
 export default function Home() {
-  const schedule = { ...getCurrentSchedule(), serverTime: Date.now() };
-  return <HomeClient initialSchedule={schedule} />;
+  return <HomeClient initialSchedule={buildInitialSchedule()} />;
 }

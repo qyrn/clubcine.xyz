@@ -30,9 +30,13 @@ function toView(
   };
 }
 
+function nowMs(): number {
+  return Date.now();
+}
+
 export default function SoireesPage() {
   const all = getResolvedSoirees();
-  const now = Date.now();
+  const now = nowMs();
   const schedule = getCurrentSchedule(now);
 
   const live: LiveSoireeView | null = schedule.soiree

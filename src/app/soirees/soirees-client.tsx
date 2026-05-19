@@ -78,8 +78,9 @@ function LiveHero({ soiree }: { soiree: LiveSoireeView }) {
   const [nowMs, setNowMs] = useState(soiree.endsAt);
 
   useEffect(() => {
-    setNowMs(Date.now());
-    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    const tick = () => setNowMs(Date.now());
+    queueMicrotask(tick);
+    const t = setInterval(tick, 1000);
     return () => clearInterval(t);
   }, []);
 
