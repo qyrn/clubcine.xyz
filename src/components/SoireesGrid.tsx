@@ -43,7 +43,7 @@ function getSoireePoster(
   return films[0]?.poster;
 }
 
-function SoireePoster({ poster }: { poster?: string }) {
+function SoireePoster({ poster, priority }: { poster?: string; priority?: boolean }) {
   return (
     <div className="relative">
       {poster && (
@@ -59,6 +59,7 @@ function SoireePoster({ poster }: { poster?: string }) {
             src={poster}
             alt=""
             fill
+            priority={priority}
             sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 25vw"
             className="object-cover"
           />
@@ -68,13 +69,13 @@ function SoireePoster({ poster }: { poster?: string }) {
   );
 }
 
-function UpcomingCard({ soiree }: { soiree: UpcomingSoiree }) {
+function UpcomingCard({ soiree, priority }: { soiree: UpcomingSoiree; priority?: boolean }) {
   const poster = getSoireePoster(soiree.posterCustomUrl, soiree.posterFilmId, soiree.films);
   const custom = !!soiree.posterCustomUrl;
 
   return (
     <article className="relative flex flex-col gap-3 group">
-      <SoireePoster poster={poster} />
+      <SoireePoster poster={poster} priority={priority} />
       <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
         ★ À venir
       </div>
@@ -106,13 +107,13 @@ function UpcomingCard({ soiree }: { soiree: UpcomingSoiree }) {
   );
 }
 
-function LiveCard({ soiree }: { soiree: SoireeRuntime }) {
+function LiveCard({ soiree, priority }: { soiree: SoireeRuntime; priority?: boolean }) {
   const currentFilm = soiree.films[soiree.currentIndex];
   const poster = getSoireePoster(soiree.posterCustomUrl, soiree.posterFilmId, soiree.films);
 
   return (
     <Link href="/movie" prefetch={false} className="relative flex flex-col gap-3 group">
-      <SoireePoster poster={poster} />
+      <SoireePoster poster={poster} priority={priority} />
       <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
         ★ Soirée en cours
       </div>
@@ -152,9 +153,9 @@ export default function SoireesGrid() {
 
       {hasAny ? (
         <div className="grid grid-cols-4 gap-5 max-[1100px]:grid-cols-2 max-[600px]:grid-cols-1">
-          {soiree && <LiveCard soiree={soiree} />}
-          {upcoming.map((s) => (
-            <UpcomingCard key={s.id} soiree={s} />
+          {soiree && <LiveCard soiree={soiree} priority />}
+          {upcoming.map((s, i) => (
+            <UpcomingCard key={s.id} soiree={s} priority={!soiree && i === 0} />
           ))}
         </div>
       ) : (

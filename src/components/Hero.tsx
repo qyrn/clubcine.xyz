@@ -78,7 +78,7 @@ function SoireeHero({ schedule, nowMs }: { schedule: ScheduleState; nowMs: numbe
           })}
         </ul>
 
-        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance">
+        <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance line-clamp-4">
           <span className="text-ink font-semibold">{currentFilm.title}</span>
           {" · "}
           {currentFilm.director}, {currentFilm.year}
@@ -183,7 +183,9 @@ function CycleHero({ state }: { state: HeroState }) {
         </div>
 
         {film.synopsis && (
-          <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance">{film.synopsis}</p>
+          <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[520px] text-balance line-clamp-5">
+            {film.synopsis}
+          </p>
         )}
 
         <Link
