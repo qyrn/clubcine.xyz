@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PublicProfile } from "@/lib/use-profiles";
 import { viewerTierLabel } from "@/lib/tiers";
+import { safeImageUrl } from "@/lib/safe-url";
 import { ROLE_ICONS, RoleBadge, TierBadge } from "./RoleBadge";
 
 interface Props {
@@ -19,16 +20,17 @@ export default function UserChip({ username, profile, size = "sm", className }: 
   const hasRoleIcon = !!ROLE_ICONS[role];
   const tier = profile?.viewerTier ?? null;
   const tierLabel = viewerTierLabel(tier);
+  const avatarSrc = safeImageUrl(profile?.avatarUrl);
 
   return (
     <Link
       href={`/u/${encodeURIComponent(username)}`}
       className={`inline-flex items-center gap-1.5 hover:text-red transition-colors ${className ?? ""}`.trim()}
     >
-      {profile?.avatarUrl ? (
+      {avatarSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={profile.avatarUrl}
+          src={avatarSrc}
           alt=""
           className={`${dim} rounded-full object-cover border border-line-2 shrink-0`}
         />

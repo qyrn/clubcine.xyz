@@ -8,17 +8,21 @@ function normalizeSocial(input: string, hosts: string[], base: string): string {
   if (!input) return "";
   const v = clean(input);
   if (!v) return "";
-  try {
-    const url = new URL(v.includes("://") ? v : `https://${v}`);
-    if (hosts.some((h) => url.hostname.endsWith(h))) {
-      const handle = url.pathname.replace(/^\/|\/$/g, "").split("/")[0];
-      if (handle) return `${base}${handle}/`;
-    }
-  } catch {}
+  if (v.includes("://") || v.includes("/") || v.includes(".")) {
+    try {
+      const url = new URL(v.includes("://") ? v : `https://${v}`);
+      if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+      if (hosts.some((h) => url.hostname === h || url.hostname.endsWith(`.${h}`))) {
+        const handle = url.pathname.replace(/^\/|\/$/g, "").split("/")[0];
+        if (handle && HANDLE_REGEX.test(handle)) return `${base}${handle}/`;
+      }
+    } catch {}
+    return "";
+  }
   if (HANDLE_REGEX.test(v)) {
     return `${base}${v}/`;
   }
-  return v;
+  return "";
 }
 
 function socialHandle(url: string): string {

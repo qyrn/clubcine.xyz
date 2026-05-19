@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo } from "react";
 import type { Emote } from "@/lib/use-emotes";
+import { safeImageUrl } from "@/lib/safe-url";
 
 const EMOTE_REGEX = /:([a-z0-9-]{2,32}):/g;
 
@@ -49,11 +50,13 @@ export default function EmoteText({ text, emotes, size = 20, className }: EmoteT
       {tokens.map((tok, i) => {
         if (tok.type === "text") return <Fragment key={i}>{tok.value}</Fragment>;
         const { slug, imageUrl, label } = tok.emote;
+        const safeSrc = safeImageUrl(imageUrl);
+        if (!safeSrc) return <Fragment key={i}>{`:${slug}:`}</Fragment>;
         return (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={i}
-            src={imageUrl}
+            src={safeSrc}
             alt={label || `:${slug}:`}
             title={`:${slug}:`}
             loading="lazy"
