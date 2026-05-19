@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isSiteLocked } from "@/lib/launch";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (!isSiteLocked()) return NextResponse.next();
   const path = request.nextUrl.pathname;
   if (path === "/soon" || path === "/api/health") return NextResponse.next();
