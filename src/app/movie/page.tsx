@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
@@ -55,21 +55,14 @@ function SoireePill() {
 }
 
 function FilmInfo({ visible }: { visible: boolean }) {
-  const { schedule } = useSchedule();
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    const tick = setInterval(() => setElapsed((p) => p + 1), 1000);
-    return () => clearInterval(tick);
-  }, []);
-
-  useEffect(() => {
-    if (schedule) setElapsed(schedule.currentOffset);
-  }, [schedule]);
+  const { schedule, nowMs } = useSchedule();
 
   if (!schedule || schedule.intermission) return null;
 
   const { currentFilm } = schedule;
+  const baseTime = schedule.serverTime ?? nowMs;
+  const driftSec = nowMs > 0 ? (nowMs - baseTime) / 1000 : 0;
+  const elapsed = Math.max(0, Math.min(currentFilm.duration, schedule.currentOffset + driftSec));
   const progress = Math.min((elapsed / currentFilm.duration) * 100, 100);
 
   return (

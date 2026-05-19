@@ -3,12 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { ScheduleState } from "@/types";
+import { useSchedule } from "@/lib/schedule-context";
 import IntermissionOverlay from "./IntermissionOverlay";
 
-const SYNC_INTERVAL = 30_000;
 const SYNC_THRESHOLD = 4;
 const DRIFT_CHECK_INTERVAL = 10_000;
-const RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000];
 
 type SubsSettings = {
   offset: number;
@@ -35,11 +34,38 @@ const SUB_COLORS = [
 const SUBS_STORAGE_KEY = "clubcine-subs-settings";
 const SUBS_ON_STORAGE_KEY = "clubcine-subs-on";
 
+function loadSubsSettings(): SubsSettings {
+  if (typeof window === "undefined") return DEFAULT_SUBS_SETTINGS;
+  try {
+    const raw = window.localStorage.getItem(SUBS_STORAGE_KEY);
+    if (!raw) return DEFAULT_SUBS_SETTINGS;
+    const parsed = JSON.parse(raw) as Partial<SubsSettings>;
+    return { ...DEFAULT_SUBS_SETTINGS, ...parsed };
+  } catch {
+    return DEFAULT_SUBS_SETTINGS;
+  }
+}
+
+function loadSubsOn(): boolean {
+  if (typeof window === "undefined") return true;
+  const raw = window.localStorage.getItem(SUBS_ON_STORAGE_KEY);
+  return raw === null ? true : raw === "1";
+}
+
+function deriveIntermissionLeft(schedule: ScheduleState | null, nowMs: number): number | null {
+  if (!schedule?.intermission) return null;
+  const baseTime = schedule.serverTime ?? nowMs;
+  const elapsed = (nowMs - baseTime) / 1000;
+  return Math.max(0, Math.ceil(schedule.intermission.secondsLeft - elapsed));
+}
+
 type PlayerProps = {
   onControlsVisibleChange?: (visible: boolean) => void;
 };
 
 export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
+  const { schedule, nowMs, refresh } = useSchedule();
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -47,9 +73,9 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const wasIntermissionRef = useRef(false);
   const fadingRef = useRef(false);
   const fadeRafRef = useRef<number | null>(null);
-  const mountedRef = useRef(true);
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [schedule, setSchedule] = useState<ScheduleState | null>(null);
+  const refreshRef = useRef(refresh);
+  const intermissionEndedRef = useRef(false);
+
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(0.8);
@@ -57,61 +83,19 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const [hasSubs, setHasSubs] = useState(false);
-  const [subsOn, setSubsOn] = useState(true);
-  const [subsSettings, setSubsSettings] = useState<SubsSettings>(DEFAULT_SUBS_SETTINGS);
+  const [subsOn, setSubsOn] = useState<boolean>(() => loadSubsOn());
+  const [subsSettings, setSubsSettings] = useState<SubsSettings>(() => loadSubsSettings());
   const [showSubsPanel, setShowSubsPanel] = useState(false);
-  const [intermissionLeft, setIntermissionLeft] = useState<number | null>(null);
   const subsOnRef = useRef(true);
   const subsSettingsRef = useRef<SubsSettings>(DEFAULT_SUBS_SETTINGS);
   const baseTimingsRef = useRef<Map<TextTrackCue, { start: number; end: number }>>(new Map());
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryCount = useRef(0);
-  const lastSyncRef = useRef<{ serverTime: number; clientTime: number; offset: number; filmUrl: string } | null>(null);
-  const driftTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const getExpectedOffset = useCallback(() => {
-    const sync = lastSyncRef.current;
-    if (!sync) return null;
-    const elapsed = (Date.now() - sync.clientTime) / 1000;
-    return sync.offset + elapsed;
-  }, []);
+  const intermissionLeft = deriveIntermissionLeft(schedule, nowMs);
 
-  const fetchSchedule = useCallback(async (): Promise<ScheduleState | null> => {
-    if (!mountedRef.current) return null;
-    try {
-      const before = Date.now();
-      const res = await fetch("/api/schedule");
-      const data: ScheduleState = await res.json();
-      if (!mountedRef.current) return null;
-      const rtt = Date.now() - before;
-      const correctedOffset = data.currentOffset + rtt / 2000;
-
-      lastSyncRef.current = {
-        serverTime: data.serverTime ?? Date.now(),
-        clientTime: Date.now(),
-        offset: correctedOffset,
-        filmUrl: data.currentFilm.url,
-      };
-
-      setSchedule(data);
-      setError(null);
-      retryCount.current = 0;
-      return { ...data, currentOffset: correctedOffset };
-    } catch {
-      if (!mountedRef.current) return null;
-      const delay = RETRY_DELAYS[Math.min(retryCount.current, RETRY_DELAYS.length - 1)];
-      retryCount.current++;
-      setError("signal perdu, reconnexion...");
-      await new Promise<void>((r) => {
-        retryTimerRef.current = setTimeout(() => {
-          retryTimerRef.current = null;
-          r();
-        }, delay);
-      });
-      if (!mountedRef.current) return null;
-      return fetchSchedule();
-    }
-  }, []);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
 
   const loadFilm = useCallback((video: HTMLVideoElement, url: string, offset: number) => {
     if (hlsRef.current) {
@@ -146,7 +130,9 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         if (!data.fatal) return;
         console.error("[HLS]", data.type, data.details, "FATAL");
         setError("erreur HLS, resync...");
-        setTimeout(() => forceSyncRef.current?.(), 2000);
+        setTimeout(() => {
+          refreshRef.current?.();
+        }, 2000);
       });
 
       hls.attachMedia(video);
@@ -171,11 +157,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
           hlsRef.current = null;
         }
         currentUrlRef.current = null;
-        setIntermissionLeft(data.intermission.secondsLeft);
         return;
       }
-
-      setIntermissionLeft(null);
 
       const targetUrl = data.currentFilm.url;
       const targetOffset = data.currentOffset;
@@ -186,81 +169,56 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         video.currentTime = targetOffset;
         if (video.paused) video.play().catch(() => {});
       }
+      setError(null);
     },
     [loadFilm]
   );
 
-  const forceSyncRef = useRef<(() => Promise<void>) | null>(null);
-
-  const forceSync = useCallback(async () => {
-    const data = await fetchSchedule();
-    if (!mountedRef.current) return;
-    if (data) syncPlayback(data);
-  }, [fetchSchedule, syncPlayback]);
+  useEffect(() => {
+    if (!schedule) return;
+    syncPlayback(schedule);
+  }, [schedule, syncPlayback]);
 
   useEffect(() => {
-    forceSyncRef.current = forceSync;
-  }, [forceSync]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    forceSync();
-    const syncInterval = setInterval(forceSync, SYNC_INTERVAL);
     return () => {
-      mountedRef.current = false;
-      clearInterval(syncInterval);
-      if (retryTimerRef.current !== null) {
-        clearTimeout(retryTimerRef.current);
-        retryTimerRef.current = null;
-      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [forceSync]);
+  }, []);
 
   useEffect(() => {
-    driftTimer.current = setInterval(() => {
+    if (!schedule || schedule.intermission) return;
+    const baseTime = schedule.serverTime ?? Date.now();
+    const driftTimer = setInterval(() => {
       const video = videoRef.current;
-      if (!video || video.paused || !lastSyncRef.current) return;
-      const expected = getExpectedOffset();
-      if (expected === null) return;
+      if (!video || video.paused) return;
+      const elapsed = (Date.now() - baseTime) / 1000;
+      const expected = schedule.currentOffset + elapsed;
       const drift = Math.abs(video.currentTime - expected);
       if (drift > SYNC_THRESHOLD) {
         video.currentTime = expected;
       }
     }, DRIFT_CHECK_INTERVAL);
-    return () => { if (driftTimer.current) clearInterval(driftTimer.current); };
-  }, [getExpectedOffset]);
+    return () => clearInterval(driftTimer);
+  }, [schedule]);
 
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
-      const video = videoRef.current;
-      const expected = getExpectedOffset();
-      if (!video || expected === null) {
-        forceSync();
-        return;
-      }
-      const drift = Math.abs(video.currentTime - expected);
-      if (drift > SYNC_THRESHOLD * 2) {
-        video.currentTime = expected;
-      }
-      const sync = lastSyncRef.current;
-      if (!sync || Date.now() - sync.clientTime > 60_000) {
-        forceSync();
-      }
+      refreshRef.current?.();
     };
-    const onOnline = () => forceSync();
-
+    const onOnline = () => {
+      refreshRef.current?.();
+    };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("online", onOnline);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
     };
-  }, [forceSync, getExpectedOffset]);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -269,7 +227,9 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     const onWaiting = () => setBuffering(true);
     const onPlaying = () => setBuffering(false);
     const onCanPlay = () => setBuffering(false);
-    const onEnded = () => forceSync();
+    const onEnded = () => {
+      refreshRef.current?.();
+    };
 
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
@@ -281,7 +241,17 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("ended", onEnded);
     };
-  }, [forceSync]);
+  }, []);
+
+  useEffect(() => {
+    if (intermissionLeft === null || intermissionLeft > 0) {
+      intermissionEndedRef.current = false;
+      return;
+    }
+    if (intermissionEndedRef.current) return;
+    intermissionEndedRef.current = true;
+    refreshRef.current?.();
+  }, [intermissionLeft]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -353,28 +323,15 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   }, [subsOn, hasSubs]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SUBS_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<SubsSettings>;
-        setSubsSettings({ ...DEFAULT_SUBS_SETTINGS, ...parsed });
-      }
-      const onRaw = localStorage.getItem(SUBS_ON_STORAGE_KEY);
-      if (onRaw !== null) setSubsOn(onRaw === "1");
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(SUBS_ON_STORAGE_KEY, subsOn ? "1" : "0");
-    } catch {}
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SUBS_ON_STORAGE_KEY, subsOn ? "1" : "0");
   }, [subsOn]);
 
   useEffect(() => {
     subsSettingsRef.current = subsSettings;
-    try {
-      localStorage.setItem(SUBS_STORAGE_KEY, JSON.stringify(subsSettings));
-    } catch {}
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(SUBS_STORAGE_KEY, JSON.stringify(subsSettings));
+    }
     const video = videoRef.current;
     if (!video) return;
     const effectivePosition = showControls
@@ -446,22 +403,6 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   useEffect(() => {
     onControlsVisibleChange?.(showControls);
   }, [showControls, onControlsVisibleChange]);
-
-  useEffect(() => {
-    if (intermissionLeft === null || intermissionLeft <= 0) return;
-    const tick = setInterval(() => {
-      setIntermissionLeft((prev) => {
-        if (prev === null) return null;
-        const next = prev - 1;
-        if (next <= 0) {
-          forceSyncRef.current?.();
-          return null;
-        }
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [intermissionLeft]);
 
   const toggleFullscreen = useCallback(() => {
     const el = containerRef.current;
