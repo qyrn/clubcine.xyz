@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { normalizeLetterboxdFilm } from "@/lib/letterboxd";
@@ -17,6 +17,7 @@ export default function Suggestions() {
   const [posterChoices, setPosterChoices] = useState<string[]>([]);
   const [credit, setCredit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
   const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
 
   useEffect(() => {
@@ -43,7 +44,8 @@ export default function Suggestions() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!letterboxd.trim() || submitting) return;
+    if (!letterboxd.trim() || submitLockRef.current) return;
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
       const { error } = await supabase.from("suggestions").insert({
@@ -70,6 +72,7 @@ export default function Suggestions() {
     } catch {
       setStatus("error");
     } finally {
+      submitLockRef.current = false;
       setSubmitting(false);
     }
   };

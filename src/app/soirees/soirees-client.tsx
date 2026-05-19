@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
@@ -75,7 +75,15 @@ function getPoster(soiree: SoireeView): string | undefined {
 function LiveHero({ soiree }: { soiree: LiveSoireeView }) {
   const poster = getPoster(soiree);
   const currentFilm = soiree.films[soiree.currentIndex];
-  const remainingSec = Math.max(0, Math.floor((soiree.endsAt - Date.now()) / 1000));
+  const [nowMs, setNowMs] = useState(soiree.endsAt);
+
+  useEffect(() => {
+    setNowMs(Date.now());
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const remainingSec = Math.max(0, Math.ceil((soiree.endsAt - nowMs) / 1000));
   const remainingH = Math.floor(remainingSec / 3600);
   const remainingM = Math.floor((remainingSec % 3600) / 60);
 
@@ -240,6 +248,7 @@ function SuggestForm() {
   const [theme, setTheme] = useState("");
   const [films, setFilms] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
   const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
 
   useEffect(() => {
@@ -250,7 +259,8 @@ function SuggestForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!theme.trim() || !films.trim() || submitting) return;
+    if (!theme.trim() || !films.trim() || submitLockRef.current) return;
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
       const { error } = await supabase.from("suggestions").insert({
@@ -270,6 +280,7 @@ function SuggestForm() {
     } catch {
       setStatus("error");
     } finally {
+      submitLockRef.current = false;
       setSubmitting(false);
     }
   };

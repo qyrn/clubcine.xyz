@@ -76,6 +76,8 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
   const [modError, setModError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const deletedIdsRef = useRef<Set<string>>(new Set());
@@ -99,20 +101,36 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   }, []);
 
   useEffect(() => {
-    supabase
-      .from("messages")
-      .select("*")
-      .order("timestamp", { ascending: false })
-      .limit(MAX_MESSAGES)
-      .then(({ data }) => {
-        if (data) {
-          const tombstones = deletedIdsRef.current;
-          const fresh = (data as ChatMessage[])
-            .filter((m) => !tombstones.has(String(m.id)))
-            .reverse();
-          setMessages(fresh);
-        }
-      });
+    let cancelled = false;
+
+    const loadMessages = async () => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .limit(MAX_MESSAGES);
+      if (cancelled) return;
+      if (error) {
+        console.error("[Chat] fetch error:", error);
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
+      const tombstones = deletedIdsRef.current;
+      const fresh = ((data ?? []) as ChatMessage[])
+        .filter((m) => !tombstones.has(String(m.id)))
+        .reverse();
+      setLoadError(false);
+      setMessages(fresh);
+      setLoading(false);
+    };
+
+    loadMessages();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadMessages();
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     const channel = supabase
       .channel("chat")
@@ -143,7 +161,9 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -314,7 +334,9 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         )}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
           {messages.length === 0 && (
-            <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
+            <div className="text-ink-3 text-[12px] pt-6 text-center font-mono uppercase tracking-[0.12em]">
+              {loading ? "chargement…" : loadError ? "indisponible" : "personne ne parle"}
+            </div>
           )}
 
           {messages.map((msg) => (
@@ -353,7 +375,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="…"
             maxLength={280}
-            className="flex-1 bg-transparent border border-line-2 px-2 py-1.5 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
+            className="flex-1 bg-transparent border border-line-2 px-2 py-2 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors min-h-[36px]"
           />
           <EmotePicker
             emotes={emotes}
@@ -363,7 +385,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           <button
             type="submit"
             disabled={!input.trim()}
-            className="border border-line-2 px-2.5 py-1.5 text-[11px] text-ink-2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors"
+            className="border border-line-2 px-3 py-2 text-[11px] text-ink-2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors min-h-[36px] min-w-[64px]"
           >
             envoyer
           </button>

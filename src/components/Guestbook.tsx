@@ -102,12 +102,14 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
   };
 
   const remove = async (id: string) => {
+    if (!confirm("Supprimer ce message du livre d'or ?")) return;
+    const prev = entries;
+    setEntries((p) => p.filter((e) => e.id !== id));
     const { error } = await supabase.from("guestbook").delete().eq("id", id);
     if (error) {
+      setEntries(prev);
       setFeedback("✕ " + error.message);
-      return;
     }
-    setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
   return (

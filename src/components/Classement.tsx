@@ -18,21 +18,42 @@ function formatWatch(seconds: number): string {
 
 export default function Classement() {
   const [scores, setScores] = useState<UserWatch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchScores = async () => {
-      const { data } = await supabase
+      const { data, error: err } = await supabase
         .from("watch_time")
         .select("username,seconds")
         .order("seconds", { ascending: false })
         .limit(5);
-      if (!data) return;
-      setScores(data as UserWatch[]);
+      if (cancelled) return;
+      if (err) {
+        console.error("[Classement] fetch error:", err);
+        setError(true);
+        setLoading(false);
+        return;
+      }
+      setError(false);
+      setScores((data ?? []) as UserWatch[]);
+      setLoading(false);
     };
 
     fetchScores();
     const interval = setInterval(fetchScores, 60_000);
-    return () => clearInterval(interval);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchScores();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const usernames = useMemo(() => scores.map((s) => s.username), [scores]);
@@ -47,7 +68,15 @@ export default function Classement() {
         </span>
       </div>
 
-      {scores.length === 0 ? (
+      {loading ? (
+        <div className="py-8 text-center text-[11px] text-ink-3 font-mono uppercase tracking-[0.12em]">
+          chargement…
+        </div>
+      ) : error ? (
+        <div className="py-8 text-center text-[11px] text-ink-3 font-mono uppercase tracking-[0.12em]">
+          indisponible
+        </div>
+      ) : scores.length === 0 ? (
         <div className="py-8 text-center text-[11px] text-ink-3">
           personne encore
         </div>

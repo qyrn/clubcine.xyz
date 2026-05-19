@@ -177,28 +177,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile?.username ??
         (user.user_metadata?.username as string | undefined) ??
         `spectateur_${user.id.slice(0, 8)}`;
-      const { data: insData, error: insErr } = await supabase
+      const { data: upData, error: upErr } = await supabase
         .from("profiles")
-        .insert({
-          user_id: user.id,
-          username: fallbackUsername,
-          bio: patch.bio ?? "",
-          letterboxd: patch.letterboxd ?? "",
-          twitter: patch.twitter ?? "",
-          instagram: patch.instagram ?? "",
-          avatar_url: patch.avatarUrl ?? null,
-          username_font_slug: patch.usernameFontSlug ?? null,
-          username_color_slug: patch.usernameColorSlug ?? null,
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            username: fallbackUsername,
+            bio: patch.bio ?? "",
+            letterboxd: patch.letterboxd ?? "",
+            twitter: patch.twitter ?? "",
+            instagram: patch.instagram ?? "",
+            avatar_url: patch.avatarUrl ?? null,
+            username_font_slug: patch.usernameFontSlug ?? null,
+            username_color_slug: patch.usernameColorSlug ?? null,
+          },
+          { onConflict: "user_id" }
+        )
         .select(
           "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug"
         )
         .single();
-      if (insErr) {
-        console.error("[updateProfile] insert fallback error:", insErr);
-        return insErr.message;
+      if (upErr) {
+        console.error("[updateProfile] upsert fallback error:", upErr);
+        return upErr.message;
       }
-      if (insData) setProfile(rowToProfile(insData as ProfileRow));
+      if (upData) setProfile(rowToProfile(upData as ProfileRow));
       return null;
     }
 

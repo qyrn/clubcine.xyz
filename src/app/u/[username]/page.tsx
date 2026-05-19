@@ -25,6 +25,7 @@ import {
 } from "@/lib/socials";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { safeImageUrl } from "@/lib/safe-url";
 import { fontStack, findColor } from "@/lib/fonts";
 import FontPicker from "@/components/FontPicker";
 import ColorPicker from "@/components/ColorPicker";
@@ -79,18 +80,19 @@ function formatDate(iso: string | null): string {
 }
 
 function ProfileAvatar({ username, src }: { username: string; src: string | null }) {
-  if (src) {
+  const safeSrc = safeImageUrl(src);
+  if (safeSrc) {
     return (
-      <div className="w-[140px] h-[140px] rounded-md overflow-hidden border border-red bg-bg shrink-0 max-md:w-[110px] max-md:h-[110px]">
+      <div className="w-[140px] h-[140px] rounded-full overflow-hidden border border-red bg-bg shrink-0 max-md:w-[110px] max-md:h-[110px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={username} className="w-full h-full object-cover" />
+        <img src={safeSrc} alt={username} className="w-full h-full object-cover" />
       </div>
     );
   }
   const letter = username.trim().slice(0, 2).toUpperCase() || "?";
   return (
     <div
-      className="w-[140px] h-[140px] rounded-md border border-red flex items-center justify-center bg-bg shrink-0 max-md:w-[110px] max-md:h-[110px] relative overflow-hidden"
+      className="w-[140px] h-[140px] rounded-full border border-red flex items-center justify-center bg-bg shrink-0 max-md:w-[110px] max-md:h-[110px] relative overflow-hidden"
       style={{
         backgroundImage:
           "repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,0.02) 2px 3px)",
@@ -458,7 +460,7 @@ function ProfileEditModal({
 }
 
 function ProfileContent({ usernameParam }: { usernameParam: string }) {
-  const { user, username: meUsername, profile: myProfile } = useAuth();
+  const { user, username: meUsername, profile: myProfile, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [target, setTarget] = useState<UserProfile | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -468,8 +470,10 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
   const [followList, setFollowList] = useState<"followers" | "following" | null>(null);
 
   const targetUsername = decodeURIComponent(usernameParam);
-  const isMe = meUsername === targetUsername;
+  const isMe =
+    !!meUsername && meUsername.toLowerCase() === targetUsername.toLowerCase();
   const view = isMe ? myProfile ?? target : target;
+  const showSkeleton = (loading || authLoading) && !view && !notFound;
 
   const followStats = useFollowStats(view?.userId ?? null, isMe);
 
@@ -545,7 +549,19 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
       <Ticker />
       <Nav />
 
-      {notFound && !isMe ? (
+      {showSkeleton ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-10 py-32">
+          <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
+            ★ Chargement du profil
+          </div>
+          <div
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance text-ink-4"
+            style={{ fontSize: "clamp(40px, 6vw, 72px)", fontFamily: "var(--font-marker)" }}
+          >
+            @{targetUsername}
+          </div>
+        </div>
+      ) : notFound && !isMe ? (
         <div className="px-10 py-32 flex flex-col items-center text-center gap-4">
           <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-red">
             ★ Inconnu au bataillon
@@ -715,12 +731,6 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
             </section>
           )}
         </>
-      )}
-
-      {loading && !view && !notFound && (
-        <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">
-          Chargement…
-        </div>
       )}
 
       <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">

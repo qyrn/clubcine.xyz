@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 
@@ -47,6 +47,7 @@ export function useFollowStats(targetUserId: string | null, isMe: boolean) {
   const [stats, setStats] = useState<Stats>({ followers: 0, following: 0, isFollowing: false });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
 
   useEffect(() => {
     if (!targetUserId) return;
@@ -62,7 +63,8 @@ export function useFollowStats(targetUserId: string | null, isMe: boolean) {
   }, [targetUserId, user?.id]);
 
   const toggle = useCallback(async () => {
-    if (!user || !targetUserId || isMe || busy) return;
+    if (!user || !targetUserId || isMe || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     try {
       if (stats.isFollowing) {
@@ -83,9 +85,10 @@ export function useFollowStats(targetUserId: string | null, isMe: boolean) {
         }
       }
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
-  }, [user, targetUserId, isMe, busy, stats.isFollowing]);
+  }, [user, targetUserId, isMe, stats.isFollowing]);
 
   return { stats, loading, busy, toggle };
 }
