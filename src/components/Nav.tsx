@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { safeImageUrl } from "@/lib/safe-url";
+import { useEscapeKey } from "@/lib/use-escape-key";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import Brand from "./Brand";
 import ViewerCount from "./ViewerCount";
 import AuthModal from "./AuthModal";
@@ -33,16 +36,17 @@ function ProfileButton({
   avatarUrl: string | null;
 }) {
   const href = username ? `/u/${encodeURIComponent(username)}` : "/";
+  const safeAvatar = safeImageUrl(avatarUrl);
   return (
     <Link
       href={href}
       title={username ?? undefined}
       aria-label={username ? `Profil ${username}` : "Profil"}
-      className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-line-2 bg-transparent text-ink text-[12px] font-semibold uppercase tracking-wide hover:border-ink transition-colors overflow-hidden shrink-0"
+      className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-line-2 bg-transparent text-ink text-[12px] font-semibold uppercase tracking-wide hover:border-ink transition-colors overflow-hidden shrink-0"
     >
-      {avatarUrl ? (
+      {safeAvatar ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+        <img src={safeAvatar} alt="" className="w-full h-full object-cover" />
       ) : (
         getInitial(username)
       )}
@@ -70,9 +74,80 @@ function LogoutIcon() {
   );
 }
 
+function BurgerIcon({ open }: { open: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      {open ? (
+        <>
+          <line x1="6" y1="6" x2="18" y2="18" />
+          <line x1="18" y1="6" x2="6" y2="18" />
+        </>
+      ) : (
+        <>
+          <line x1="4" y1="7" x2="20" y2="7" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="17" x2="20" y2="17" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function MobileMenu({
+  active,
+  onClose,
+}: {
+  active?: string;
+  onClose: () => void;
+}) {
+  useEscapeKey(onClose);
+  useBodyScrollLock(true);
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Menu"
+      className="fixed inset-0 z-40 bg-bg/95 backdrop-blur-sm flex flex-col"
+      onClick={onClose}
+    >
+      <div
+        className="flex-1 flex flex-col items-center justify-center gap-8 px-10 pt-20 pb-12"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {LINKS.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            prefetch={false}
+            onClick={onClose}
+            className={`text-[24px] font-semibold tracking-[-0.01em] transition-colors ${
+              active === l.key ? "text-red" : "text-ink hover:text-red"
+            }`}
+          >
+            {l.label}
+          </Link>
+        ))}
+      </div>
+      <div className="px-10 pb-10 font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3 text-center">
+        ★ Channel 01 · 24/7
+      </div>
+    </div>
+  );
+}
+
 export default function Nav({ active }: { active?: string }) {
   const { user, username, profile, signOut, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onResize = () => {
+      if (window.innerWidth >= 768) setMenuOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [menuOpen]);
 
   return (
     <>
@@ -99,7 +174,7 @@ export default function Nav({ active }: { active?: string }) {
           {loading ? (
             <span
               aria-hidden
-              className="w-8 h-8 rounded-full border border-line-2 bg-line/40 animate-pulse"
+              className="w-10 h-10 rounded-full border border-line-2 bg-line/40 animate-pulse"
             />
           ) : user ? (
             <>
@@ -108,7 +183,7 @@ export default function Nav({ active }: { active?: string }) {
                 onClick={() => signOut()}
                 aria-label="Se déconnecter"
                 title="Se déconnecter"
-                className="text-ink-3 hover:text-red transition-colors cursor-pointer"
+                className="text-ink-3 hover:text-red transition-colors cursor-pointer max-md:hidden"
               >
                 <LogoutIcon />
               </button>
@@ -116,14 +191,24 @@ export default function Nav({ active }: { active?: string }) {
           ) : (
             <button
               onClick={() => setShowAuth(true)}
-              className="text-ink-3 hover:text-ink transition-colors cursor-pointer"
+              className="text-ink-3 hover:text-ink transition-colors cursor-pointer max-md:hidden"
             >
               connexion
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={menuOpen}
+            className="md:hidden text-ink hover:text-red transition-colors cursor-pointer p-1"
+          >
+            <BurgerIcon open={menuOpen} />
+          </button>
         </div>
       </nav>
 
+      {menuOpen && <MobileMenu active={active} onClose={() => setMenuOpen(false)} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </>
   );
