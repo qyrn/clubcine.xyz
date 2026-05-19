@@ -4,11 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
+import { ScheduleProvider, useSchedule } from "@/lib/schedule-context";
 import Player from "@/components/Player";
 import Chat from "@/components/Chat";
 import ViewerCount from "@/components/ViewerCount";
 import Brand from "@/components/Brand";
-import { ScheduleState } from "@/types";
 import { formatDuration } from "@/lib/schedule-engine";
 
 function formatHM(seconds: number): string {
@@ -21,32 +21,7 @@ function formatHM(seconds: number): string {
 }
 
 function SoireePill() {
-  const [schedule, setSchedule] = useState<ScheduleState | null>(null);
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchSchedule = async () => {
-      try {
-        const res = await fetch("/api/schedule");
-        const data: ScheduleState = await res.json();
-        if (cancelled) return;
-        setSchedule(data);
-      } catch {}
-    };
-    fetchSchedule();
-    const interval = setInterval(fetchSchedule, 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
-
-  useEffect(() => {
-    const tick = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(tick);
-  }, []);
-
+  const { schedule, nowMs } = useSchedule();
   const soiree = schedule?.soiree;
   if (!soiree) return null;
 
@@ -80,27 +55,8 @@ function SoireePill() {
 }
 
 function FilmInfo({ visible }: { visible: boolean }) {
-  const [schedule, setSchedule] = useState<ScheduleState | null>(null);
+  const { schedule } = useSchedule();
   const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchSchedule = async () => {
-      try {
-        const res = await fetch("/api/schedule");
-        const data: ScheduleState = await res.json();
-        if (cancelled) return;
-        setSchedule(data);
-        setElapsed(data.currentOffset);
-      } catch {}
-    };
-    fetchSchedule();
-    const interval = setInterval(fetchSchedule, 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
 
   useEffect(() => {
     const tick = setInterval(() => setElapsed((p) => p + 1), 1000);
@@ -192,7 +148,10 @@ const OVERLAY_HIDE_DELAY_MS = 6000;
 function MovieContent() {
   const { username } = useAuth();
   useWatchHeartbeat(username);
-  const [chatOpen, setChatOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth >= 768;
+  });
   const [overlayVisible, setOverlayVisible] = useState(true);
   const pageRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<number | null>(null);
@@ -309,5 +268,9 @@ function MovieContent() {
 }
 
 export default function MoviePage() {
-  return <MovieContent />;
+  return (
+    <ScheduleProvider pollIntervalMs={30_000}>
+      <MovieContent />
+    </ScheduleProvider>
+  );
 }

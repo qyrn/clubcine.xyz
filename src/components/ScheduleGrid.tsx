@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Film, ScheduleState } from "@/types";
 import { formatDuration } from "@/lib/schedule-engine";
+import { useSchedule } from "@/lib/schedule-context";
 
 type ScheduledFilm = Film & { startTime: number };
 
@@ -20,42 +21,12 @@ function toList(schedule: ScheduleState): ScheduledFilm[] {
   }));
 }
 
-interface Props {
-  initialSchedule?: ScheduleState;
-}
-
-export default function ScheduleGrid({ initialSchedule }: Props = {}) {
-  const [upcoming, setUpcoming] = useState<ScheduledFilm[]>(
-    initialSchedule ? toList(initialSchedule) : []
+export default function ScheduleGrid() {
+  const { schedule } = useSchedule();
+  const upcoming = useMemo<ScheduledFilm[]>(
+    () => (schedule ? toList(schedule) : []),
+    [schedule],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-    let retryDelay = 1500;
-    const fetchSchedule = async () => {
-      try {
-        const res = await fetch("/api/schedule");
-        if (!res.ok) throw new Error(`status ${res.status}`);
-        const data: ScheduleState = await res.json();
-        if (cancelled) return;
-        setUpcoming(toList(data));
-        retryDelay = 1500;
-      } catch {
-        if (cancelled) return;
-        retryTimer = setTimeout(fetchSchedule, retryDelay);
-        retryDelay = Math.min(retryDelay * 2, 30_000);
-      }
-    };
-
-    if (!initialSchedule) fetchSchedule();
-    const interval = setInterval(fetchSchedule, 60_000);
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-      clearInterval(interval);
-    };
-  }, [initialSchedule]);
 
   return (
     <section id="programme" className="px-10 py-15 border-b border-line max-md:px-5 max-md:py-10 scroll-mt-12">

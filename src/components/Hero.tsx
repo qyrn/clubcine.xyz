@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Film, ScheduleState, SoireeRuntime } from "@/types";
 import { formatDuration } from "@/lib/schedule-engine";
+import { useSchedule } from "@/lib/schedule-context";
 
 function formatHour(date: Date): string {
   return `${date.getHours().toString().padStart(2, "0")}h${date.getMinutes().toString().padStart(2, "0")}`;
@@ -228,41 +229,12 @@ function CycleHero({ state }: { state: HeroState }) {
   );
 }
 
-interface Props {
-  initialSchedule?: ScheduleState;
-}
-
-export default function Hero({ initialSchedule }: Props = {}) {
-  const [state, setState] = useState<HeroState | null>(
-    initialSchedule ? deriveState(initialSchedule) : null,
+export default function Hero() {
+  const { schedule } = useSchedule();
+  const state = useMemo<HeroState | null>(
+    () => (schedule ? deriveState(schedule) : null),
+    [schedule],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-    let retryDelay = 1500;
-    const fetchSchedule = async () => {
-      try {
-        const res = await fetch("/api/schedule");
-        if (!res.ok) throw new Error(`status ${res.status}`);
-        const data: ScheduleState = await res.json();
-        if (cancelled) return;
-        setState(deriveState(data));
-        retryDelay = 1500;
-      } catch {
-        if (cancelled) return;
-        retryTimer = setTimeout(fetchSchedule, retryDelay);
-        retryDelay = Math.min(retryDelay * 2, 30_000);
-      }
-    };
-    if (!initialSchedule) fetchSchedule();
-    const interval = setInterval(fetchSchedule, 60_000);
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-      clearInterval(interval);
-    };
-  }, [initialSchedule]);
 
   if (!state) {
     return <section className="border-b border-line min-h-[60vh]" aria-hidden />;

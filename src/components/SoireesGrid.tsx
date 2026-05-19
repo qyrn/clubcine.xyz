@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Film, ScheduleState, SoireeRuntime, UpcomingSoiree } from "@/types";
+import { Film, SoireeRuntime, UpcomingSoiree } from "@/types";
+import { useSchedule } from "@/lib/schedule-context";
 
 const WEEKDAYS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const MONTHS = [
@@ -126,39 +126,8 @@ function LiveCard({ soiree }: { soiree: SoireeRuntime }) {
   );
 }
 
-interface Props {
-  initialSchedule?: ScheduleState;
-}
-
-export default function SoireesGrid({ initialSchedule }: Props = {}) {
-  const [schedule, setSchedule] = useState<ScheduleState | null>(initialSchedule ?? null);
-
-  useEffect(() => {
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-    let retryDelay = 1500;
-    const fetchSchedule = async () => {
-      try {
-        const res = await fetch("/api/schedule");
-        if (!res.ok) throw new Error(`status ${res.status}`);
-        const data: ScheduleState = await res.json();
-        if (cancelled) return;
-        setSchedule(data);
-        retryDelay = 1500;
-      } catch {
-        if (cancelled) return;
-        retryTimer = setTimeout(fetchSchedule, retryDelay);
-        retryDelay = Math.min(retryDelay * 2, 30_000);
-      }
-    };
-    if (!initialSchedule) fetchSchedule();
-    const interval = setInterval(fetchSchedule, 60_000);
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-      clearInterval(interval);
-    };
-  }, [initialSchedule]);
+export default function SoireesGrid() {
+  const { schedule } = useSchedule();
 
   const soiree = schedule?.soiree ?? null;
   const upcoming = (schedule?.upcomingSoirees ?? []).slice(0, soiree ? 3 : 4);
