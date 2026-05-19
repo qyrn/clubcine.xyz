@@ -32,8 +32,10 @@ export default function TMDBSearch({ onPick, placeholder = "Chercher un film…"
 
   useEffect(() => {
     if (q.trim().length < 2) {
-      setResults([]);
-      setErr(null);
+      queueMicrotask(() => {
+        setResults([]);
+        setErr(null);
+      });
       return;
     }
     const ctrl = new AbortController();
