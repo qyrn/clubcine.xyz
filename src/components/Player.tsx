@@ -47,6 +47,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const wasIntermissionRef = useRef(false);
   const fadingRef = useRef(false);
   const fadeRafRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [schedule, setSchedule] = useState<ScheduleState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
@@ -75,10 +77,12 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   }, []);
 
   const fetchSchedule = useCallback(async (): Promise<ScheduleState | null> => {
+    if (!mountedRef.current) return null;
     try {
       const before = Date.now();
       const res = await fetch("/api/schedule");
       const data: ScheduleState = await res.json();
+      if (!mountedRef.current) return null;
       const rtt = Date.now() - before;
       const correctedOffset = data.currentOffset + rtt / 2000;
 
@@ -94,10 +98,17 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       retryCount.current = 0;
       return { ...data, currentOffset: correctedOffset };
     } catch {
+      if (!mountedRef.current) return null;
       const delay = RETRY_DELAYS[Math.min(retryCount.current, RETRY_DELAYS.length - 1)];
       retryCount.current++;
       setError("signal perdu, reconnexion...");
-      await new Promise((r) => setTimeout(r, delay));
+      await new Promise<void>((r) => {
+        retryTimerRef.current = setTimeout(() => {
+          retryTimerRef.current = null;
+          r();
+        }, delay);
+      });
+      if (!mountedRef.current) return null;
       return fetchSchedule();
     }
   }, []);
@@ -183,16 +194,25 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
   const forceSync = useCallback(async () => {
     const data = await fetchSchedule();
+    if (!mountedRef.current) return;
     if (data) syncPlayback(data);
   }, [fetchSchedule, syncPlayback]);
 
-  forceSyncRef.current = forceSync;
+  useEffect(() => {
+    forceSyncRef.current = forceSync;
+  }, [forceSync]);
 
   useEffect(() => {
+    mountedRef.current = true;
     forceSync();
     const syncInterval = setInterval(forceSync, SYNC_INTERVAL);
     return () => {
+      mountedRef.current = false;
       clearInterval(syncInterval);
+      if (retryTimerRef.current !== null) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
