@@ -4,7 +4,8 @@ import { isSiteLocked } from "@/lib/launch";
 
 export function middleware(request: NextRequest) {
   if (!isSiteLocked()) return NextResponse.next();
-  if (request.nextUrl.pathname === "/soon") return NextResponse.next();
+  const path = request.nextUrl.pathname;
+  if (path === "/soon" || path === "/api/health") return NextResponse.next();
   return NextResponse.rewrite(new URL("/soon", request.url));
 }
 
