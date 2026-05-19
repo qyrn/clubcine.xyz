@@ -5,6 +5,8 @@ import {
   Bagel_Fat_One,
   JetBrains_Mono,
 } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Providers from "./providers";
 import PWARegister from "@/components/PWARegister";
@@ -80,6 +82,8 @@ export default function RootLayout({
       <body className="h-full">
         <Providers>{children}</Providers>
         <PWARegister />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

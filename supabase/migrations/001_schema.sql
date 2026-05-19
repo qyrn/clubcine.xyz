@@ -975,3 +975,68 @@ drop trigger if exists bug_reports_rate_limit on public.bug_reports;
 create trigger bug_reports_rate_limit
   before insert on public.bug_reports
   for each row execute function public.rate_limit_bug_reports();
+
+-- =============================================================================
+-- 14. ERROR LOG (runtime observability)
+-- =============================================================================
+
+create table if not exists public.error_log (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  source text not null,
+  message text not null,
+  stack text,
+  url text,
+  user_agent text,
+  user_id uuid references auth.users(id) on delete set null,
+  username text
+);
+
+create index if not exists error_log_created_at_idx on public.error_log (created_at desc);
+
+alter table public.error_log enable row level security;
+
+drop policy if exists "error_log insert any" on public.error_log;
+create policy "error_log insert any" on public.error_log for insert
+  with check (true);
+
+drop policy if exists "error_log select admin" on public.error_log;
+create policy "error_log select admin" on public.error_log for select
+  using (
+    exists (
+      select 1 from public.profiles
+      where profiles.user_id = auth.uid()
+        and profiles.role = 'admin'
+    )
+  );
+
+-- rate limit : 30 erreurs max / 10 minutes par user_id (ou username si anon)
+create or replace function public.rate_limit_error_log()
+returns trigger language plpgsql as $$
+declare
+  recent_count int;
+begin
+  if new.user_id is not null then
+    select count(*) into recent_count
+    from public.error_log
+    where user_id = new.user_id
+      and created_at > now() - interval '10 minutes';
+  elsif new.username is not null then
+    select count(*) into recent_count
+    from public.error_log
+    where username = new.username
+      and created_at > now() - interval '10 minutes';
+  else
+    return new;
+  end if;
+  if recent_count >= 30 then
+    raise exception 'rate limited';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists error_log_rate_limit on public.error_log;
+create trigger error_log_rate_limit
+  before insert on public.error_log
+  for each row execute function public.rate_limit_error_log();
