@@ -39,18 +39,34 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const SITE_DESCRIPTION =
+  "Une chaîne de cinéma de contrebande. 100 films d'auteur en boucle, diffusés en synchrone, 24h/24.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://clubcine.xyz"),
   title: {
     default: "club ciné · 24/7",
     template: "%s · club ciné",
   },
-  description: "Une chaîne de cinéma de contrebande. 100 films d'auteur en boucle, diffusés en synchrone, 24h/24.",
+  description: SITE_DESCRIPTION,
   manifest: "/favicon/site.webmanifest",
   applicationName: "club ciné",
   appleWebApp: {
     capable: true,
     title: "club ciné",
     statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "club ciné",
+    title: "club ciné · 24/7",
+    description: SITE_DESCRIPTION,
+    locale: "fr_FR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "club ciné · 24/7",
+    description: SITE_DESCRIPTION,
   },
   icons: {
     icon: [
