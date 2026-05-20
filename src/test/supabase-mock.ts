@@ -35,6 +35,7 @@ export interface FakeChannel {
   on: ReturnType<typeof vi.fn>;
   subscribe: ReturnType<typeof vi.fn>;
   unsubscribe: ReturnType<typeof vi.fn>;
+  send: ReturnType<typeof vi.fn>;
   emit: (event: string, payload: unknown) => void;
 }
 
@@ -101,6 +102,7 @@ function makeChannel(state: SupabaseMockState): FakeChannel {
     }),
     subscribe: vi.fn(() => channel),
     unsubscribe: vi.fn(() => Promise.resolve("ok")),
+    send: vi.fn(() => Promise.resolve("ok")),
     emit: (event: string, payload: unknown) => {
       for (const handler of handlers) {
         if (handler.config?.event === event) handler.callback(payload);

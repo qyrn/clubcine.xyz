@@ -2,8 +2,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import type { Film, ScheduleState } from "@/types";
+import { createSupabaseMock } from "@/test/supabase-mock";
 
 const hlsState = vi.hoisted(() => ({ instances: [] as unknown[] }));
+const mock = createSupabaseMock();
+
+vi.mock("@/lib/supabase", () => ({ supabase: mock.client }));
 
 vi.mock("hls.js", () => {
   const Events = {
@@ -96,6 +100,7 @@ async function pushSchedule(next: ScheduleState) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mock.reset();
   hlsState.instances.length = 0;
   localStorage.clear();
   fetchMock.mockReset();

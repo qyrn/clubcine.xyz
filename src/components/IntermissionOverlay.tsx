@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEmotes } from "@/lib/use-emotes";
+import { useReactions } from "@/lib/use-reactions";
+import { safeImageUrl } from "@/lib/safe-url";
 
 interface Props {
   title: string;
@@ -54,6 +57,8 @@ export default function IntermissionOverlay({
   const [currentTrackTitle, setCurrentTrackTitle] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState<number>(() => loadVolume());
+  const emotes = useEmotes();
+  const { reactions, send: sendReaction } = useReactions();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -250,6 +255,59 @@ export default function IntermissionOverlay({
           >
             <ForwardIcon />
           </button>
+        </div>
+      )}
+
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {reactions.map((r) => {
+          const emote = emotes.get(r.slug);
+          const src = emote ? safeImageUrl(emote.imageUrl) : null;
+          if (!src) return null;
+          return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={r.id}
+              src={src}
+              alt=""
+              aria-hidden
+              draggable={false}
+              className="absolute bottom-[72px] w-9 h-auto select-none will-change-transform"
+              style={
+                {
+                  left: `${r.left}%`,
+                  "--drift": `${r.drift}px`,
+                  animation: `reaction-float ${r.duration}ms ease-out forwards`,
+                } as CSSProperties
+              }
+            />
+          );
+        })}
+      </div>
+
+      {emotes.size > 0 && (
+        <div className="absolute bottom-6 left-6 flex items-center gap-1 border border-line-2 bg-black/60 backdrop-blur px-2 py-1.5 rounded-md max-w-[min(70vw,360px)] overflow-x-auto">
+          {Array.from(emotes.values()).map((e) => {
+            const src = safeImageUrl(e.imageUrl);
+            if (!src) return null;
+            return (
+              <button
+                key={e.slug}
+                type="button"
+                onClick={() => sendReaction(e.slug)}
+                title={`:${e.slug}:`}
+                aria-label={`Réagir avec ${e.label || e.slug}`}
+                className="shrink-0 w-8 h-8 flex items-center justify-center border border-transparent hover:border-red hover:bg-line rounded-sm cursor-pointer transition-colors"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt=""
+                  draggable={false}
+                  className="max-h-[78%] max-w-[78%] select-none"
+                />
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
