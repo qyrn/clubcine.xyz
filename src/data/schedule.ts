@@ -620,7 +620,7 @@ const FILMS_DATA: FilmData[] = [
     year: 2011,
     duration: 8307,
     poster: "/posters/tree-of-life.webp",
-    letterboxd: "https://letterboxd.com/film/the-tree-of-life/",
+    letterboxd: "https://letterboxd.com/film/the-tree-of-life-2011/",
     synopsis: "La mémoire d'un fils aîné texan des années 50 s'enlace à la naissance même de l'univers.",
     country: "USA",
     genre: "Drame",
