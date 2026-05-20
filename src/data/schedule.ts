@@ -76,7 +76,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "army-of-shadows",
-    title: "Army of Shadows",
+    title: "L'Armée des ombres",
     director: "Jean-Pierre Melville",
     year: 1969,
     duration: 8715,
@@ -367,7 +367,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "the-mother-and-the-whore",
-    title: "The Mother and the Whore",
+    title: "La Maman et la Putain",
     director: "Jean Eustache",
     year: 1973,
     duration: 13118,
@@ -758,7 +758,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "city-of-god",
-    title: "La Cité de Dieu",
+    title: "City of God",
     director: "Fernando Meirelles",
     year: 2002,
     duration: 7789,
@@ -784,7 +784,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "dog-day-afternoon",
-    title: "Un après-midi de chien",
+    title: "Dog Day Afternoon",
     director: "Sidney Lumet",
     year: 1975,
     duration: 7479,
@@ -849,7 +849,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "good-will-hunting",
-    title: "Will Hunting",
+    title: "Good Will Hunting",
     director: "Gus Van Sant",
     year: 1997,
     duration: 7593,
@@ -862,7 +862,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "high-and-low",
-    title: "Entre le ciel et l'enfer",
+    title: "High and Low",
     director: "Akira Kurosawa",
     year: 1963,
     duration: 8609,
@@ -888,7 +888,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "i-saw-the-devil",
-    title: "J'ai rencontré le Diable",
+    title: "I Saw the Devil",
     director: "Kim Jee-woon",
     year: 2010,
     duration: 8472,
@@ -914,7 +914,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "last-temptation-of-christ",
-    title: "La Dernière Tentation du Christ",
+    title: "The Last Temptation of Christ",
     director: "Martin Scorsese",
     year: 1988,
     duration: 9819,
@@ -979,7 +979,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "once-upon-a-time-in-america",
-    title: "Il était une fois en Amérique",
+    title: "Once Upon a Time in America",
     director: "Sergio Leone",
     year: 1984,
     duration: 15069,
@@ -992,7 +992,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "one-flew-over-the-cuckoos-nest",
-    title: "Vol au-dessus d'un nid de coucou",
+    title: "One Flew Over the Cuckoo's Nest",
     director: "Miloš Forman",
     year: 1975,
     duration: 8044,
@@ -1070,7 +1070,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "ponyo",
-    title: "Ponyo sur la falaise",
+    title: "Ponyo",
     director: "Hayao Miyazaki",
     year: 2008,
     duration: 6050,
@@ -1122,7 +1122,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "seven-samurai",
-    title: "Les Sept Samouraïs",
+    title: "Seven Samurai",
     director: "Akira Kurosawa",
     year: 1954,
     duration: 12419,
@@ -1135,7 +1135,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "shoplifters",
-    title: "Une affaire de famille",
+    title: "Shoplifters",
     director: "Hirokazu Kore-eda",
     year: 2018,
     duration: 7251,
@@ -1200,7 +1200,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "taste-of-cherry",
-    title: "Le Goût de la cerise",
+    title: "Taste of Cherry",
     director: "Abbas Kiarostami",
     year: 1997,
     duration: 5953,
@@ -1239,7 +1239,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "the-shining",
-    title: "Shining",
+    title: "The Shining",
     director: "Stanley Kubrick",
     year: 1980,
     duration: 8626,
@@ -1291,7 +1291,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "vertigo",
-    title: "Sueurs froides",
+    title: "Vertigo",
     director: "Alfred Hitchcock",
     year: 1958,
     duration: 7708,
@@ -1304,7 +1304,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "wild-at-heart",
-    title: "Sailor et Lula",
+    title: "Wild at Heart",
     director: "David Lynch",
     year: 1990,
     duration: 7497,
@@ -1317,7 +1317,7 @@ const FILMS_DATA: FilmData[] = [
   },
   {
     id: "yojimbo",
-    title: "Le Garde du corps",
+    title: "Yojimbo",
     director: "Akira Kurosawa",
     year: 1961,
     duration: 6639,
