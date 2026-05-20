@@ -71,7 +71,7 @@ describe("AuthProvider · lazy-init", () => {
   it("appelle getSession et charge le profil quand un token est présent", async () => {
     localStorage.setItem(TOKEN_KEY, "stored");
     mock.state.session = signedInSession();
-    mock.state.results = [{ data: profileRow({ role: "admin" }) }];
+    mock.state.handlers.profiles = () => ({ data: profileRow({ role: "admin" }) });
 
     await renderProvider();
 
@@ -87,7 +87,7 @@ describe("AuthProvider · onAuthStateChange", () => {
     await renderProvider();
     await waitFor(() => expect(screen.getByTestId("loading")).toHaveTextContent("false"));
 
-    mock.state.results = [{ data: profileRow({ username: "bergman" }) }];
+    mock.state.handlers.profiles = () => ({ data: profileRow({ username: "bergman" }) });
     await act(async () => {
       await mock.state.authCallback?.("SIGNED_IN", signedInSession());
     });
@@ -98,7 +98,7 @@ describe("AuthProvider · onAuthStateChange", () => {
   it("efface le profil à la déconnexion", async () => {
     localStorage.setItem(TOKEN_KEY, "stored");
     mock.state.session = signedInSession();
-    mock.state.results = [{ data: profileRow() }];
+    mock.state.handlers.profiles = () => ({ data: profileRow() });
     await renderProvider();
     await waitFor(() => expect(screen.getByTestId("username")).toHaveTextContent("lynch"));
 
@@ -115,11 +115,13 @@ describe("AuthProvider · updateProfile", () => {
   it("applique le patch quand l'UPDATE renvoie une ligne", async () => {
     localStorage.setItem(TOKEN_KEY, "stored");
     mock.state.session = signedInSession();
-    mock.state.results = [{ data: profileRow() }];
+    mock.state.handlers.profiles = (ctx) =>
+      ctx.op === "update"
+        ? { data: [profileRow({ bio: "cinéaste du rêve" })] }
+        : { data: profileRow() };
     const { getApi } = await renderProvider();
     await waitFor(() => expect(screen.getByTestId("username")).toHaveTextContent("lynch"));
 
-    mock.state.results = [{ data: [profileRow({ bio: "cinéaste du rêve" })] }];
     let res: string | null = "init";
     await act(async () => {
       res = await getApi().updateProfile({ bio: "cinéaste du rêve" });
@@ -132,11 +134,14 @@ describe("AuthProvider · updateProfile", () => {
   it("retombe sur un upsert quand l'UPDATE ne renvoie aucune ligne", async () => {
     localStorage.setItem(TOKEN_KEY, "stored");
     mock.state.session = signedInSession();
-    mock.state.results = [{ data: profileRow() }];
+    mock.state.handlers.profiles = (ctx) => {
+      if (ctx.op === "update") return { data: [] };
+      if (ctx.op === "upsert") return { data: profileRow({ bio: "via upsert" }) };
+      return { data: profileRow() };
+    };
     const { getApi } = await renderProvider();
     await waitFor(() => expect(screen.getByTestId("username")).toHaveTextContent("lynch"));
 
-    mock.state.results = [{ data: [] }, { data: profileRow({ bio: "via upsert" }) }];
     let res: string | null = "init";
     await act(async () => {
       res = await getApi().updateProfile({ bio: "via upsert" });

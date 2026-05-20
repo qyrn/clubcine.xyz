@@ -5,11 +5,28 @@ export interface FakeResult {
   error?: unknown;
 }
 
+export type QueryOp = "select" | "insert" | "update" | "upsert" | "delete";
+
+export interface QueryFilter {
+  method: string;
+  args: unknown[];
+}
+
+export interface QueryContext {
+  table: string;
+  op: QueryOp;
+  single: boolean;
+  payload: unknown;
+  filters: QueryFilter[];
+}
+
+export type TableHandler = (ctx: QueryContext) => FakeResult;
+
 type AuthCallback = (event: string, session: unknown) => void | Promise<void>;
 
 export interface ChannelHandler {
   event: string;
-  config: unknown;
+  config: { event?: string };
   callback: (payload: unknown) => void;
 }
 
@@ -18,51 +35,59 @@ export interface FakeChannel {
   on: ReturnType<typeof vi.fn>;
   subscribe: ReturnType<typeof vi.fn>;
   unsubscribe: ReturnType<typeof vi.fn>;
-  emit: (payload: unknown) => void;
+  emit: (event: string, payload: unknown) => void;
 }
 
 export interface SupabaseMockState {
   session: unknown;
-  results: FakeResult[];
+  handlers: Record<string, TableHandler>;
   authCallback: AuthCallback | null;
   channels: FakeChannel[];
 }
 
-const CHAIN_METHODS = [
-  "select",
-  "insert",
-  "update",
-  "upsert",
-  "delete",
-  "eq",
-  "neq",
-  "ilike",
-  "like",
-  "in",
-  "is",
-  "not",
-  "or",
-  "order",
-  "limit",
-  "range",
-  "gte",
-  "lte",
-  "gt",
-  "lt",
-];
+const OPERATION_METHODS: Record<string, QueryOp> = {
+  insert: "insert",
+  update: "update",
+  upsert: "upsert",
+  delete: "delete",
+};
 
-function makeBuilder(results: FakeResult[]): Record<string, unknown> {
-  const consume = (): Promise<FakeResult> =>
-    Promise.resolve(results.shift() ?? { data: null, error: null });
+const PASSTHROUGH_METHODS = ["select", "order", "limit", "range"];
+const FILTER_METHODS = ["eq", "neq", "ilike", "like", "in", "is", "not", "or", "gte", "lte", "gt", "lt"];
+
+function makeBuilder(state: SupabaseMockState, table: string): Record<string, unknown> {
+  const ctx: QueryContext = { table, op: "select", single: false, payload: undefined, filters: [] };
+
+  const finalize = (single: boolean): Promise<FakeResult> => {
+    ctx.single = single;
+    const handler = state.handlers[table];
+    if (handler) return Promise.resolve(handler(ctx));
+    return Promise.resolve(single ? { data: null, error: null } : { data: [], error: null });
+  };
 
   const builder: Record<string, unknown> = {};
-  for (const method of CHAIN_METHODS) {
+
+  for (const [method, op] of Object.entries(OPERATION_METHODS)) {
+    builder[method] = vi.fn((payload?: unknown) => {
+      ctx.op = op;
+      if (payload !== undefined) ctx.payload = payload;
+      return builder;
+    });
+  }
+  for (const method of PASSTHROUGH_METHODS) {
     builder[method] = vi.fn(() => builder);
   }
-  builder.single = vi.fn(consume);
-  builder.maybeSingle = vi.fn(consume);
-  builder.then = (resolve: (value: FakeResult) => unknown, reject?: (reason: unknown) => unknown) =>
-    consume().then(resolve, reject);
+  for (const method of FILTER_METHODS) {
+    builder[method] = vi.fn((...args: unknown[]) => {
+      ctx.filters.push({ method, args });
+      return builder;
+    });
+  }
+  builder.single = vi.fn(() => finalize(true));
+  builder.maybeSingle = vi.fn(() => finalize(true));
+  builder.then = (onFulfilled: (value: FakeResult) => unknown, onRejected?: (reason: unknown) => unknown) =>
+    finalize(false).then(onFulfilled, onRejected);
+
   return builder;
 }
 
@@ -70,14 +95,16 @@ function makeChannel(state: SupabaseMockState): FakeChannel {
   const handlers: ChannelHandler[] = [];
   const channel: FakeChannel = {
     handlers,
-    on: vi.fn((event: string, config: unknown, callback: (payload: unknown) => void) => {
+    on: vi.fn((event: string, config: { event?: string }, callback: (payload: unknown) => void) => {
       handlers.push({ event, config, callback });
       return channel;
     }),
     subscribe: vi.fn(() => channel),
     unsubscribe: vi.fn(() => Promise.resolve("ok")),
-    emit: (payload: unknown) => {
-      for (const handler of handlers) handler.callback(payload);
+    emit: (event: string, payload: unknown) => {
+      for (const handler of handlers) {
+        if (handler.config?.event === event) handler.callback(payload);
+      }
     },
   };
   state.channels.push(channel);
@@ -87,7 +114,7 @@ function makeChannel(state: SupabaseMockState): FakeChannel {
 export function createSupabaseMock() {
   const state: SupabaseMockState = {
     session: null,
-    results: [],
+    handlers: {},
     authCallback: null,
     channels: [],
   };
@@ -103,14 +130,14 @@ export function createSupabaseMock() {
       signInWithPassword: vi.fn(async () => ({ data: {}, error: null as unknown })),
       signOut: vi.fn(async () => ({ error: null as unknown })),
     },
-    from: vi.fn(() => makeBuilder(state.results)),
+    from: vi.fn((table: string) => makeBuilder(state, table)),
     channel: vi.fn(() => makeChannel(state)),
     removeChannel: vi.fn(),
   };
 
   const reset = () => {
     state.session = null;
-    state.results = [];
+    state.handlers = {};
     state.authCallback = null;
     state.channels = [];
   };
