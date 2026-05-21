@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
-export type NotificationType = "follow" | "guestbook";
+export type NotificationType = "follow" | "guestbook" | "mention";
 
 export interface AppNotification {
   id: string;
@@ -25,12 +25,18 @@ interface NotificationRow {
 
 const PAGE_SIZE = 20;
 
+function toNotificationType(raw: string): NotificationType {
+  if (raw === "guestbook") return "guestbook";
+  if (raw === "mention") return "mention";
+  return "follow";
+}
+
 function rowToNotification(r: NotificationRow): AppNotification {
   return {
     id: r.id,
     actorId: r.actor_id,
     actorUsername: r.actor_username,
-    type: r.type === "guestbook" ? "guestbook" : "follow",
+    type: toNotificationType(r.type),
     read: r.read,
     createdAt: r.created_at,
   };

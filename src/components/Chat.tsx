@@ -5,11 +5,13 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useProfilesByUsername } from "@/lib/use-profiles";
 import { useEmotes } from "@/lib/use-emotes";
+import { useMentionSearch, type MentionCandidate } from "@/lib/use-mention-search";
 import { ANON_PSEUDOS } from "@/data/anon-pseudos";
 import { ChatMessage } from "@/types";
 import UserChip from "./UserChip";
 import EmoteText from "./EmoteText";
 import EmotePicker from "./EmotePicker";
+import MentionSuggestions from "./MentionSuggestions";
 
 function generateUsername(): string {
   const p = ANON_PSEUDOS[Math.floor(Math.random() * ANON_PSEUDOS.length)];
@@ -20,6 +22,33 @@ function generateUsername(): string {
 function isFromCurrentPool(name: string): boolean {
   const base = name.replace(/_\d{2}$/, "");
   return (ANON_PSEUDOS as readonly string[]).includes(base);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function detectMention(
+  value: string,
+  caret: number
+): { query: string; anchor: number } | null {
+  let i = caret - 1;
+  let length = 0;
+  while (i >= 0) {
+    const c = value[i];
+    if (c === "@") {
+      const before = i === 0 ? " " : value[i - 1];
+      if (i === 0 || /\s/.test(before)) {
+        return { query: value.slice(i + 1, caret), anchor: i };
+      }
+      return null;
+    }
+    if (!/[A-Za-z0-9_]/.test(c)) return null;
+    length++;
+    if (length > 20) return null;
+    i--;
+  }
+  return null;
 }
 
 const MAX_MESSAGES = 50;
@@ -85,6 +114,22 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const username = authUsername || anonUsername;
   const canModerate = profile?.role === "admin" || profile?.role === "moderateur";
+
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionAnchor, setMentionAnchor] = useState(-1);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const mentionResults = useMentionSearch(mentionQuery);
+  const showMentions = mentionQuery !== null && mentionResults.length > 0;
+  const safeMentionIndex = Math.min(
+    mentionIndex,
+    Math.max(0, mentionResults.length - 1)
+  );
+
+  const selfLower = username ? username.toLowerCase() : undefined;
+  const selfMentionRe = useMemo(
+    () => (selfLower ? new RegExp(`@${escapeRegExp(selfLower)}(?![a-z0-9_])`, "i") : null),
+    [selfLower]
+  );
 
   useEffect(() => {
     if (!modError) return;
@@ -201,12 +246,76 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     });
   };
 
+  const closeMention = () => {
+    setMentionQuery(null);
+    setMentionAnchor(-1);
+  };
+
+  const syncMention = (value: string, caret: number) => {
+    const ctx = detectMention(value, caret);
+    if (ctx) {
+      setMentionQuery(ctx.query);
+      setMentionAnchor(ctx.anchor);
+    } else {
+      closeMention();
+    }
+  };
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInput(value);
+    const caret = e.target.selectionStart ?? value.length;
+    const ctx = detectMention(value, caret);
+    if (ctx) {
+      setMentionQuery(ctx.query);
+      setMentionAnchor(ctx.anchor);
+      setMentionIndex(0);
+    } else {
+      closeMention();
+    }
+  };
+
+  const applyMention = (candidate: MentionCandidate) => {
+    const el = inputRef.current;
+    if (mentionAnchor < 0) return;
+    const caret = el?.selectionStart ?? input.length;
+    const before = input.slice(0, mentionAnchor);
+    const after = input.slice(caret);
+    const insertion = `@${candidate.username} `;
+    setInput(before + insertion + after);
+    closeMention();
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = before.length + insertion.length;
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showMentions) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setMentionIndex((i) => (i + 1) % mentionResults.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setMentionIndex((i) => (i - 1 + mentionResults.length) % mentionResults.length);
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      applyMention(mentionResults[safeMentionIndex]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closeMention();
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !username) return;
 
     const text = input.trim();
     setInput("");
+    closeMention();
 
     await supabase.from("messages").insert({
       username,
@@ -339,8 +448,20 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             </div>
           )}
 
-          {messages.map((msg) => (
-            <div key={msg.id} className="group text-[12px] leading-[1.6] break-words flex items-center gap-1.5">
+          {messages.map((msg) => {
+            const mine =
+              !!selfMentionRe &&
+              msg.username.toLowerCase() !== selfLower &&
+              selfMentionRe.test(msg.text);
+            return (
+            <div
+              key={msg.id}
+              className={`group text-[12px] leading-[1.6] break-words flex items-center gap-1.5 ${
+                mine
+                  ? "-mx-1.5 px-1.5 py-0.5 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
+                  : ""
+              }`}
+            >
               <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
               <UserChip
                 username={msg.username}
@@ -354,6 +475,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                   emotes={emotes}
                   size={18}
                   className="text-ink-2"
+                  highlightSelf={selfLower}
                 />
               </span>
               {canModerate && (
@@ -364,32 +486,47 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                 />
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
-        <form onSubmit={sendMessage} className="border-t border-line p-2 flex gap-1.5">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="…"
-            maxLength={280}
-            className="flex-1 bg-transparent border border-line-2 px-2 py-2 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors min-h-[36px]"
-          />
-          <EmotePicker
-            emotes={emotes}
-            onPick={(slug) => insertAtCaret(`:${slug}:`)}
-            compact
-          />
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="border border-line-2 px-3 py-2 text-[11px] text-ink-2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors min-h-[36px] min-w-[64px]"
-          >
-            envoyer
-          </button>
-        </form>
+        <div className="relative">
+          {showMentions && (
+            <MentionSuggestions
+              candidates={mentionResults}
+              activeIndex={safeMentionIndex}
+              onPick={applyMention}
+              onHover={setMentionIndex}
+            />
+          )}
+          <form onSubmit={sendMessage} className="border-t border-line p-2 flex gap-1.5">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={onInputChange}
+              onKeyDown={onInputKeyDown}
+              onSelect={(e) =>
+                syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
+              }
+              placeholder="…"
+              maxLength={280}
+              className="flex-1 bg-transparent border border-line-2 px-2 py-2 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors min-h-[36px]"
+            />
+            <EmotePicker
+              emotes={emotes}
+              onPick={(slug) => insertAtCaret(`:${slug}:`)}
+              compact
+            />
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="border border-line-2 px-3 py-2 text-[11px] text-ink-2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors min-h-[36px] min-w-[64px]"
+            >
+              envoyer
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
@@ -421,8 +558,20 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
         )}
 
-        {messages.map((msg) => (
-          <div key={msg.id} className="group py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2">
+        {messages.map((msg) => {
+          const mine =
+            !!selfMentionRe &&
+            msg.username.toLowerCase() !== selfLower &&
+            selfMentionRe.test(msg.text);
+          return (
+          <div
+            key={msg.id}
+            className={`group py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2 ${
+              mine
+                ? "-mx-2 px-2 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
+                : ""
+            }`}
+          >
             <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
             <UserChip
               username={msg.username}
@@ -436,6 +585,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                 emotes={emotes}
                 size={22}
                 className="text-ink-2"
+                highlightSelf={selfLower}
               />
             </span>
             {canModerate && (
@@ -446,31 +596,46 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               />
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
-      <form onSubmit={sendMessage} className="flex gap-2">
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Envoyer un message"
-          maxLength={280}
-          className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
-        />
-        <EmotePicker
-          emotes={emotes}
-          onPick={(slug) => insertAtCaret(`:${slug}:`)}
-        />
-        <button
-          type="submit"
-          disabled={!input.trim()}
-          className="px-4 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors hover:border-red hover:text-red"
-        >
-          Envoyer
-        </button>
-      </form>
+      <div className="relative">
+        {showMentions && (
+          <MentionSuggestions
+            candidates={mentionResults}
+            activeIndex={safeMentionIndex}
+            onPick={applyMention}
+            onHover={setMentionIndex}
+          />
+        )}
+        <form onSubmit={sendMessage} className="flex gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={onInputChange}
+            onKeyDown={onInputKeyDown}
+            onSelect={(e) =>
+              syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
+            }
+            placeholder="Envoyer un message"
+            maxLength={280}
+            className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
+          />
+          <EmotePicker
+            emotes={emotes}
+            onPick={(slug) => insertAtCaret(`:${slug}:`)}
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="px-4 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors hover:border-red hover:text-red"
+          >
+            Envoyer
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

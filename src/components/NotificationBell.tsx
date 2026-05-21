@@ -37,7 +37,9 @@ function timeAgo(iso: string): string {
 }
 
 function actionLabel(type: AppNotification["type"]): string {
-  return type === "guestbook" ? "a signé ton livre d'or" : "t'a suivi";
+  if (type === "guestbook") return "a signé ton livre d'or";
+  if (type === "mention") return "t'a mentionné dans le chat";
+  return "t'a suivi";
 }
 
 export default function NotificationBell() {
@@ -67,6 +69,7 @@ export default function NotificationBell() {
     if (n.type === "guestbook") {
       return username ? `/u/${encodeURIComponent(username)}` : "/";
     }
+    if (n.type === "mention") return "/movie";
     return `/u/${encodeURIComponent(n.actorUsername)}`;
   };
 

@@ -1055,10 +1055,25 @@ create table if not exists public.notifications (
   recipient_id    uuid not null references auth.users(id) on delete cascade,
   actor_id        uuid references auth.users(id) on delete cascade,
   actor_username  text not null,
-  type            text not null check (type in ('follow', 'guestbook')),
+  type            text not null check (type in ('follow', 'guestbook', 'mention')),
   read            boolean not null default false,
   created_at      timestamptz not null default now()
 );
+
+-- type check étendu (idempotent : drop + re-add pour les installs antérieures)
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+    where conname = 'notifications_type_check'
+      and conrelid = 'public.notifications'::regclass
+  ) then
+    alter table public.notifications drop constraint notifications_type_check;
+  end if;
+  alter table public.notifications
+    add constraint notifications_type_check
+    check (type in ('follow', 'guestbook', 'mention'));
+end $$;
 
 create index if not exists notifications_recipient_idx
   on public.notifications (recipient_id, created_at desc);
@@ -1112,6 +1127,36 @@ drop trigger if exists guestbook_notify on public.guestbook;
 create trigger guestbook_notify
   after insert on public.guestbook
   for each row execute function public.notify_on_guestbook();
+
+-- Mentions `@pseudo` dans le chat : une notif par profil mentionné (auto-mention
+-- exclue). L'auteur peut être anonyme (actor_id null, actor_username = pseudo).
+create or replace function public.notify_on_mention()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  sender_id uuid;
+  rec record;
+begin
+  select user_id into sender_id from public.profiles
+  where lower(username) = lower(new.username) limit 1;
+
+  for rec in
+    select distinct lower(parts[1]) as uname
+    from regexp_matches(coalesce(new.text, ''), '@([A-Za-z0-9_]{2,20})', 'g') as m(parts)
+  loop
+    insert into public.notifications (recipient_id, actor_id, actor_username, type)
+    select p.user_id, sender_id, new.username, 'mention'
+    from public.profiles p
+    where lower(p.username) = rec.uname
+      and p.user_id is distinct from sender_id;
+  end loop;
+  return new;
+end;
+$$;
+
+drop trigger if exists messages_notify_mention on public.messages;
+create trigger messages_notify_mention
+  after insert on public.messages
+  for each row execute function public.notify_on_mention();
 
 -- Realtime INSERT (idempotent : on n'ajoute la table à la publication qu'une fois)
 do $$
