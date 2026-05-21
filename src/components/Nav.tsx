@@ -8,6 +8,7 @@ import { useEscapeKey } from "@/lib/use-escape-key";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import Brand from "./Brand";
 import ViewerCount from "./ViewerCount";
+import NotificationBell from "./NotificationBell";
 import AuthModal from "./AuthModal";
 
 interface NavLink {
@@ -178,6 +179,7 @@ export default function Nav({ active }: { active?: string }) {
             />
           ) : user ? (
             <>
+              <NotificationBell />
               <ProfileButton username={username} avatarUrl={profile?.avatarUrl ?? null} />
               <button
                 onClick={() => signOut()}

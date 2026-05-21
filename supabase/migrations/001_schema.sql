@@ -1040,3 +1040,107 @@ drop trigger if exists error_log_rate_limit on public.error_log;
 create trigger error_log_rate_limit
   before insert on public.error_log
   for each row execute function public.rate_limit_error_log();
+
+-- =============================================================================
+-- 15. notifications (follow + livre d'or)
+-- =============================================================================
+-- Un user connecté est notifié quand quelqu'un le suit ou signe son livre d'or.
+-- Les lignes sont créées UNIQUEMENT par les triggers security definer sur
+-- `follows` et `guestbook` : le client n'insère jamais ici (aucune policy
+-- insert), donc impossible de fabriquer de fausses notifications.
+-- Realtime INSERT propage la cloche en direct. Cleanup auto > 60 jours.
+
+create table if not exists public.notifications (
+  id              uuid primary key default gen_random_uuid(),
+  recipient_id    uuid not null references auth.users(id) on delete cascade,
+  actor_id        uuid references auth.users(id) on delete cascade,
+  actor_username  text not null,
+  type            text not null check (type in ('follow', 'guestbook')),
+  read            boolean not null default false,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists notifications_recipient_idx
+  on public.notifications (recipient_id, created_at desc);
+create index if not exists notifications_unread_idx
+  on public.notifications (recipient_id) where read = false;
+
+alter table public.notifications enable row level security;
+
+drop policy if exists "notifications select own" on public.notifications;
+create policy "notifications select own" on public.notifications for select
+  using (auth.uid() = recipient_id);
+
+drop policy if exists "notifications update own" on public.notifications;
+create policy "notifications update own" on public.notifications for update
+  using (auth.uid() = recipient_id) with check (auth.uid() = recipient_id);
+
+drop policy if exists "notifications delete own" on public.notifications;
+create policy "notifications delete own" on public.notifications for delete
+  using (auth.uid() = recipient_id);
+
+create or replace function public.notify_on_follow()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  actor_name text;
+begin
+  select username into actor_name from public.profiles
+  where user_id = new.follower_id;
+  insert into public.notifications (recipient_id, actor_id, actor_username, type)
+  values (new.following_id, new.follower_id, coalesce(actor_name, 'spectateur'), 'follow');
+  return new;
+end;
+$$;
+
+drop trigger if exists follows_notify on public.follows;
+create trigger follows_notify
+  after insert on public.follows
+  for each row execute function public.notify_on_follow();
+
+create or replace function public.notify_on_guestbook()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.author_user_id <> new.profile_user_id then
+    insert into public.notifications (recipient_id, actor_id, actor_username, type)
+    values (new.profile_user_id, new.author_user_id, new.author_username, 'guestbook');
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists guestbook_notify on public.guestbook;
+create trigger guestbook_notify
+  after insert on public.guestbook
+  for each row execute function public.notify_on_guestbook();
+
+-- Realtime INSERT (idempotent : on n'ajoute la table à la publication qu'une fois)
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime'
+         and schemaname = 'public'
+         and tablename = 'notifications'
+     ) then
+    alter publication supabase_realtime add table public.notifications;
+  end if;
+end $$;
+
+-- Cleanup auto des notifications > 60 jours (pg_cron, daily 04:15 UTC)
+create or replace function public.cleanup_old_notifications()
+returns void language sql security definer set search_path = public as $$
+  delete from public.notifications where created_at < now() - interval '60 days';
+$$;
+
+do $$
+begin
+  if exists (select 1 from cron.job where jobname = 'cleanup-old-notifications') then
+    perform cron.unschedule('cleanup-old-notifications');
+  end if;
+  perform cron.schedule(
+    'cleanup-old-notifications',
+    '15 4 * * *',
+    $cron$ select public.cleanup_old_notifications(); $cron$
+  );
+end $$;
