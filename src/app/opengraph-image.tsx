@@ -5,7 +5,7 @@ import { OG_SEAL } from "./og-seal-data";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "À l'antenne sur club ciné";
-export const revalidate = 600;
+export const revalidate = 60;
 
 type LoadedFont = {
   name: string;
