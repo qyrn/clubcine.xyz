@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
-import BrandSeal from "@/components/BrandSeal";
+import Image from "next/image";
 import Countdown from "@/components/Countdown";
 import { LAUNCH_ISO } from "@/lib/launch";
 
+const SOON_DESCRIPTION = "Ouverture le 1er juin 2026, minuit, Paris.";
+
 export const metadata: Metadata = {
   title: "Ouverture imminente",
+  description: SOON_DESCRIPTION,
   robots: { index: false, follow: false },
+  openGraph: {
+    title: "club ciné · ouverture de la salle",
+    description: SOON_DESCRIPTION,
+  },
+  twitter: {
+    title: "club ciné · ouverture de la salle",
+    description: SOON_DESCRIPTION,
+  },
 };
 
 export default function SoonPage() {
@@ -21,7 +32,14 @@ export default function SoonPage() {
       />
 
       <div className="relative flex flex-col items-center gap-5 select-none">
-        <BrandSeal size={92} />
+        <Image
+          src="/favicon/seal.png"
+          alt=""
+          width={92}
+          height={92}
+          priority
+          draggable={false}
+        />
         <span
           className="inline-flex items-baseline leading-none"
           style={{ fontFamily: "var(--font-marker)", fontSize: 32 }}
