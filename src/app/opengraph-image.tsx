@@ -58,6 +58,7 @@ export default async function OpengraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
+          alignItems: "center",
           background: "#000000",
           padding: "74px 84px",
           fontFamily: "Inter",
@@ -92,7 +93,14 @@ export default async function OpengraphImage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
           <div
             style={{
               display: "flex",
@@ -108,6 +116,9 @@ export default async function OpengraphImage() {
           <div
             style={{
               display: "flex",
+              width: "100%",
+              justifyContent: "center",
+              textAlign: "center",
               color: "#ffffff",
               fontSize: titleSize,
               fontWeight: 800,
@@ -133,13 +144,16 @@ export default async function OpengraphImage() {
         <div
           style={{
             display: "flex",
+            width: "100%",
+            justifyContent: "space-between",
             color: "#8a8a8a",
             fontSize: 23,
             fontWeight: 400,
             letterSpacing: 4,
           }}
         >
-          CLUBCINE.XYZ · CHANNEL 01 · 2026
+          <div style={{ display: "flex" }}>CLUBCINE.XYZ</div>
+          <div style={{ display: "flex" }}>CHANNEL 01 · 2026</div>
         </div>
       </div>
     ),
