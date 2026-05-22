@@ -11,6 +11,7 @@ export default function IntermissionTest() {
   const [secondsLeft, setSecondsLeft] = useState<number | null>(60);
   const [running, setRunning] = useState(false);
   const [musicOverride, setMusicOverride] = useState("");
+  const [soireeMode, setSoireeMode] = useState(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,18 @@ export default function IntermissionTest() {
   const film = FILMS[filmIndex];
   if (!film) return null;
 
+  const soiree = soireeMode
+    ? {
+        title: "Polars de la nuit",
+        films: [
+          FILMS[(filmIndex - 1 + FILMS.length) % FILMS.length],
+          film,
+          FILMS[(filmIndex + 1) % FILMS.length],
+        ].map((f) => ({ id: f.id, title: f.title })),
+        nextFilmId: film.id,
+      }
+    : null;
+
   const apply = (n: number) => {
     setSecondsLeft(n);
     setRunning(false);
@@ -47,6 +60,7 @@ export default function IntermissionTest() {
         posterUrl={film.poster}
         musicUrl={musicOverride.trim() || film.music || null}
         secondsLeft={secondsLeft}
+        soiree={soiree}
       />
 
       <div className="absolute top-4 left-4 z-30 flex flex-col gap-3 bg-bg/90 backdrop-blur-sm border border-line-2 rounded-md p-4 max-w-[320px]">
@@ -69,6 +83,30 @@ export default function IntermissionTest() {
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
+            Mode
+          </span>
+          <button
+            type="button"
+            onClick={() => setSoireeMode((v) => !v)}
+            aria-pressed={soireeMode}
+            className={`px-3 py-2 border font-semibold text-[11px] uppercase tracking-[0.08em] rounded transition-colors cursor-pointer ${
+              soireeMode
+                ? "border-red text-red"
+                : "border-line-2 text-ink-2 hover:border-ink hover:text-ink"
+            }`}
+          >
+            {soireeMode ? "★ Soirée : on" : "Soirée : off"}
+          </button>
+          {soireeMode && (
+            <span className="font-mono text-[9px] tracking-[0.04em] text-ink-4 leading-[1.5]">
+              Soirée factice de 3 films : précédent (terminé), sélectionné (à
+              suivre), suivant (à venir).
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -133,7 +171,7 @@ export default function IntermissionTest() {
 
         <p className="text-[10px] text-ink-4 leading-[1.5] text-balance">
           Cette page sert à prévisualiser l&apos;écran d&apos;entracte
-          (countdown + musique) sans attendre une vraie transition.
+          (countdown + musique, mode soirée) sans attendre une vraie transition.
         </p>
       </div>
     </div>
