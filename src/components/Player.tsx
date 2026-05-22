@@ -73,6 +73,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const wasIntermissionRef = useRef(false);
   const fadingRef = useRef(false);
   const fadeRafRef = useRef<number | null>(null);
+  const resyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshRef = useRef(refresh);
   const intermissionEndedRef = useRef(false);
 
@@ -130,7 +131,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         if (!data.fatal) return;
         console.error("[HLS]", data.type, data.details, "FATAL");
         setError("erreur HLS, resync...");
-        setTimeout(() => {
+        if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+        resyncTimerRef.current = setTimeout(() => {
           refreshRef.current?.();
         }, 2000);
       });
@@ -184,6 +186,10 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+      }
+      if (resyncTimerRef.current) {
+        clearTimeout(resyncTimerRef.current);
+        resyncTimerRef.current = null;
       }
     };
   }, []);
