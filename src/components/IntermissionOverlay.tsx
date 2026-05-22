@@ -5,6 +5,12 @@ import { useEmotes } from "@/lib/use-emotes";
 import { useReactions } from "@/lib/use-reactions";
 import { safeImageUrl } from "@/lib/safe-url";
 
+export interface IntermissionSoiree {
+  title: string;
+  films: { id: string; title: string }[];
+  nextFilmId: string;
+}
+
 interface Props {
   title: string;
   director?: string;
@@ -12,6 +18,7 @@ interface Props {
   posterUrl?: string | null;
   musicUrl?: string | null;
   secondsLeft: number | null;
+  soiree?: IntermissionSoiree | null;
 }
 
 const DEFAULT_VOLUME = 0.35;
@@ -48,6 +55,7 @@ export default function IntermissionOverlay({
   posterUrl,
   musicUrl,
   secondsLeft,
+  soiree,
 }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const tracksRef = useRef<Track[]>([]);
@@ -59,6 +67,10 @@ export default function IntermissionOverlay({
   const [volume, setVolume] = useState<number>(() => loadVolume());
   const emotes = useEmotes();
   const { reactions, send: sendReaction } = useReactions();
+
+  const soireeNextIndex = soiree
+    ? soiree.films.findIndex((f) => f.id === soiree.nextFilmId)
+    : -1;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -179,8 +191,12 @@ export default function IntermissionOverlay({
           style={{ backgroundImage: `url(${posterUrl})` }}
         />
       )}
-      <div className="relative font-mono font-semibold text-[12px] tracking-[0.32em] uppercase text-red animate-[pulse-dot_2s_ease-in-out_infinite]">
-        ★ Entracte
+      <div
+        className={`relative font-mono font-semibold text-[12px] uppercase text-red animate-[pulse-dot_2s_ease-in-out_infinite] ${
+          soiree ? "tracking-[0.22em] max-w-[90vw] text-balance" : "tracking-[0.32em]"
+        }`}
+      >
+        {soiree ? `★ Soirée · ${soiree.title}` : "★ Entracte"}
       </div>
       <div className="relative font-mono text-[11px] tracking-[0.16em] uppercase text-ink-3">
         Prochain film
@@ -209,6 +225,51 @@ export default function IntermissionOverlay({
           </span>
         </div>
       )}
+      {soiree && (
+        <ol
+          aria-label="Films de la soirée"
+          className="relative mt-1 flex flex-wrap items-start justify-center gap-x-7 gap-y-3 max-w-[640px]"
+        >
+          {soiree.films.map((f, i) => {
+            const state =
+              soireeNextIndex >= 0 && i < soireeNextIndex
+                ? "done"
+                : i === soireeNextIndex
+                  ? "next"
+                  : "upcoming";
+            const label =
+              state === "done" ? "terminé" : state === "next" ? "à suivre" : "à venir";
+            return (
+              <li
+                key={f.id}
+                aria-current={state === "next" ? "step" : undefined}
+                className="flex flex-col items-center gap-1"
+              >
+                <span
+                  className={`font-mono text-[11px] tracking-[0.12em] uppercase ${
+                    state === "done"
+                      ? "text-ink-3 line-through"
+                      : state === "next"
+                        ? "text-red font-semibold"
+                        : "text-ink-2"
+                  }`}
+                >
+                  {state === "next" ? "★ " : ""}
+                  {f.title}
+                </span>
+                <span
+                  className={`font-mono text-[9px] tracking-[0.18em] uppercase ${
+                    state === "next" ? "text-red" : "text-ink-3"
+                  }`}
+                >
+                  {label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
       {audioBlocked && musicUrl && (
         <button
           type="button"

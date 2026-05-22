@@ -684,6 +684,15 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
           posterUrl={schedule.currentFilm.poster}
           musicUrl={schedule.currentFilm.music}
           secondsLeft={intermissionLeft}
+          soiree={
+            schedule.soiree
+              ? {
+                  title: schedule.soiree.title,
+                  films: schedule.soiree.films.map((f) => ({ id: f.id, title: f.title })),
+                  nextFilmId: schedule.currentFilm.id,
+                }
+              : null
+          }
         />
       )}
 
