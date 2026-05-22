@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getCurrentSchedule } from "@/lib/schedule-engine";
-import { OG_SEAL } from "./og-seal-data";
+import { OG_SEAL } from "./og-seal";
 import { loadOgFonts } from "./og-fonts";
 
 export const size = { width: 1200, height: 630 };

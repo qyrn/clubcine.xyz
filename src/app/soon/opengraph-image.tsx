@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { SEAL_DATA_URI } from "../og-seal";
+import { OG_SEAL } from "../og-seal";
 import { loadOgFonts } from "../og-fonts";
 
 export const size = { width: 1200, height: 630 };
@@ -24,7 +24,7 @@ export default async function SoonOpengraphImage() {
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={SEAL_DATA_URI} width={240} height={240} alt="" />
+        <img src={OG_SEAL} width={240} height={240} alt="" />
 
         <div
           style={{
