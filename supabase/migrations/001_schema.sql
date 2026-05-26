@@ -17,6 +17,9 @@
 --  11. emotes (table + RLS + storage policies, bucket à créer manuellement)
 --  12. cleanup auto des messages > 30j (pg_cron, daily 04:00 UTC)
 --  13. security hardening (guard role, username case-insensitive, rate limits)
+--  14. error_log (runtime observability)
+--  15. notifications (follow + livre d'or + mention chat)
+--  16. modération chat avancée (ban, slow mode, gel)
 --
 -- =============================================================================
 
@@ -1188,4 +1191,221 @@ begin
     '15 4 * * *',
     $cron$ select public.cleanup_old_notifications(); $cron$
   );
+end $$;
+
+-- =============================================================================
+-- 16. modération chat avancée (ban comptes, slow mode global, gel chat)
+-- =============================================================================
+-- Trois leviers anti-raid pour le chat live :
+--   1. ban / timeout par compte connecté (colonnes sur profiles, lié à user_id)
+--   2. slow mode global (N secondes minimum entre deux messages d'un username)
+--   3. gel du chat en lecture seule
+--
+-- Les pseudos anonymes restent contournables par régénération localStorage :
+-- le ban nominatif ne vaut que pour les comptes (auth.uid() stable). Le slow
+-- mode et le gel s'appliquent à tout le monde (filtrage par username pour le
+-- slow mode, identique au rate limit existant).
+--
+-- Admin/modérateur bypass tous les checks (peuvent toujours parler, même chat gelé).
+-- Mutations exposées via RPC security definer pour éviter d'élargir les RLS.
+
+create table if not exists public.chat_settings (
+  id                  int primary key default 1 check (id = 1),
+  frozen              boolean not null default false,
+  slow_mode_seconds   int not null default 0
+                      check (slow_mode_seconds between 0 and 300),
+  updated_at          timestamptz not null default now(),
+  updated_by          uuid references auth.users(id) on delete set null
+);
+
+insert into public.chat_settings (id) values (1) on conflict (id) do nothing;
+
+alter table public.chat_settings enable row level security;
+
+drop policy if exists "chat_settings read all" on public.chat_settings;
+create policy "chat_settings read all" on public.chat_settings for select using (true);
+
+alter table public.profiles
+  add column if not exists chat_banned_until timestamptz,
+  add column if not exists chat_ban_reason   text;
+
+create index if not exists profiles_chat_banned_until_idx
+  on public.profiles (chat_banned_until)
+  where chat_banned_until is not null;
+
+-- Guard : seuls admin/modérateur peuvent toucher aux colonnes ban d'un profile.
+-- auth.uid() IS NULL = bypass pour les RPC security definer et le SQL Editor.
+create or replace function public.guard_profiles_chat_ban_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  is_staff boolean;
+begin
+  if (new.chat_banned_until is distinct from old.chat_banned_until)
+     or (new.chat_ban_reason is distinct from old.chat_ban_reason) then
+    if auth.uid() is null then
+      return new;
+    end if;
+    select exists (
+      select 1 from public.profiles
+      where user_id = auth.uid() and role in ('admin', 'moderateur')
+    ) into is_staff;
+    if not is_staff then
+      raise exception 'chat ban change requires admin or moderator privilege';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_guard_chat_ban on public.profiles;
+create trigger profiles_guard_chat_ban
+  before update of chat_banned_until, chat_ban_reason on public.profiles
+  for each row execute function public.guard_profiles_chat_ban_change();
+
+-- Enforce : tourne avant chaque insert sur messages.
+-- Ordre alphabétique des triggers PG : "messages_enforce_moderation" passe
+-- avant "messages_rate_limit" (déjà en place), ce qui colle bien.
+create or replace function public.enforce_chat_moderation()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  is_staff           boolean := false;
+  caller_banned      timestamptz;
+  settings_frozen    boolean;
+  settings_slow      int;
+  threshold_ms       bigint;
+  recent_msg_ts      bigint;
+begin
+  select frozen, slow_mode_seconds
+    into settings_frozen, settings_slow
+    from public.chat_settings where id = 1;
+
+  if auth.uid() is not null then
+    select role in ('admin', 'moderateur'), chat_banned_until
+      into is_staff, caller_banned
+      from public.profiles
+      where user_id = auth.uid();
+  end if;
+
+  if is_staff then
+    return new;
+  end if;
+
+  if caller_banned is not null and caller_banned > now() then
+    raise exception 'tu es banni du chat jusqu''au %',
+      to_char(caller_banned at time zone 'Europe/Paris', 'DD/MM/YYYY HH24:MI');
+  end if;
+
+  if coalesce(settings_frozen, false) then
+    raise exception 'chat figé par la modération';
+  end if;
+
+  if coalesce(settings_slow, 0) > 0 then
+    threshold_ms := (extract(epoch from now()) * 1000)::bigint
+                  - (settings_slow * 1000);
+    select max(timestamp) into recent_msg_ts
+      from public.messages
+     where username = new.username
+       and timestamp > threshold_ms;
+    if recent_msg_ts is not null then
+      raise exception 'slow mode actif, attends % secondes entre tes messages', settings_slow;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists messages_enforce_moderation on public.messages;
+create trigger messages_enforce_moderation
+  before insert on public.messages
+  for each row execute function public.enforce_chat_moderation();
+
+-- RPC : mise à jour gel + slow mode (admin OU modérateur).
+create or replace function public.chat_set_settings(
+  p_frozen            boolean,
+  p_slow_mode_seconds int
+) returns void language plpgsql security definer set search_path = public as $$
+declare
+  is_staff boolean;
+begin
+  if auth.uid() is null then
+    raise exception 'auth required';
+  end if;
+  select exists (
+    select 1 from public.profiles
+    where user_id = auth.uid() and role in ('admin', 'moderateur')
+  ) into is_staff;
+  if not is_staff then
+    raise exception 'admin or moderator required';
+  end if;
+
+  if p_slow_mode_seconds < 0 or p_slow_mode_seconds > 300 then
+    raise exception 'slow_mode_seconds must be between 0 and 300';
+  end if;
+
+  update public.chat_settings
+     set frozen            = coalesce(p_frozen, frozen),
+         slow_mode_seconds = coalesce(p_slow_mode_seconds, slow_mode_seconds),
+         updated_at        = now(),
+         updated_by        = auth.uid()
+   where id = 1;
+end;
+$$;
+
+revoke all on function public.chat_set_settings(boolean, int) from public;
+grant execute on function public.chat_set_settings(boolean, int) to authenticated;
+
+-- RPC : ban / unban d'un compte. p_until null = lever le ban.
+-- Admin peut tout, modérateur peut ban spectateur/soutien/modérateur (pas admin).
+create or replace function public.chat_ban_user(
+  p_user_id uuid,
+  p_until   timestamptz,
+  p_reason  text
+) returns void language plpgsql security definer set search_path = public as $$
+declare
+  caller_role text;
+  target_role text;
+begin
+  if auth.uid() is null then
+    raise exception 'auth required';
+  end if;
+  if p_user_id = auth.uid() then
+    raise exception 'cannot ban yourself';
+  end if;
+  select role into caller_role from public.profiles where user_id = auth.uid();
+  if caller_role not in ('admin', 'moderateur') then
+    raise exception 'admin or moderator required';
+  end if;
+  select role into target_role from public.profiles where user_id = p_user_id;
+  if target_role is null then
+    raise exception 'target profile not found';
+  end if;
+  if caller_role = 'moderateur' and target_role = 'admin' then
+    raise exception 'moderator cannot ban admin';
+  end if;
+
+  update public.profiles
+     set chat_banned_until = p_until,
+         chat_ban_reason   = case when p_until is null then null else p_reason end
+   where user_id = p_user_id;
+end;
+$$;
+
+revoke all on function public.chat_ban_user(uuid, timestamptz, text) from public;
+grant execute on function public.chat_ban_user(uuid, timestamptz, text) to authenticated;
+
+-- Realtime UPDATE sur chat_settings (un seul row, pas d'INSERT après le seed).
+alter table public.chat_settings replica identity full;
+
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime'
+         and schemaname = 'public'
+         and tablename = 'chat_settings'
+     ) then
+    alter publication supabase_realtime add table public.chat_settings;
+  end if;
 end $$;
