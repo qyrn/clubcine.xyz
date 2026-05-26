@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useProfilesByUsername } from "@/lib/use-profiles";
 import { useEmotes } from "@/lib/use-emotes";
 import { useMentionSearch, type MentionCandidate } from "@/lib/use-mention-search";
+import { useChatSettings } from "@/lib/use-chat-settings";
 import { ANON_PSEUDOS } from "@/data/anon-pseudos";
 import { ChatMessage } from "@/types";
 import UserChip from "./UserChip";
@@ -104,7 +105,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
-  const [modError, setModError] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -114,6 +115,31 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const username = authUsername || anonUsername;
   const canModerate = profile?.role === "admin" || profile?.role === "moderateur";
+
+  const { frozen, slowModeSeconds } = useChatSettings();
+  const [lastSentAt, setLastSentAt] = useState<number | null>(null);
+  const [clockTick, setClockTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (canModerate) return;
+    if (lastSentAt === null || slowModeSeconds === 0) return;
+    const id = setInterval(() => setClockTick(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [lastSentAt, slowModeSeconds, canModerate]);
+
+  const cooldownRemaining = (() => {
+    if (canModerate) return 0;
+    if (!lastSentAt || slowModeSeconds === 0) return 0;
+    const remaining = Math.ceil(
+      (lastSentAt + slowModeSeconds * 1000 - clockTick) / 1000
+    );
+    return Math.max(0, remaining);
+  })();
+
+  const isFrozenForMe = frozen && !canModerate;
+  const inputDisabled = isFrozenForMe || !username;
+  const submitDisabled =
+    !input.trim() || isFrozenForMe || cooldownRemaining > 0;
 
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionAnchor, setMentionAnchor] = useState(-1);
@@ -132,10 +158,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   );
 
   useEffect(() => {
-    if (!modError) return;
-    const t = setTimeout(() => setModError(null), 6000);
+    if (!chatError) return;
+    const t = setTimeout(() => setChatError(null), 6000);
     return () => clearTimeout(t);
-  }, [modError]);
+  }, [chatError]);
 
   useEffect(() => {
     const stored = localStorage.getItem("clubcine-username");
@@ -312,16 +338,32 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !username) return;
+    if (isFrozenForMe) {
+      setChatError("chat figé par la modération");
+      return;
+    }
+    if (cooldownRemaining > 0) {
+      setChatError(
+        `slow mode actif, attends ${cooldownRemaining} seconde${cooldownRemaining > 1 ? "s" : ""}`
+      );
+      return;
+    }
 
     const text = input.trim();
     setInput("");
     closeMention();
 
-    await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       username,
       text,
       timestamp: Date.now(),
     });
+    if (error) {
+      setInput(text);
+      setChatError(error.message);
+      return;
+    }
+    setLastSentAt(Date.now());
   };
 
   const rollback = (msgs: ChatMessage[]) => {
@@ -360,11 +402,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     if (error) {
       deletedIdsRef.current.delete(key);
       rollback([msg]);
-      setModError(`Erreur Supabase : ${error.message}`);
+      setChatError(`Erreur Supabase : ${error.message}`);
       return;
     }
     if (!data || data.length === 0) {
-      setModError(
+      setChatError(
         "RLS a refusé la suppression. Ton rôle = " +
           (profile?.role ?? "null") +
           ". Vérifie la policy 'messages delete admin or moderator' dans Supabase."
@@ -389,11 +431,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     if (error) {
       for (const m of originals) deletedIdsRef.current.delete(String(m.id));
       rollback(originals);
-      setModError(`Erreur Supabase : ${error.message}`);
+      setChatError(`Erreur Supabase : ${error.message}`);
       return;
     }
     if (!data || data.length === 0) {
-      setModError(
+      setChatError(
         "RLS a refusé la purge. Ton rôle = " +
           (profile?.role ?? "null") +
           ". Vérifie la policy 'messages delete admin or moderator' dans Supabase."
@@ -428,12 +470,12 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           {extra ?? <div className="w-[14px]" />}
         </div>
 
-        {modError && (
+        {chatError && (
           <div className="px-3 py-2 border-b border-red bg-red/10 text-[11px] text-red font-mono leading-[1.4] break-words">
-            ✕ {modError}
+            ✕ {chatError}
             <button
               type="button"
-              onClick={() => setModError(null)}
+              onClick={() => setChatError(null)}
               className="float-right text-red hover:text-ink text-[12px] cursor-pointer leading-none ml-2"
               aria-label="fermer"
             >
@@ -441,7 +483,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             </button>
           </div>
         )}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 space-y-0.5 min-h-0">
           {messages.length === 0 && (
             <div className="text-ink-3 text-[12px] pt-6 text-center font-mono uppercase tracking-[0.12em]">
               {loading ? "chargement…" : loadError ? "indisponible" : "personne ne parle"}
@@ -509,9 +551,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               onSelect={(e) =>
                 syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
               }
-              placeholder="…"
+              placeholder={isFrozenForMe ? "chat figé" : "…"}
+              disabled={inputDisabled}
               maxLength={280}
-              className="flex-1 bg-transparent border border-line-2 px-2 py-2 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors min-h-[36px]"
+              className="flex-1 bg-transparent border border-line-2 px-2 py-2 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <EmotePicker
               emotes={emotes}
@@ -520,10 +563,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             />
             <button
               type="submit"
-              disabled={!input.trim()}
-              className="border border-line-2 px-3 py-2 text-[11px] text-ink-2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors min-h-[36px] min-w-[64px]"
+              disabled={submitDisabled}
+              className="border border-line-2 px-3 py-2 text-[11px] text-ink-2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors min-h-[36px] min-w-[64px] font-mono"
             >
-              envoyer
+              {cooldownRemaining > 0 ? `${cooldownRemaining}s` : "envoyer"}
             </button>
           </form>
         </div>
@@ -540,12 +583,12 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
         </span>
       </div>
 
-      {modError && (
+      {chatError && (
         <div className="mb-3 px-3 py-2 border border-red bg-red/10 text-[12px] text-red font-mono leading-[1.4] break-words rounded-md">
-          ✕ {modError}
+          ✕ {chatError}
           <button
             type="button"
-            onClick={() => setModError(null)}
+            onClick={() => setChatError(null)}
             className="float-right text-red hover:text-ink text-[14px] cursor-pointer leading-none ml-2"
             aria-label="fermer"
           >
@@ -553,7 +596,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           </button>
         </div>
       )}
-      <div ref={scrollRef} className="flex-1 min-h-[280px] overflow-y-auto mb-4">
+      <div ref={scrollRef} className="flex-1 min-h-[280px] overflow-y-auto overflow-x-hidden mb-4">
         {messages.length === 0 && (
           <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
         )}
@@ -619,9 +662,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             onSelect={(e) =>
               syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
             }
-            placeholder="Envoyer un message"
+            placeholder={isFrozenForMe ? "Chat figé" : "Envoyer un message"}
+            disabled={inputDisabled}
             maxLength={280}
-            className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors"
+            className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <EmotePicker
             emotes={emotes}
@@ -629,10 +673,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           />
           <button
             type="submit"
-            disabled={!input.trim()}
-            className="px-4 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors hover:border-red hover:text-red"
+            disabled={submitDisabled}
+            className="px-4 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors hover:border-red hover:text-red min-w-[88px]"
           >
-            Envoyer
+            {cooldownRemaining > 0 ? `${cooldownRemaining}s` : "Envoyer"}
           </button>
         </form>
       </div>
