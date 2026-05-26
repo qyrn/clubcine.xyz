@@ -31,6 +31,7 @@ export interface ChannelHandler {
 }
 
 export interface FakeChannel {
+  name: string;
   handlers: ChannelHandler[];
   on: ReturnType<typeof vi.fn>;
   subscribe: ReturnType<typeof vi.fn>;
@@ -92,9 +93,10 @@ function makeBuilder(state: SupabaseMockState, table: string): Record<string, un
   return builder;
 }
 
-function makeChannel(state: SupabaseMockState): FakeChannel {
+function makeChannel(state: SupabaseMockState, name: string): FakeChannel {
   const handlers: ChannelHandler[] = [];
   const channel: FakeChannel = {
+    name,
     handlers,
     on: vi.fn((event: string, config: { event?: string }, callback: (payload: unknown) => void) => {
       handlers.push({ event, config, callback });
@@ -133,7 +135,7 @@ export function createSupabaseMock() {
       signOut: vi.fn(async () => ({ error: null as unknown })),
     },
     from: vi.fn((table: string) => makeBuilder(state, table)),
-    channel: vi.fn(() => makeChannel(state)),
+    channel: vi.fn((name: string) => makeChannel(state, name)),
     removeChannel: vi.fn(),
   };
 
@@ -144,5 +146,11 @@ export function createSupabaseMock() {
     state.channels = [];
   };
 
-  return { client, state, reset };
+  const findChannel = (name: string): FakeChannel => {
+    const channel = state.channels.find((c) => c.name === name);
+    if (!channel) throw new Error(`Channel "${name}" not created`);
+    return channel;
+  };
+
+  return { client, state, reset, findChannel };
 }

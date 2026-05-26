@@ -94,7 +94,7 @@ describe("Chat · realtime", () => {
     await waitFor(() => expect(screen.getByText(/personne ne parle/)).toBeInTheDocument());
 
     act(() => {
-      mock.state.channels[0].emit("INSERT", {
+      mock.findChannel("chat").emit("INSERT", {
         new: { id: "rt1", username: "varda", text: "cléo de 5 à 7", timestamp: 5000 },
       });
     });
@@ -113,7 +113,7 @@ describe("Chat · realtime", () => {
     await waitFor(() => expect(screen.getByText("trafic")).toBeInTheDocument());
 
     act(() => {
-      mock.state.channels[0].emit("DELETE", { old: { id: "drop" } });
+      mock.findChannel("chat").emit("DELETE", { old: { id: "drop" } });
     });
 
     await waitFor(() => expect(screen.queryByText("trafic")).not.toBeInTheDocument());
