@@ -9,6 +9,22 @@ import IntermissionOverlay from "./IntermissionOverlay";
 const SYNC_THRESHOLD = 4;
 const DRIFT_CHECK_INTERVAL = 10_000;
 
+const NATIVE_HLS_MIME = "application/vnd.apple.mpegurl";
+
+type WebkitAirplayVideo = HTMLVideoElement & {
+  webkitShowPlaybackTargetPicker?: () => void;
+  webkitCurrentPlaybackTargetIsWireless?: boolean;
+};
+
+type WebkitAvailabilityEvent = Event & {
+  availability?: "available" | "not-available";
+};
+
+function isAirplayHost(): boolean {
+  if (typeof window === "undefined") return false;
+  return "WebKitPlaybackTargetAvailabilityEvent" in window;
+}
+
 type SubsSettings = {
   offset: number;
   size: number;
@@ -84,6 +100,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const [hasSubs, setHasSubs] = useState(false);
+  const [airplayAvailable, setAirplayAvailable] = useState(false);
+  const [airplayActive, setAirplayActive] = useState(false);
   const [subsOn, setSubsOn] = useState<boolean>(() => loadSubsOn());
   const [subsSettings, setSubsSettings] = useState<SubsSettings>(() => loadSubsSettings());
   const [showSubsPanel, setShowSubsPanel] = useState(false);
@@ -106,7 +124,10 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
     currentUrlRef.current = url;
 
-    if (Hls.isSupported()) {
+    const canNative = video.canPlayType(NATIVE_HLS_MIME) !== "";
+    const preferNative = isAirplayHost() && canNative;
+
+    if (!preferNative && Hls.isSupported()) {
       const hls = new Hls({
         startPosition: offset,
         backBufferLength: 30,
@@ -139,7 +160,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
 
       hls.attachMedia(video);
       hls.loadSource(url);
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    } else if (canNative) {
       video.src = url;
       video.currentTime = offset;
       video.play().catch(() => {});
@@ -410,6 +431,46 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     onControlsVisibleChange?.(showControls);
   }, [showControls, onControlsVisibleChange]);
 
+  useEffect(() => {
+    if (!isAirplayHost()) return;
+    const video = videoRef.current as WebkitAirplayVideo | null;
+    if (!video) return;
+
+    const onAvailability = (e: WebkitAvailabilityEvent) => {
+      setAirplayAvailable(e.availability === "available");
+    };
+    const onActiveChange = () => {
+      setAirplayActive(!!video.webkitCurrentPlaybackTargetIsWireless);
+    };
+
+    video.addEventListener(
+      "webkitplaybacktargetavailabilitychanged",
+      onAvailability as EventListener
+    );
+    video.addEventListener(
+      "webkitcurrentplaybacktargetiswirelesschanged",
+      onActiveChange
+    );
+
+    onActiveChange();
+
+    return () => {
+      video.removeEventListener(
+        "webkitplaybacktargetavailabilitychanged",
+        onAvailability as EventListener
+      );
+      video.removeEventListener(
+        "webkitcurrentplaybacktargetiswirelesschanged",
+        onActiveChange
+      );
+    };
+  }, []);
+
+  const toggleAirplay = useCallback(() => {
+    const video = videoRef.current as WebkitAirplayVideo | null;
+    video?.webkitShowPlaybackTargetPicker?.();
+  }, []);
+
   const toggleFullscreen = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -485,6 +546,7 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
         muted
         playsInline
         onClick={toggleMute}
+        {...{ "x-webkit-airplay": "allow" }}
       />
 
       {muted && (
@@ -652,6 +714,20 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
               </svg>
             </button>
           </>
+        )}
+
+        {airplayAvailable && (
+          <button
+            onClick={toggleAirplay}
+            className={`cursor-pointer transition-colors shrink-0 ${airplayActive ? "text-red" : "text-ink hover:text-red"}`}
+            aria-label={airplayActive ? "AirPlay actif" : "Envoyer vers une TV (AirPlay)"}
+            title={airplayActive ? "AirPlay actif" : "AirPlay"}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="14" rx="1" ry="1" />
+              <polyline points="7 22 12 17 17 22" />
+            </svg>
+          </button>
         )}
 
         <button
