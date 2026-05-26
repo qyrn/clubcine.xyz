@@ -6,6 +6,7 @@ import { Fragment } from "react";
 const LINKS: { label: string; href: string; primary?: boolean }[] = [
   { label: "Dashboard", href: "/admin/dashboard", primary: true },
   { label: "Users", href: "/admin/users" },
+  { label: "Chat", href: "/admin/chat" },
   { label: "Suggestions", href: "/admin/suggestions" },
   { label: "Bugs", href: "/admin/bugs" },
   { label: "Emotes", href: "/admin/emotes" },

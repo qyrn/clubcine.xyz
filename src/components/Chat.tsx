@@ -13,6 +13,7 @@ import UserChip from "./UserChip";
 import EmoteText from "./EmoteText";
 import EmotePicker from "./EmotePicker";
 import MentionSuggestions from "./MentionSuggestions";
+import BanUserDialog from "./BanUserDialog";
 
 function generateUsername(): string {
   const p = ANON_PSEUDOS[Math.floor(Math.random() * ANON_PSEUDOS.length)];
@@ -62,10 +63,11 @@ interface ChatProps {
 interface ModToolsProps {
   onDeleteMessage: () => void;
   onPurgeUser: () => void;
+  onBanUser?: () => void;
   username: string;
 }
 
-function ModTools({ onDeleteMessage, onPurgeUser, username }: ModToolsProps) {
+function ModTools({ onDeleteMessage, onPurgeUser, onBanUser, username }: ModToolsProps) {
   return (
     <span className="shrink-0 inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
       <button
@@ -95,6 +97,20 @@ function ModTools({ onDeleteMessage, onPurgeUser, username }: ModToolsProps) {
           <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
         </svg>
       </button>
+      {onBanUser && (
+        <button
+          type="button"
+          onClick={onBanUser}
+          title={`Bannir @${username} du chat`}
+          aria-label={`Bannir @${username} du chat`}
+          className="p-1 text-ink-3 hover:text-red hover:bg-line transition-colors cursor-pointer rounded-sm leading-none inline-flex items-center justify-center"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <circle cx="12" cy="12" r="9" />
+            <polyline points="12 7 12 12 15 14" />
+          </svg>
+        </button>
+      )}
     </span>
   );
 }
@@ -106,6 +122,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
   const [chatError, setChatError] = useState<string | null>(null);
+  const [banTarget, setBanTarget] = useState<{ userId: string; username: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -495,6 +512,9 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               !!selfMentionRe &&
               msg.username.toLowerCase() !== selfLower &&
               selfMentionRe.test(msg.text);
+            const targetProfile = canModerate
+              ? profileMap.get(msg.username.toLowerCase())
+              : undefined;
             return (
             <div
               key={msg.id}
@@ -525,6 +545,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                   username={msg.username}
                   onDeleteMessage={() => deleteMessage(msg)}
                   onPurgeUser={() => deleteAllFromUser(msg)}
+                  onBanUser={
+                    targetProfile?.userId
+                      ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
+                      : undefined
+                  }
                 />
               )}
             </div>
@@ -570,6 +595,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             </button>
           </form>
         </div>
+        {banTarget && (
+          <BanUserDialog
+            targetUserId={banTarget.userId}
+            targetUsername={banTarget.username}
+            onClose={() => setBanTarget(null)}
+          />
+        )}
       </div>
     );
   }
@@ -606,6 +638,9 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             !!selfMentionRe &&
             msg.username.toLowerCase() !== selfLower &&
             selfMentionRe.test(msg.text);
+          const targetProfile = canModerate
+            ? profileMap.get(msg.username.toLowerCase())
+            : undefined;
           return (
           <div
             key={msg.id}
@@ -636,6 +671,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                 username={msg.username}
                 onDeleteMessage={() => deleteMessage(msg)}
                 onPurgeUser={() => deleteAllFromUser(msg)}
+                onBanUser={
+                  targetProfile?.userId
+                    ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
+                    : undefined
+                }
               />
             )}
           </div>
@@ -680,6 +720,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           </button>
         </form>
       </div>
+      {banTarget && (
+        <BanUserDialog
+          targetUserId={banTarget.userId}
+          targetUsername={banTarget.username}
+          onClose={() => setBanTarget(null)}
+        />
+      )}
     </div>
   );
 }
