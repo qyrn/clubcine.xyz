@@ -84,11 +84,11 @@ export default function NotificationBell() {
             : "Notifications"
         }
         aria-expanded={open}
-        className="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-line-2 text-ink-3 hover:border-ink hover:text-ink transition-colors cursor-pointer"
+        className="relative inline-flex items-center justify-center w-10 h-10 text-ink-3 hover:text-ink transition-colors cursor-pointer"
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red text-bg font-mono text-[10px] font-bold leading-none">
+          <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-1 flex items-center justify-center bg-red text-bg font-mono text-[9px] font-bold leading-none">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
