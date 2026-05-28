@@ -223,7 +223,7 @@ function SocialField({
         {label}
       </span>
       <div className="flex items-stretch border border-line-2 focus-within:border-ink rounded-md overflow-hidden bg-transparent">
-        <span className="px-3 flex items-center font-mono text-[12px] text-ink-4 bg-line/40 select-none whitespace-nowrap">
+        <span className="px-3 flex items-center font-mono text-[12px] text-ink-3 bg-line/40 select-none whitespace-nowrap">
           {prefix}
         </span>
         <input
@@ -395,7 +395,7 @@ function ProfileEditModal({
               placeholder="Quelques mots sur toi…"
               className="bg-transparent border border-line-2 px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink rounded-md resize-none"
             />
-            <span className="font-mono text-[10px] tracking-[0.04em] text-ink-4 self-end">
+            <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3 self-end">
               {bio.length}/200
             </span>
           </label>
@@ -555,7 +555,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
             ★ Chargement du profil
           </div>
           <div
-            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance text-ink-4"
+            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance text-ink-3"
             style={{ fontSize: "clamp(40px, 6vw, 72px)", fontFamily: "var(--font-marker)" }}
           >
             @{targetUsername}

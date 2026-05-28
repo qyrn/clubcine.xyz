@@ -117,7 +117,7 @@ export default function NotificationBell() {
                 Chargement…
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-10 font-mono text-[11px] italic tracking-[0.04em] uppercase text-ink-4 text-center">
+              <div className="px-4 py-10 font-mono text-[11px] italic tracking-[0.04em] uppercase text-ink-3 text-center">
                 Rien pour le moment…
               </div>
             ) : (
@@ -146,7 +146,7 @@ export default function NotificationBell() {
                           </span>{" "}
                           {actionLabel(n.type)}
                         </span>
-                        <span className="font-mono text-[10px] tracking-[0.04em] text-ink-4">
+                        <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
                           {timeAgo(n.createdAt)}
                         </span>
                       </span>

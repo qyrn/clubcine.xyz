@@ -102,7 +102,7 @@ export default function IntermissionTest() {
             {soireeMode ? "★ Soirée : on" : "Soirée : off"}
           </button>
           {soireeMode && (
-            <span className="font-mono text-[9px] tracking-[0.04em] text-ink-4 leading-[1.5]">
+            <span className="font-mono text-[9px] tracking-[0.04em] text-ink-3 leading-[1.5]">
               Soirée factice de 3 films : précédent (terminé), sélectionné (à
               suivre), suivant (à venir).
             </span>
@@ -160,16 +160,16 @@ export default function IntermissionTest() {
             value={musicOverride}
             onChange={(e) => setMusicOverride(e.target.value)}
             placeholder={film.music ?? "https://…/track.mp3"}
-            className="bg-bg border border-line-2 px-2 py-1.5 text-[11px] text-ink rounded-md outline-none focus:border-ink font-mono placeholder:text-ink-4"
+            className="bg-bg border border-line-2 px-2 py-1.5 text-[11px] text-ink rounded-md outline-none focus:border-ink font-mono placeholder:text-ink-3"
           />
-          <span className="font-mono text-[9px] tracking-[0.04em] text-ink-4">
+          <span className="font-mono text-[9px] tracking-[0.04em] text-ink-3">
             {film.music
               ? `Défaut : ${film.music}`
               : "Ce film n'a pas de musique définie (hasMusic absent)."}
           </span>
         </div>
 
-        <p className="text-[10px] text-ink-4 leading-[1.5] text-balance">
+        <p className="text-[10px] text-ink-3 leading-[1.5] text-balance">
           Cette page sert à prévisualiser l&apos;écran d&apos;entracte
           (countdown + musique, mode soirée) sans attendre une vraie transition.
         </p>

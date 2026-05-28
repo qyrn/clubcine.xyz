@@ -295,7 +295,7 @@ function UsersAdminContent() {
                       >
                         @{p.username}
                       </Link>
-                      <span className="font-mono text-[10px] tracking-[0.04em] text-ink-4">
+                      <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
                         {new Date(p.created_at).toLocaleDateString("fr-FR")}
                       </span>
                     </div>
@@ -308,7 +308,7 @@ function UsersAdminContent() {
                         if (catBadges.length === 0) return null;
                         return (
                           <div key={cat.label} className="flex items-baseline gap-3 flex-wrap">
-                            <span className="font-mono text-[9px] font-bold tracking-[0.16em] uppercase text-ink-4 shrink-0 min-w-[100px]">
+                            <span className="font-mono text-[9px] font-bold tracking-[0.16em] uppercase text-ink-3 shrink-0 min-w-[100px]">
                               {cat.label}
                             </span>
                             <div className="flex flex-wrap gap-1.5">
@@ -325,7 +325,7 @@ function UsersAdminContent() {
                                     className={`inline-flex items-center gap-1.5 px-2 py-1 border text-[10px] font-mono tracking-[0.08em] uppercase rounded-md transition-colors cursor-pointer disabled:opacity-30 ${
                                       has
                                         ? "border-red text-ink"
-                                        : "border-line-2 text-ink-4 hover:text-ink hover:border-ink"
+                                        : "border-line-2 text-ink-3 hover:text-ink hover:border-ink"
                                     }`}
                                   >
                                     <BadgeIcon slug={b.slug} size={12} color={has ? b.color : undefined} />
@@ -364,7 +364,7 @@ function UsersAdminContent() {
         )}
       </main>
 
-      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-4 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
+      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
         <span>CLUBCINE.XYZ · ADMIN · 2026</span>
         <Link href="/" className="hover:text-ink transition-colors">
           ← RETOUR

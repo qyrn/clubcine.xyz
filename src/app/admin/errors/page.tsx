@@ -239,7 +239,7 @@ function ErrorsAdminContent() {
                     : "border-line-2 text-ink-3 hover:text-ink"
                 }`}
               >
-                {s} <span className="text-ink-4">({count})</span>
+                {s} <span className="text-ink-3">({count})</span>
               </button>
             );
           })}
@@ -251,7 +251,7 @@ function ErrorsAdminContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="filtrer message, stack, url, user..."
-            className="flex-1 min-w-[240px] bg-bg border border-line-2 rounded-md px-3 py-2 text-[12px] text-ink placeholder:text-ink-4 focus:border-ink outline-none transition-colors"
+            className="flex-1 min-w-[240px] bg-bg border border-line-2 rounded-md px-3 py-2 text-[12px] text-ink placeholder:text-ink-3 focus:border-ink outline-none transition-colors"
           />
           <label className="flex items-center gap-2 font-mono text-[11px] tracking-[0.04em] text-ink-3 cursor-pointer select-none">
             <input
@@ -297,14 +297,14 @@ function ErrorsAdminContent() {
                         @{e.username}
                       </Link>
                     ) : (
-                      <span className="text-ink-4">anonyme</span>
+                      <span className="text-ink-3">anonyme</span>
                     )}
-                    <span className="text-ink-4">{shortAgent(e.user_agent)}</span>
+                    <span className="text-ink-3">{shortAgent(e.user_agent)}</span>
                   </div>
 
                   <div className="min-w-0 flex flex-col gap-2">
                     <p className="text-[13px] leading-[1.5] text-ink whitespace-pre-wrap break-words">
-                      {e.message || <span className="text-ink-4">(sans message)</span>}
+                      {e.message || <span className="text-ink-3">(sans message)</span>}
                     </p>
                     {e.url && (
                       <a
@@ -340,7 +340,7 @@ function ErrorsAdminContent() {
         )}
       </main>
 
-      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-4 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
+      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
         <span>CLUBCINE.XYZ · ADMIN · 2026</span>
         <Link href="/" className="hover:text-ink transition-colors">
           ← RETOUR

@@ -148,7 +148,7 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
               className="bg-transparent border border-line-2 px-3 py-2 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink rounded-md resize-none"
             />
             <div className="flex items-center justify-between gap-3">
-              <span className="font-mono text-[10px] tracking-[0.04em] text-ink-4">
+              <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
                 {message.length}/280
               </span>
               <button
@@ -174,7 +174,7 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
             Chargement…
           </div>
         ) : entries.length === 0 ? (
-          <div className="font-mono text-[12px] italic tracking-[0.04em] text-ink-4 uppercase text-center py-12">
+          <div className="font-mono text-[12px] italic tracking-[0.04em] text-ink-3 uppercase text-center py-12">
             Aucun message pour le moment…
           </div>
         ) : (
@@ -192,7 +192,7 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
                         size="sm"
                         className="text-[12px] font-semibold text-ink"
                       />
-                      <span className="font-mono text-[10px] tracking-[0.04em] text-ink-4 shrink-0">
+                      <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3 shrink-0">
                         {formatDate(e.created_at)}
                       </span>
                     </div>
@@ -201,7 +201,7 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
                         type="button"
                         onClick={() => remove(e.id)}
                         title="supprimer"
-                        className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-4 hover:text-red transition-colors cursor-pointer shrink-0"
+                        className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer shrink-0"
                       >
                         ✕
                       </button>

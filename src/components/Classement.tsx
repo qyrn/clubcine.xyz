@@ -90,7 +90,7 @@ export default function Classement() {
                 className="py-2.5 grid grid-cols-[32px_1fr_auto] gap-3 items-center border-b border-line last:border-b-0"
               >
                 <span
-                  className={`font-mono font-semibold text-[13px] ${top ? "text-red" : "text-ink-4"}`}
+                  className={`font-mono font-semibold text-[13px] ${top ? "text-red" : "text-ink-3"}`}
                 >
                   {(i + 1).toString().padStart(2, "0")}
                 </span>

@@ -54,7 +54,7 @@ export default function Countdown({ targetISO }: CountdownProps) {
           </div>
           {i < units.length - 1 && (
             <span
-              className="text-ink-4 leading-none"
+              className="text-ink-3 leading-none"
               style={{ fontSize: "clamp(28px, 6vw, 56px)", fontWeight: 400 }}
               aria-hidden
             >

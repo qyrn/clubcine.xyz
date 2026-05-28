@@ -67,7 +67,7 @@ export default function FontPicker({ value, onChange, preview, label }: Props) {
                 </span>
                 <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3 shrink-0 max-w-[140px] truncate">
                   {f.label}
-                  {f.note && <span className="text-ink-4"> · {f.note}</span>}
+                  {f.note && <span className="text-ink-3"> · {f.note}</span>}
                 </span>
               </button>
             </li>

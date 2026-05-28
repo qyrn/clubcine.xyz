@@ -30,7 +30,7 @@ const STATUS_LABELS: Record<Status | "all", string> = {
 const STATUS_COLORS: Record<Status, string> = {
   pending: "text-red",
   accepted: "text-ink",
-  rejected: "text-ink-4",
+  rejected: "text-ink-3",
 };
 
 function formatDate(iso: string) {
@@ -248,7 +248,7 @@ function StaffAdminContent() {
                   >
                     @{a.username}
                   </Link>
-                  <span className="text-ink-4">vise {a.role_wanted}</span>
+                  <span className="text-ink-3">vise {a.role_wanted}</span>
                 </div>
 
                 <div className="min-w-0 flex flex-col gap-2">
@@ -283,7 +283,7 @@ function StaffAdminContent() {
                       type="button"
                       onClick={() => updateStatus(a, "pending")}
                       disabled={updating === a.id}
-                      className="px-3 py-1.5 border border-line-2 text-ink-4 font-semibold text-[10px] uppercase tracking-[0.08em] hover:text-ink hover:border-ink transition-colors cursor-pointer disabled:opacity-30 rounded-md"
+                      className="px-3 py-1.5 border border-line-2 text-ink-3 font-semibold text-[10px] uppercase tracking-[0.08em] hover:text-ink hover:border-ink transition-colors cursor-pointer disabled:opacity-30 rounded-md"
                     >
                       Re-pending
                     </button>
@@ -295,7 +295,7 @@ function StaffAdminContent() {
         )}
       </main>
 
-      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-4 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
+      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
         <span>CLUBCINE.XYZ · ADMIN · 2026</span>
         <Link href="/" className="hover:text-ink transition-colors">
           ← RETOUR

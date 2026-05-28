@@ -269,7 +269,7 @@ function TopFilmSlot({ position, film, editable, userId, onChange }: SlotProps) 
         />
 
         <div className="flex items-stretch border border-line-2 focus-within:border-ink rounded-md overflow-hidden">
-          <span className="px-2 flex items-center font-mono text-[10px] text-ink-4 bg-line/40 select-none whitespace-nowrap">
+          <span className="px-2 flex items-center font-mono text-[10px] text-ink-3 bg-line/40 select-none whitespace-nowrap">
             lbxd/{showsImdb ? "" : "film/"}
           </span>
           <input
@@ -281,7 +281,7 @@ function TopFilmSlot({ position, film, editable, userId, onChange }: SlotProps) 
           />
         </div>
         {showsImdb && (
-          <div className="font-mono text-[9px] tracking-[0.04em] text-ink-4">
+          <div className="font-mono text-[9px] tracking-[0.04em] text-ink-3">
             ★ Auto-rempli via IMDb. Letterboxd redirige vers la bonne fiche.
           </div>
         )}
@@ -340,7 +340,7 @@ function TopFilmSlot({ position, film, editable, userId, onChange }: SlotProps) 
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center font-mono text-[24px] font-bold text-ink-4">
+          <div className="w-full h-full flex items-center justify-center font-mono text-[24px] font-bold text-ink-3">
             {position}
           </div>
         )}
@@ -386,7 +386,7 @@ function TopFilmSlot({ position, film, editable, userId, onChange }: SlotProps) 
           );
         })()
       ) : (
-        <span className="text-[11px] font-mono tracking-[0.04em] text-ink-4 uppercase text-center">
+        <span className="text-[11px] font-mono tracking-[0.04em] text-ink-3 uppercase text-center">
           {editable ? "Vide" : "—"}
         </span>
       )}

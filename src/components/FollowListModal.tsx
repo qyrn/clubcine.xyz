@@ -100,7 +100,7 @@ export default function FollowListModal({ userId, username, kind, onClose }: Pro
               Chargement…
             </div>
           ) : sorted.length === 0 ? (
-            <div className="font-mono text-[11px] tracking-[0.04em] text-ink-4 italic text-center py-8">
+            <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3 italic text-center py-8">
               {kind === "followers" ? "Personne pour l'instant" : "Aucun suivi"}
             </div>
           ) : (

@@ -105,7 +105,7 @@ export default function AvatarUpload({
             <button
               type="button"
               onClick={onRemove}
-              className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-4 hover:text-red transition-colors cursor-pointer"
+              className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer"
             >
               Retirer
             </button>

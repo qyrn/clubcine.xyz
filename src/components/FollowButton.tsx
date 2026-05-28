@@ -104,7 +104,7 @@ export default function FollowButton({ targetUserId, isMe, onStatsChange }: Prop
   if (isMe) return null;
   if (!user) {
     return (
-      <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-4">
+      <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
         Connecte-toi pour suivre
       </span>
     );
