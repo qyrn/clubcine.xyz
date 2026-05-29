@@ -53,6 +53,16 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
   auth: { persistSession: false },
 });
 
+function safeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ba = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ba.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ba.length; i++) diff |= ba[i] ^ bb[i];
+  return diff === 0;
+}
+
 serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -70,7 +80,7 @@ serve(async (req) => {
     });
   }
 
-  if (payload.verification_token !== KOFI_TOKEN) {
+  if (!safeEqual(payload.verification_token ?? "", KOFI_TOKEN)) {
     return new Response("Invalid token", { status: 401 });
   }
 
