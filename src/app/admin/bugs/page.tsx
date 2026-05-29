@@ -45,7 +45,7 @@ function formatDate(iso: string) {
 }
 
 function shortAgent(ua: string | null): string {
-  if (!ua) return "—";
+  if (!ua) return "–";
   const m = ua.match(/(Firefox|Chrome|Safari|Edg|OPR)\/(\d+)/);
   if (!m) return ua.slice(0, 40);
   return `${m[1]} ${m[2]}`;

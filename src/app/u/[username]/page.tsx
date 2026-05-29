@@ -74,7 +74,7 @@ function formatWatch(seconds: number): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   const d = new Date(iso);
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
@@ -661,17 +661,17 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
               </div>
 
               <div className="grid grid-cols-4 border-l border-line max-[900px]:grid-cols-4 max-[900px]:border-l-0 max-[900px]:border-t max-md:grid-cols-2">
-                <StatCell value={stats?.rank ? `#${stats.rank}` : "—"} label="Rang" />
+                <StatCell value={stats?.rank ? `#${stats.rank}` : "–"} label="Rang" />
                 <StatCell
-                  value={stats ? String(stats.messages) : "—"}
+                  value={stats ? String(stats.messages) : "–"}
                   label="Messages"
                 />
                 <StatCell
-                  value={stats ? formatWatch(stats.watchSeconds) : "—"}
+                  value={stats ? formatWatch(stats.watchSeconds) : "–"}
                   label="Visionnage"
                 />
                 <StatCell
-                  value={stats ? String(stats.suggestions) : "—"}
+                  value={stats ? String(stats.suggestions) : "–"}
                   label="Suggestions"
                 />
               </div>

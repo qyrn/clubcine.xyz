@@ -467,7 +467,7 @@ function EmotesAdminContent() {
                           @{ownerName}
                         </Link>
                       ) : (
-                        "—"
+                        "–"
                       )}
                     </span>
                   </div>

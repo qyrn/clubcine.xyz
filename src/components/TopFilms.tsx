@@ -387,7 +387,7 @@ function TopFilmSlot({ position, film, editable, userId, onChange }: SlotProps) 
         })()
       ) : (
         <span className="text-[11px] font-mono tracking-[0.04em] text-ink-3 uppercase text-center">
-          {editable ? "Vide" : "—"}
+          {editable ? "Vide" : "–"}
         </span>
       )}
     </div>
