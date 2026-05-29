@@ -92,7 +92,12 @@ export async function POST(req: NextRequest) {
   const url = clamp(payload.url, 500);
   const userAgent = clamp(req.headers.get("user-agent"), 500);
   const userId = clamp(payload.userId, 64);
-  const username = clamp(payload.username, 64);
+  let username = clamp(payload.username, 64);
+  if (!userId && !username) {
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded ? forwarded.split(",")[0].trim() : null;
+    username = ip ? `ip:${ip}`.slice(0, 64) : null;
+  }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
     auth: { persistSession: false },
