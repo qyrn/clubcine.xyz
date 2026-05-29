@@ -481,6 +481,41 @@ create trigger watch_time_award_badges
   after insert or update on public.watch_time
   for each row execute function public.award_viewer_badges();
 
+-- 9b-bis. RPC d'incrément du temps de visionnage. La table watch_time est en
+-- écriture seule via cette RPC (aucune policy write). L'identité est dérivée du
+-- compte connecté (auth.uid()), jamais du paramètre p_username, sinon n'importe
+-- qui pourrait gonfler le score d'autrui. Les visiteurs anonymes ne comptent
+-- pas (return early) et p_seconds est borné pour empêcher la falsification.
+create or replace function public.increment_watch_time(p_username text, p_seconds integer)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  caller_username text;
+  safe_seconds integer;
+begin
+  if auth.uid() is null then
+    return;
+  end if;
+  select username into caller_username
+    from public.profiles where user_id = auth.uid();
+  if caller_username is null then
+    return;
+  end if;
+  safe_seconds := least(greatest(coalesce(p_seconds, 0), 0), 120);
+  if safe_seconds = 0 then
+    return;
+  end if;
+  insert into public.watch_time (username, seconds, updated_at)
+  values (caller_username, safe_seconds, now())
+  on conflict (username) do update
+    set seconds = public.watch_time.seconds + safe_seconds,
+        updated_at = now();
+end;
+$$;
+
+revoke all on function public.increment_watch_time(text, integer) from public;
+revoke all on function public.increment_watch_time(text, integer) from anon;
+grant execute on function public.increment_watch_time(text, integer) to authenticated;
+
 -- 9c. Trigger chat
 create or replace function public.award_chat_badges()
 returns trigger language plpgsql security definer set search_path = public as $$
