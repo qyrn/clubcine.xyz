@@ -7,15 +7,6 @@ export interface FontDef {
   note?: string;
 }
 
-// Bibliothèque de fonts disponibles pour les users (top 4 + pseudo).
-// Volontairement minimale : on ajoute au fur et à mesure les fonts qu'on aime.
-//
-// Pour ajouter une font :
-// 1. Si Google Fonts → l'ajouter dans `src/app/layout.tsx` (le <link> Google Fonts)
-//    puis pousser une entrée { slug, label, family, fallback, source: "google" } ici.
-// 2. Si fichier local → poser le .woff2/.ttf dans `public/fonts/` puis ajouter
-//    un @font-face dans `src/app/globals.css`, puis pousser ici source: "local".
-
 export const FONTS: FontDef[] = [
   {
     slug: "default",

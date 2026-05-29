@@ -3,10 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Resolve un IMDb id (ttXXXXXXX) en slug Letterboxd canonique en suivant
-// la redirect 30x de letterboxd.com/imdb/<ttid>/ → /film/<slug>/.
-// Cache 7 jours côté Next pour éviter de marteler letterboxd.com.
-
 export async function GET(req: NextRequest) {
   const imdb = req.nextUrl.searchParams.get("imdb");
   if (!imdb || !/^tt\d+$/.test(imdb)) {
