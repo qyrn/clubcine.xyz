@@ -184,7 +184,7 @@ function ChatAdminContent() {
             ★ État du chat
           </h2>
 
-          <div className="border border-line rounded-md p-6 flex flex-col gap-6 bg-[#0a0a0a]">
+          <div className="border border-line rounded-md p-6 flex flex-col gap-6 bg-surface">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3 mb-1">

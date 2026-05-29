@@ -94,7 +94,7 @@ function MemberCardImage({ image, username }: { image: string | null; username: 
 
 function MemberCard({ member }: { member: Member }) {
   return (
-    <article className="bg-[#0a0a0a] border border-line rounded-md overflow-hidden flex flex-col">
+    <article className="bg-surface border border-line rounded-md overflow-hidden flex flex-col">
       <MemberCardImage image={member.image} username={member.username} />
       <div className="px-5 py-5 flex flex-col items-center gap-3 text-center">
         <div className="font-mono text-[10px] tracking-[0.24em] uppercase text-red font-bold">

@@ -326,7 +326,7 @@ function ErrorsAdminContent() {
                           {open ? "Masquer stack" : "Voir stack"}
                         </button>
                         {open && (
-                          <pre className="font-mono text-[10px] leading-[1.5] text-ink-2 bg-[#0a0a0a] border border-line-2 rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all max-h-[400px]">
+                          <pre className="font-mono text-[10px] leading-[1.5] text-ink-2 bg-surface border border-line-2 rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all max-h-[400px]">
                             {e.stack}
                           </pre>
                         )}

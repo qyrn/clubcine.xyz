@@ -230,7 +230,7 @@ function MovieContent() {
         </div>
 
         <aside
-          className="shrink-0 border-l border-line flex flex-col bg-[#0a0a0a] transition-all duration-400 overflow-hidden z-30"
+          className="shrink-0 border-l border-line flex flex-col bg-surface transition-all duration-400 overflow-hidden z-30"
           style={{ width: chatOpen ? 340 : 0, opacity: chatOpen ? 1 : 0 }}
         >
           <Chat onCollapse={() => setChatOpen(false)} extra={<ViewerCount />} />
@@ -242,7 +242,7 @@ function MovieContent() {
             onClick={() => setChatOpen(true)}
             aria-label="ouvrir le chat (T)"
             title="ouvrir le chat (T)"
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5 px-2 py-3 bg-[#0a0a0a]/90 backdrop-blur-sm border border-r-0 border-line-2 rounded-l-md text-ink-3 hover:text-red hover:border-red transition-colors cursor-pointer group"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5 px-2 py-3 bg-surface/90 backdrop-blur-sm border border-r-0 border-line-2 rounded-l-md text-ink-3 hover:text-red hover:border-red transition-colors cursor-pointer group"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <polyline points="15 18 9 12 15 6" />

@@ -100,7 +100,7 @@ interface KpiCardProps {
 
 function KpiCard({ label, value, sub, href, cta, accent }: KpiCardProps) {
   return (
-    <div className="border border-line rounded-md p-5 flex flex-col gap-3 bg-[#0a0a0a]">
+    <div className="border border-line rounded-md p-5 flex flex-col gap-3 bg-surface">
       <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
         {label}
       </div>
