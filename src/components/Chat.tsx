@@ -14,6 +14,7 @@ import EmoteText from "./EmoteText";
 import EmotePicker from "./EmotePicker";
 import MentionSuggestions from "./MentionSuggestions";
 import BanUserDialog from "./BanUserDialog";
+import { readStorage, writeStorage } from "@/lib/safe-storage";
 
 function generateUsername(): string {
   const p = ANON_PSEUDOS[Math.floor(Math.random() * ANON_PSEUDOS.length)];
@@ -181,9 +182,9 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   }, [chatError]);
 
   useEffect(() => {
-    const stored = localStorage.getItem("clubcine-username");
+    const stored = readStorage("clubcine-username");
     const name = stored && isFromCurrentPool(stored) ? stored : generateUsername();
-    localStorage.setItem("clubcine-username", name);
+    writeStorage("clubcine-username", name);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnonUsername(name);
   }, []);

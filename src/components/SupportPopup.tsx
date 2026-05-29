@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readStorage, writeStorage } from "@/lib/safe-storage";
 
 const STORAGE_KEY = "clubcine-support-dismissed";
 const DELAY_MS = 20_000;
@@ -10,7 +11,7 @@ export default function SupportPopup() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const dismissed = localStorage.getItem(STORAGE_KEY);
+    const dismissed = readStorage(STORAGE_KEY);
     if (dismissed) {
       const ts = Number(dismissed);
       if (!Number.isNaN(ts)) {
@@ -24,7 +25,7 @@ export default function SupportPopup() {
 
   const dismiss = () => {
     setVisible(false);
-    localStorage.setItem(STORAGE_KEY, Date.now().toString());
+    writeStorage(STORAGE_KEY, Date.now().toString());
   };
 
   if (!visible) return null;

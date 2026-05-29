@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useEmotes } from "@/lib/use-emotes";
 import { useReactions } from "@/lib/use-reactions";
 import { safeImageUrl } from "@/lib/safe-url";
+import { readStorage, writeStorage } from "@/lib/safe-storage";
 
 export interface IntermissionSoiree {
   title: string;
@@ -40,8 +41,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function loadVolume(): number {
-  if (typeof window === "undefined") return DEFAULT_VOLUME;
-  const raw = window.localStorage.getItem(VOLUME_KEY);
+  const raw = readStorage(VOLUME_KEY);
   if (!raw) return DEFAULT_VOLUME;
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0 || n > 1) return DEFAULT_VOLUME;
@@ -73,8 +73,7 @@ export default function IntermissionOverlay({
     : -1;
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(VOLUME_KEY, String(volume));
+    writeStorage(VOLUME_KEY, String(volume));
   }, [volume]);
 
   useEffect(() => {

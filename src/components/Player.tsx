@@ -5,6 +5,7 @@ import Hls from "hls.js";
 import { ScheduleState } from "@/types";
 import { useSchedule } from "@/lib/schedule-context";
 import IntermissionOverlay from "./IntermissionOverlay";
+import { readStorage, writeStorage } from "@/lib/safe-storage";
 
 const SYNC_THRESHOLD = 4;
 const DRIFT_CHECK_INTERVAL = 10_000;
@@ -51,10 +52,9 @@ const SUBS_STORAGE_KEY = "clubcine-subs-settings";
 const SUBS_ON_STORAGE_KEY = "clubcine-subs-on";
 
 function loadSubsSettings(): SubsSettings {
-  if (typeof window === "undefined") return DEFAULT_SUBS_SETTINGS;
+  const raw = readStorage(SUBS_STORAGE_KEY);
+  if (!raw) return DEFAULT_SUBS_SETTINGS;
   try {
-    const raw = window.localStorage.getItem(SUBS_STORAGE_KEY);
-    if (!raw) return DEFAULT_SUBS_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<SubsSettings>;
     return { ...DEFAULT_SUBS_SETTINGS, ...parsed };
   } catch {
@@ -63,8 +63,7 @@ function loadSubsSettings(): SubsSettings {
 }
 
 function loadSubsOn(): boolean {
-  if (typeof window === "undefined") return true;
-  const raw = window.localStorage.getItem(SUBS_ON_STORAGE_KEY);
+  const raw = readStorage(SUBS_ON_STORAGE_KEY);
   return raw === null ? true : raw === "1";
 }
 
@@ -350,15 +349,12 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   }, [subsOn, hasSubs]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(SUBS_ON_STORAGE_KEY, subsOn ? "1" : "0");
+    writeStorage(SUBS_ON_STORAGE_KEY, subsOn ? "1" : "0");
   }, [subsOn]);
 
   useEffect(() => {
     subsSettingsRef.current = subsSettings;
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(SUBS_STORAGE_KEY, JSON.stringify(subsSettings));
-    }
+    writeStorage(SUBS_STORAGE_KEY, JSON.stringify(subsSettings));
     const video = videoRef.current;
     if (!video) return;
     const effectivePosition = showControls
