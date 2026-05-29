@@ -1334,6 +1334,7 @@ returns trigger language plpgsql security definer set search_path = public as $$
 declare
   is_staff           boolean := false;
   caller_banned      timestamptz;
+  caller_username    text;
   settings_frozen    boolean;
   settings_slow      int;
   threshold_ms       bigint;
@@ -1343,11 +1344,16 @@ begin
     into settings_frozen, settings_slow
     from public.chat_settings where id = 1;
 
+  -- anti-usurpation : un compte connecté poste forcément sous son propre pseudo,
+  -- jamais sous un username arbitraire fourni par le client.
   if auth.uid() is not null then
-    select role in ('admin', 'moderateur'), chat_banned_until
-      into is_staff, caller_banned
+    select role in ('admin', 'moderateur'), chat_banned_until, username
+      into is_staff, caller_banned, caller_username
       from public.profiles
       where user_id = auth.uid();
+    if caller_username is not null then
+      new.username := caller_username;
+    end if;
   end if;
 
   if is_staff then
