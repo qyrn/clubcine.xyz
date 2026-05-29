@@ -101,10 +101,10 @@ function StaffAdminContent() {
     }
 
     if (next === "accepted") {
-      const { error: roleErr } = await supabase
-        .from("profiles")
-        .update({ role: app.role_wanted })
-        .eq("user_id", app.user_id);
+      const { error: roleErr } = await supabase.rpc("admin_set_role", {
+        p_user_id: app.user_id,
+        p_role: app.role_wanted,
+      });
       if (roleErr) {
         setUpdating(null);
         setFeedback({

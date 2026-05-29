@@ -135,10 +135,10 @@ function UsersAdminContent() {
 
   const updateRole = async (userId: string, role: Role) => {
     setBusy(`role:${userId}`);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role })
-      .eq("user_id", userId);
+    const { error } = await supabase.rpc("admin_set_role", {
+      p_user_id: userId,
+      p_role: role,
+    });
     setBusy(null);
     if (error) {
       setFeedback({ kind: "err", text: error.message });

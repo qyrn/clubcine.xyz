@@ -892,6 +892,35 @@ create trigger profiles_guard_role
   before update of role on public.profiles
   for each row execute function public.guard_profiles_role_change();
 
+-- a-bis) RPC de promotion de rôle réservée admin. La seule policy update sur
+-- profiles est "update self", donc un admin ne peut pas changer le rôle d'autrui
+-- via un update direct (0 ligne, faux succès côté client). Cette RPC security
+-- definer vérifie le rôle de l'appelant et lève une erreur explicite sinon.
+create or replace function public.admin_set_role(p_user_id uuid, p_role text)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  is_admin boolean;
+begin
+  if auth.uid() is null then
+    raise exception 'auth required';
+  end if;
+  select exists (
+    select 1 from public.profiles
+    where user_id = auth.uid() and role = 'admin'
+  ) into is_admin;
+  if not is_admin then
+    raise exception 'admin privilege required';
+  end if;
+  if p_role not in ('spectateur', 'soutien', 'moderateur', 'admin') then
+    raise exception 'invalid role: %', p_role;
+  end if;
+  update public.profiles set role = p_role where user_id = p_user_id;
+end;
+$$;
+
+revoke all on function public.admin_set_role(uuid, text) from public;
+grant execute on function public.admin_set_role(uuid, text) to authenticated;
+
 -- b) username case-insensitive uniqueness
 -- Le `unique` column-level reste mais on ajoute un index unique sur lower().
 -- Échoue si la table contient déjà des doublons à la casse (le user les nettoie
