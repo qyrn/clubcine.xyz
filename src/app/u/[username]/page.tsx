@@ -496,6 +496,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [followList, setFollowList] = useState<"followers" | "following" | null>(null);
+  const [navTick, setNavTick] = useState(0);
 
   const targetUsername = decodeURIComponent(usernameParam);
   const isMe =
@@ -504,6 +505,12 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
   const showSkeleton = (loading || authLoading) && !view && !notFound;
 
   const followStats = useFollowStats(view?.userId ?? null, isMe);
+
+  useEffect(() => {
+    const bump = () => setNavTick((t) => t + 1);
+    window.addEventListener("popstate", bump);
+    return () => window.removeEventListener("popstate", bump);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -567,7 +574,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
     return () => {
       cancelled = true;
     };
-  }, [targetUsername]);
+  }, [targetUsername, navTick]);
 
   const role = view?.role ?? "spectateur";
   const displayUsername = view?.username ?? targetUsername;
