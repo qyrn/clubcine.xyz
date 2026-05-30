@@ -62,6 +62,20 @@ begin
     check (role in ('spectateur', 'soutien', 'moderateur', 'admin'));
 end $$;
 
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_username_format'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles drop constraint profiles_username_format;
+  end if;
+  alter table public.profiles
+    add constraint profiles_username_format
+    check (username ~ '^[A-Za-z0-9_-]{3,20}$') not valid;
+end $$;
+
 create index if not exists profiles_username_lower_idx on public.profiles (lower(username));
 
 alter table public.profiles enable row level security;
@@ -95,7 +109,10 @@ returns trigger language plpgsql security definer set search_path = public as $$
 declare
   uname text;
 begin
-  uname := coalesce(new.raw_user_meta_data->>'username', 'spectateur_' || substr(new.id::text, 1, 8));
+  uname := trim(coalesce(new.raw_user_meta_data->>'username', ''));
+  if uname !~ '^[A-Za-z0-9_-]{3,20}$' then
+    uname := 'spectateur_' || substr(new.id::text, 1, 8);
+  end if;
   insert into public.profiles (user_id, username)
   values (new.id, uname)
   on conflict (user_id) do nothing;
@@ -112,7 +129,11 @@ create trigger on_auth_user_created
 insert into public.profiles (user_id, username, bio, letterboxd, role)
 select
   u.id,
-  coalesce(u.raw_user_meta_data->>'username', 'spectateur_' || substr(u.id::text, 1, 8)),
+  case
+    when trim(coalesce(u.raw_user_meta_data->>'username', '')) ~ '^[A-Za-z0-9_-]{3,20}$'
+      then trim(u.raw_user_meta_data->>'username')
+    else 'spectateur_' || substr(u.id::text, 1, 8)
+  end,
   coalesce(u.raw_user_meta_data->>'bio', ''),
   coalesce(u.raw_user_meta_data->>'letterboxd', ''),
   coalesce(u.raw_user_meta_data->>'role', 'spectateur')

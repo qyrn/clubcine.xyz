@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { supabase } from "@/lib/supabase";
+import { validateUsername } from "@/lib/username";
 
 type Mode = "login" | "register";
 
@@ -30,9 +31,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     setSubmitting(true);
 
     if (mode === "register") {
-      const trimmed = username.trim();
-      if (trimmed.length < 3) {
-        setError("pseudo trop court (3 caractères min)");
+      const { value: trimmed, error: usernameError } = validateUsername(username);
+      if (usernameError) {
+        setError(usernameError);
         setSubmitting(false);
         return;
       }
