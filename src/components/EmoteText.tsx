@@ -91,11 +91,11 @@ export default function EmoteText({
           <img
             key={i}
             src={safeSrc}
-            alt={label || `:${slug}:`}
-            title={`:${slug}:`}
+            alt={`:${slug}:`}
+            title={label ? `:${slug}: · ${label}` : `:${slug}:`}
             loading="lazy"
             draggable={false}
-            className="inline-block align-middle select-none"
+            className="inline-block align-middle"
             style={{ height: size, width: "auto" }}
           />
         );
