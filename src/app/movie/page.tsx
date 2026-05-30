@@ -218,7 +218,7 @@ function MovieContent() {
 
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 relative min-w-0">
-          <Player />
+          <Player controlsVisible={overlayVisible} />
           <div
             className="absolute inset-0 pointer-events-none"
             style={{

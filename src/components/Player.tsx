@@ -67,6 +67,14 @@ function loadSubsOn(): boolean {
   return raw === null ? true : raw === "1";
 }
 
+function pinCue(cue: VTTCue, position: number): void {
+  cue.snapToLines = false;
+  cue.line = 100 - position;
+  cue.align = "center";
+  cue.position = "auto";
+  cue.size = 100;
+}
+
 function deriveIntermissionLeft(schedule: ScheduleState | null, nowMs: number): number | null {
   if (!schedule?.intermission) return null;
   const baseTime = schedule.serverTime ?? nowMs;
@@ -75,10 +83,10 @@ function deriveIntermissionLeft(schedule: ScheduleState | null, nowMs: number): 
 }
 
 type PlayerProps = {
-  onControlsVisibleChange?: (visible: boolean) => void;
+  controlsVisible?: boolean;
 };
 
-export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
+export default function Player({ controlsVisible }: PlayerProps = {}) {
   const { schedule, nowMs, refresh } = useSchedule();
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -95,7 +103,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(0.8);
-  const [showControls, setShowControls] = useState(false);
+  const [internalControls, setInternalControls] = useState(false);
+  const showControls = controlsVisible ?? internalControls;
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const [hasSubs, setHasSubs] = useState(false);
@@ -357,9 +366,6 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
     writeStorage(SUBS_STORAGE_KEY, JSON.stringify(subsSettings));
     const video = videoRef.current;
     if (!video) return;
-    const effectivePosition = showControls
-      ? Math.max(subsSettings.position, 26)
-      : subsSettings.position;
     for (const track of Array.from(video.textTracks)) {
       if (!track.cues) continue;
       for (const cue of Array.from(track.cues)) {
@@ -368,12 +374,10 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
           cue.startTime = base.start + subsSettings.offset;
           cue.endTime = base.end + subsSettings.offset;
         }
-        const vtt = cue as VTTCue;
-        vtt.snapToLines = false;
-        vtt.line = 100 - effectivePosition;
+        pinCue(cue as VTTCue, subsSettings.position);
       }
     }
-  }, [subsSettings, showControls]);
+  }, [subsSettings]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -387,10 +391,8 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
           cue.startTime += s.offset;
           cue.endTime += s.offset;
         }
-        const vtt = cue as VTTCue;
-        vtt.snapToLines = false;
-        vtt.line = 100 - s.position;
       }
+      pinCue(cue as VTTCue, subsSettingsRef.current.position);
     };
 
     const onTrackAdd = (track: TextTrack) => {
@@ -422,10 +424,6 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
       video.textTracks.removeEventListener("change", onTracksChange);
     };
   }, [hasSubs]);
-
-  useEffect(() => {
-    onControlsVisibleChange?.(showControls);
-  }, [showControls, onControlsVisibleChange]);
 
   useEffect(() => {
     if (!isAirplayHost()) return;
@@ -517,14 +515,16 @@ export default function Player({ onControlsVisibleChange }: PlayerProps = {}) {
   }, [toggleFullscreen, toggleMute, toggleSubs, hasSubs]);
 
   const handleMouseMove = () => {
-    setShowControls(true);
+    if (controlsVisible !== undefined) return;
+    setInternalControls(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => setShowControls(false), 2000);
+    hideTimer.current = setTimeout(() => setInternalControls(false), 2000);
   };
 
   const handleMouseLeave = () => {
+    if (controlsVisible !== undefined) return;
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    setShowControls(false);
+    setInternalControls(false);
   };
 
   return (
