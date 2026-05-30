@@ -55,6 +55,8 @@ function detectMention(
 }
 
 const MAX_MESSAGES = 50;
+const MAX_LEN = 280;
+const WARN_LEN = 240;
 
 interface ChatProps {
   onCollapse?: () => void;
@@ -136,14 +138,20 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
 
   const { frozen, slowModeSeconds } = useChatSettings();
   const [lastSentAt, setLastSentAt] = useState<number | null>(null);
+  const [spamLockUntil, setSpamLockUntil] = useState<number | null>(null);
   const [clockTick, setClockTick] = useState(() => Date.now());
 
   useEffect(() => {
-    if (canModerate) return;
-    if (lastSentAt === null || slowModeSeconds === 0) return;
-    const id = setInterval(() => setClockTick(Date.now()), 250);
+    const slowTicking = !canModerate && lastSentAt !== null && slowModeSeconds > 0;
+    const spamTicking = spamLockUntil !== null;
+    if (!slowTicking && !spamTicking) return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      setClockTick(now);
+      if (spamLockUntil !== null && now >= spamLockUntil) setSpamLockUntil(null);
+    }, 250);
     return () => clearInterval(id);
-  }, [lastSentAt, slowModeSeconds, canModerate]);
+  }, [lastSentAt, slowModeSeconds, canModerate, spamLockUntil]);
 
   const cooldownRemaining = (() => {
     if (canModerate) return 0;
@@ -154,10 +162,18 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     return Math.max(0, remaining);
   })();
 
+  const spamRemaining = spamLockUntil
+    ? Math.max(0, Math.ceil((spamLockUntil - clockTick) / 1000))
+    : 0;
+
+  const charCount = input.length;
+  const overLimit = input.trim().length > MAX_LEN;
+  const lockSeconds = Math.max(cooldownRemaining, spamRemaining);
+
   const isFrozenForMe = frozen && !canModerate;
   const inputDisabled = isFrozenForMe || !username;
   const submitDisabled =
-    !input.trim() || isFrozenForMe || cooldownRemaining > 0;
+    !input.trim() || isFrozenForMe || lockSeconds > 0 || overLimit;
 
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionAnchor, setMentionAnchor] = useState(-1);
@@ -371,8 +387,16 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       );
       return;
     }
+    if (spamRemaining > 0) {
+      setChatError(`tu spammes, pause encore ${spamRemaining} seconde${spamRemaining > 1 ? "s" : ""}`);
+      return;
+    }
 
     const text = input.trim();
+    if (text.length > MAX_LEN) {
+      setChatError(`message trop long, ${MAX_LEN} caractères maximum`);
+      return;
+    }
     setInput("");
     closeMention();
 
@@ -384,6 +408,10 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     if (error) {
       setInput(text);
       setChatError(error.message);
+      const m = error.message.match(/(\d+)\s*secondes?/);
+      if (m && /pause|spam/i.test(error.message)) {
+        setSpamLockUntil(Date.now() + parseInt(m[1], 10) * 1000);
+      }
       return;
     }
     setLastSentAt(Date.now());
@@ -524,13 +552,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             return (
             <div
               key={msg.id}
-              className={`group text-[12px] leading-[1.6] break-words flex items-center gap-1.5 ${
+              className={`group text-[12px] leading-[1.6] break-words flex items-start gap-1.5 ${
                 mine
                   ? "-mx-1.5 px-1.5 py-0.5 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
                   : ""
               }`}
             >
-              <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
+              <span className="text-ink-3 text-[10px] font-mono shrink-0 mt-[3px]">{formatTime(msg.timestamp)}</span>
               <UserChip
                 username={msg.username}
                 profile={profileMap.get(msg.username.toLowerCase())}
@@ -572,6 +600,15 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               onHover={setMentionIndex}
             />
           )}
+          {charCount >= WARN_LEN && (
+            <span
+              className={`absolute -top-4 right-2 font-mono text-[10px] tabular-nums leading-none ${
+                overLimit ? "text-red font-bold" : charCount >= 260 ? "text-red" : "text-ink-3"
+              }`}
+            >
+              {charCount}/{MAX_LEN}
+            </span>
+          )}
           <form onSubmit={sendMessage} className="border-t border-line p-2 flex gap-1.5">
             <input
               ref={inputRef}
@@ -582,10 +619,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               onSelect={(e) =>
                 syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
               }
-              placeholder={isFrozenForMe ? "chat figé" : "…"}
+              placeholder={isFrozenForMe ? "Chat figé" : "Envoyer un message"}
               disabled={inputDisabled}
-              maxLength={280}
-              className="flex-1 bg-transparent border border-line-2 px-2 py-2 text-[12px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`flex-1 bg-transparent border px-2 py-2 text-[12px] text-ink placeholder:text-ink-3 outline-none transition-colors min-h-[38px] disabled:opacity-50 disabled:cursor-not-allowed ${
+                overLimit ? "border-red focus:border-red" : "border-line-2 focus:border-ink"
+              }`}
             />
             <EmotePicker
               emotes={emotes}
@@ -595,9 +633,9 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             <button
               type="submit"
               disabled={submitDisabled}
-              className="border border-line-2 px-3 py-2 text-[11px] text-ink-2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors min-h-[36px] min-w-[64px] font-mono"
+              className="border border-ink px-3 text-[11px] text-ink font-semibold hover:border-red hover:text-red cursor-pointer disabled:opacity-30 disabled:cursor-default transition-colors min-h-[38px] min-w-[72px]"
             >
-              {cooldownRemaining > 0 ? `${cooldownRemaining}s` : "envoyer"}
+              {lockSeconds > 0 ? `${lockSeconds}s` : "Envoyer"}
             </button>
           </form>
         </div>
@@ -634,7 +672,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           </button>
         </div>
       )}
-      <div ref={scrollRef} className="flex-1 min-h-[280px] overflow-y-auto overflow-x-hidden mb-4">
+      <div ref={scrollRef} className="flex-1 min-h-[280px] max-h-[60vh] overflow-y-auto overflow-x-hidden mb-4">
         {messages.length === 0 && (
           <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
         )}
@@ -650,13 +688,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           return (
           <div
             key={msg.id}
-            className={`group py-1 text-[13px] leading-[1.5] break-words flex items-center gap-2 ${
+            className={`group py-1 text-[13px] leading-[1.5] break-words flex items-start gap-2 ${
               mine
                 ? "-mx-2 px-2 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
                 : ""
             }`}
           >
-            <span className="text-ink-3 text-[10px] font-mono shrink-0">{formatTime(msg.timestamp)}</span>
+            <span className="text-ink-3 text-[10px] font-mono shrink-0 mt-[4px]">{formatTime(msg.timestamp)}</span>
             <UserChip
               username={msg.username}
               profile={profileMap.get(msg.username.toLowerCase())}
@@ -698,6 +736,15 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             onHover={setMentionIndex}
           />
         )}
+        {charCount >= WARN_LEN && (
+          <span
+            className={`absolute -top-5 right-0 font-mono text-[11px] tabular-nums leading-none ${
+              overLimit ? "text-red font-bold" : charCount >= 260 ? "text-red" : "text-ink-3"
+            }`}
+          >
+            {charCount}/{MAX_LEN}
+          </span>
+        )}
         <form onSubmit={sendMessage} className="flex gap-2">
           <input
             ref={inputRef}
@@ -710,8 +757,9 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             }
             placeholder={isFrozenForMe ? "Chat figé" : "Envoyer un message"}
             disabled={inputDisabled}
-            maxLength={280}
-            className="flex-1 bg-transparent border border-line-2 px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`flex-1 bg-transparent border px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              overLimit ? "border-red focus:border-red" : "border-line-2 focus:border-ink"
+            }`}
           />
           <EmotePicker
             emotes={emotes}
@@ -722,7 +770,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             disabled={submitDisabled}
             className="px-4 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors hover:border-red hover:text-red min-w-[88px]"
           >
-            {cooldownRemaining > 0 ? `${cooldownRemaining}s` : "Envoyer"}
+            {lockSeconds > 0 ? `${lockSeconds}s` : "Envoyer"}
           </button>
         </form>
       </div>

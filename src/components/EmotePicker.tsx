@@ -58,11 +58,11 @@ export default function EmotePicker({ emotes, onPick, compact = false }: EmotePi
         onClick={() => setOpen((v) => !v)}
         title="emotes"
         aria-label="ouvrir le picker d'emotes"
-        className={`border border-line-2 text-ink-3 hover:text-ink hover:border-ink cursor-pointer transition-colors flex items-center justify-center ${
-          compact ? "h-[28px] w-[28px]" : "h-[40px] w-[40px]"
+        className={`border border-line-2 text-ink-3 hover:text-ink hover:border-ink cursor-pointer transition-colors flex items-center justify-center shrink-0 ${
+          compact ? "h-[38px] w-[38px]" : "h-[40px] w-[40px]"
         }`}
       >
-        <svg width={compact ? 14 : 16} height={compact ? 14 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="12" cy="12" r="9" />
           <path d="M8 14s1.5 2 4 2 4-2 4-2" />
           <line x1="9" y1="9" x2="9.01" y2="9" />

@@ -135,7 +135,7 @@ describe("Chat · envoi", () => {
     await waitFor(() => expect(screen.getByText(/personne ne parle/)).toBeInTheDocument());
 
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "bonsoir la salle" } });
-    fireEvent.click(screen.getByRole("button", { name: "envoyer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
 
     await waitFor(() => expect(inserts).toHaveLength(1));
     expect(inserts[0]).toMatchObject({ text: "bonsoir la salle" });
