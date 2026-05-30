@@ -50,6 +50,23 @@ const SUB_COLORS = [
 
 const SUBS_STORAGE_KEY = "clubcine-subs-settings";
 const SUBS_ON_STORAGE_KEY = "clubcine-subs-on";
+const VOLUME_STORAGE_KEY = "clubcine-player-volume";
+const MUTED_STORAGE_KEY = "clubcine-player-muted";
+
+const DEFAULT_VOLUME = 0.8;
+
+function loadVolume(): number {
+  const raw = readStorage(VOLUME_STORAGE_KEY);
+  if (raw === null) return DEFAULT_VOLUME;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 1) return DEFAULT_VOLUME;
+  return n;
+}
+
+function loadMuted(): boolean {
+  const raw = readStorage(MUTED_STORAGE_KEY);
+  return raw === null ? true : raw === "1";
+}
 
 function loadSubsSettings(): SubsSettings {
   const raw = readStorage(SUBS_STORAGE_KEY);
@@ -101,8 +118,8 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
   const intermissionEndedRef = useRef(false);
 
   const [error, setError] = useState<string | null>(null);
-  const [muted, setMuted] = useState(true);
-  const [volume, setVolume] = useState(0.8);
+  const [muted, setMuted] = useState<boolean>(() => loadMuted());
+  const [volume, setVolume] = useState<number>(() => loadVolume());
   const [internalControls, setInternalControls] = useState(false);
   const showControls = controlsVisible ?? internalControls;
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -360,6 +377,14 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
   useEffect(() => {
     writeStorage(SUBS_ON_STORAGE_KEY, subsOn ? "1" : "0");
   }, [subsOn]);
+
+  useEffect(() => {
+    writeStorage(VOLUME_STORAGE_KEY, String(volume));
+  }, [volume]);
+
+  useEffect(() => {
+    writeStorage(MUTED_STORAGE_KEY, muted ? "1" : "0");
+  }, [muted]);
 
   useEffect(() => {
     subsSettingsRef.current = subsSettings;
