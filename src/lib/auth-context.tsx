@@ -26,6 +26,9 @@ interface AuthState {
   signUp: (email: string, password: string, username: string) => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<string | null>;
+  updateEmail: (email: string) => Promise<string | null>;
+  updatePassword: (password: string) => Promise<string | null>;
   updateProfile: (
     patch: Partial<
       Pick<
@@ -51,6 +54,9 @@ const AuthContext = createContext<AuthState>({
   signUp: async () => null,
   signIn: async () => null,
   signOut: async () => {},
+  resetPassword: async () => null,
+  updateEmail: async () => null,
+  updatePassword: async () => null,
   updateProfile: async () => null,
 });
 
@@ -259,9 +265,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const resetPassword = async (email: string): Promise<string | null> => {
+    const redirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/recovery` : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) return error.message;
+    return null;
+  };
+
+  const updateEmail = async (email: string): Promise<string | null> => {
+    const { error } = await supabase.auth.updateUser({ email });
+    if (error) return error.message;
+    return null;
+  };
+
+  const updatePassword = async (password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return error.message;
+    return null;
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, username, profile, loading, signUp, signIn, signOut, updateProfile }}
+      value={{
+        user,
+        username,
+        profile,
+        loading,
+        signUp,
+        signIn,
+        signOut,
+        resetPassword,
+        updateEmail,
+        updatePassword,
+        updateProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>

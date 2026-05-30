@@ -7,14 +7,14 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { supabase } from "@/lib/supabase";
 import { validateUsername } from "@/lib/username";
 
-type Mode = "login" | "register";
+type Mode = "login" | "register" | "reset";
 
 interface AuthModalProps {
   onClose: () => void;
 }
 
 export default function AuthModal({ onClose }: AuthModalProps) {
-  const { signUp, signIn } = useAuth();
+  const { signUp, signIn, resetPassword } = useAuth();
   useEscapeKey(onClose);
   useBodyScrollLock(true);
   const [mode, setMode] = useState<Mode>("login");
@@ -23,12 +23,21 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
+
+    if (mode === "reset") {
+      const err = await resetPassword(email.trim());
+      if (err) setError(err);
+      else setResetSent(true);
+      setSubmitting(false);
+      return;
+    }
 
     if (mode === "register") {
       const { value: trimmed, error: usernameError } = validateUsername(username);
@@ -106,6 +115,45 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     );
   }
 
+  if (resetSent) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/85"
+        onClick={onClose}
+      >
+        <div
+          className="border border-line bg-bg max-w-xs w-full mx-4 p-6 text-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-5">
+            <span className="text-[14px] font-semibold uppercase tracking-[0.16em]">
+              Vérifie ta boîte
+            </span>
+            <button
+              onClick={onClose}
+              className="text-ink-3 hover:text-ink text-[12px] cursor-pointer transition-colors"
+            >
+              fermer
+            </button>
+          </div>
+          <p className="text-[13px] text-ink-2 leading-relaxed mb-3 text-balance">
+            Si un compte existe pour
+          </p>
+          <p className="text-[13px] text-ink font-mono break-all mb-4">{email.trim()}</p>
+          <p className="text-[11px] text-ink-3 leading-relaxed mb-5 text-balance">
+            on vient d&apos;envoyer un lien pour réinitialiser le mot de passe. Pense à vérifier les spams si rien n&apos;arrive sous 2 minutes.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full border border-ink bg-transparent text-ink text-[12px] font-semibold py-2.5 hover:border-red hover:text-red cursor-pointer transition-colors uppercase tracking-[0.12em]"
+          >
+            Compris
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85"
@@ -117,7 +165,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
       >
         <div className="flex items-center justify-between mb-5">
           <span className="text-[14px] font-semibold uppercase tracking-[0.16em]">
-            {mode === "login" ? "Connexion" : "Inscription"}
+            {mode === "login" ? "Connexion" : mode === "register" ? "Inscription" : "Mot de passe oublié"}
           </span>
           <button
             onClick={onClose}
@@ -164,27 +212,47 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             />
           </div>
 
-          <div>
-            <label className="text-[11px] text-ink-2 block mb-1.5 uppercase tracking-[0.04em]">
-              mot de passe
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              className="w-full bg-transparent border border-line-2 px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink transition-colors"
-              minLength={6}
-              required
-            />
-          </div>
+          {mode !== "reset" && (
+            <div>
+              <label className="text-[11px] text-ink-2 block mb-1.5 uppercase tracking-[0.04em]">
+                mot de passe
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                className="w-full bg-transparent border border-line-2 px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink transition-colors"
+                minLength={6}
+                required
+              />
+            </div>
+          )}
+
+          {mode === "login" && (
+            <div className="text-right -mt-1">
+              <button
+                type="button"
+                onClick={() => { setMode("reset"); setError(null); }}
+                className="text-[10px] text-ink-3 hover:text-ink cursor-pointer transition-colors"
+              >
+                mot de passe oublié ?
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={submitting}
             className="w-full border border-ink bg-transparent text-ink text-[12px] font-semibold py-2.5 hover:border-red hover:text-red cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-default"
           >
-            {submitting ? "…" : mode === "login" ? "Se connecter" : "Créer un compte"}
+            {submitting
+              ? "…"
+              : mode === "login"
+                ? "Se connecter"
+                : mode === "register"
+                  ? "Créer un compte"
+                  : "Envoyer le lien"}
           </button>
         </form>
 
@@ -201,7 +269,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               onClick={() => { setMode("login"); setError(null); }}
               className="text-[11px] text-ink-3 hover:text-ink cursor-pointer transition-colors"
             >
-              déjà un compte ? connecte-toi
+              {mode === "reset" ? "retour à la connexion" : "déjà un compte ? connecte-toi"}
             </button>
           )}
         </div>
