@@ -179,6 +179,9 @@ create table if not exists public.suggestions (
   created_at   timestamptz not null default now()
 );
 
+alter table public.suggestions
+  add column if not exists admin_note text;
+
 create index if not exists suggestions_kind_status_idx
   on public.suggestions (kind, status, created_at desc);
 create index if not exists suggestions_user_id_idx
@@ -422,6 +425,31 @@ create policy "avatars delete own" on storage.objects for delete
   using (
     bucket_id = 'avatars'
     and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- Posters de suggestions de soirée (bucket à créer manuellement : public, ~2 Mo,
+-- jpeg/png/webp). Upload réservé aux comptes connectés dans leur propre dossier
+-- (les anonymes peuvent suggérer une soirée sans poster perso).
+-- Convention de chemin : suggestion-posters/{user_id}/{uuid}.<ext>
+drop policy if exists "suggestion-posters read all" on storage.objects;
+create policy "suggestion-posters read all" on storage.objects for select
+  using (bucket_id = 'suggestion-posters');
+
+drop policy if exists "suggestion-posters insert own" on storage.objects;
+create policy "suggestion-posters insert own" on storage.objects for insert
+  with check (
+    bucket_id = 'suggestion-posters'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+drop policy if exists "suggestion-posters delete own or admin" on storage.objects;
+create policy "suggestion-posters delete own or admin" on storage.objects for delete
+  using (
+    bucket_id = 'suggestion-posters'
+    and (
+      auth.uid()::text = (storage.foldername(name))[1]
+      or exists (select 1 from public.profiles p where p.user_id = auth.uid() and p.role = 'admin')
+    )
   );
 
 
