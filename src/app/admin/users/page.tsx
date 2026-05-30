@@ -4,35 +4,17 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import Nav from "@/components/Nav";
-import Ticker from "@/components/Ticker";
 import { BadgeIcon } from "@/components/RoleBadge";
-import AdminCrossNav from "@/components/AdminCrossNav";
 
 const ROLES = ["spectateur", "soutien", "moderateur", "admin"] as const;
 type Role = (typeof ROLES)[number];
 
 const BADGE_CATEGORIES: { label: string; slugs: string[] }[] = [
-  {
-    label: "Spéciaux",
-    slugs: ["admin", "founding-viewer", "top-10", "curator", "soiree-jouee", "supporter", "night-owl", "bug-hunter"],
-  },
-  {
-    label: "Antenne",
-    slugs: ["viewer-habitue", "viewer-cinephile", "viewer-connaisseur", "viewer-cingle", "viewer-legende"],
-  },
-  {
-    label: "Chat",
-    slugs: ["chatter-bavard", "chatter-animateur", "chatter-voix"],
-  },
-  {
-    label: "Suggestions films",
-    slugs: ["film-suggest-1", "film-suggest-5", "film-suggest-10"],
-  },
-  {
-    label: "Suggestions soirées",
-    slugs: ["soiree-suggest-1", "soiree-suggest-5", "soiree-suggest-10"],
-  },
+  { label: "Spéciaux", slugs: ["admin", "founding-viewer", "top-10", "curator", "soiree-jouee", "supporter", "night-owl", "bug-hunter"] },
+  { label: "Antenne", slugs: ["viewer-habitue", "viewer-cinephile", "viewer-connaisseur", "viewer-cingle", "viewer-legende"] },
+  { label: "Chat", slugs: ["chatter-bavard", "chatter-animateur", "chatter-voix"] },
+  { label: "Films", slugs: ["film-suggest-1", "film-suggest-5", "film-suggest-10"] },
+  { label: "Soirées", slugs: ["soiree-suggest-1", "soiree-suggest-5", "soiree-suggest-10"] },
 ];
 
 interface ProfileRow {
@@ -58,7 +40,7 @@ function ProfileAvatar({ username, src }: { username: string; src: string | null
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" className="w-8 h-8 rounded-full object-cover border border-line-2" />
+      <img src={src} alt="" className="w-8 h-8 rounded-full object-cover border border-line-2 shrink-0" />
     );
   }
   const letter = username.trim().charAt(0).toUpperCase() || "?";
@@ -88,15 +70,8 @@ function UsersAdminContent() {
       setLoading(true);
       try {
         const [{ data: profs }, { data: bdgs }, { data: ubs }] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select("user_id,username,avatar_url,role,created_at")
-            .order("created_at", { ascending: false })
-            .limit(500),
-          supabase
-            .from("badges")
-            .select("slug,label,color")
-            .order("slug", { ascending: true }),
+          supabase.from("profiles").select("user_id,username,avatar_url,role,created_at").order("created_at", { ascending: false }).limit(500),
+          supabase.from("badges").select("slug,label,color").order("slug", { ascending: true }),
           supabase.from("user_badges").select("user_id,badge_slug"),
         ]);
         if (cancelled) return;
@@ -116,9 +91,7 @@ function UsersAdminContent() {
       }
     };
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [isAdmin]);
 
   useEffect(() => {
@@ -135,15 +108,9 @@ function UsersAdminContent() {
 
   const updateRole = async (userId: string, role: Role) => {
     setBusy(`role:${userId}`);
-    const { error } = await supabase.rpc("admin_set_role", {
-      p_user_id: userId,
-      p_role: role,
-    });
+    const { error } = await supabase.rpc("admin_set_role", { p_user_id: userId, p_role: role });
     setBusy(null);
-    if (error) {
-      setFeedback({ kind: "err", text: error.message });
-      return;
-    }
+    if (error) { setFeedback({ kind: "err", text: error.message }); return; }
     setProfiles((prev) => prev.map((p) => (p.user_id === userId ? { ...p, role } : p)));
     setFeedback({ kind: "ok", text: `Rôle → ${role}` });
   };
@@ -151,16 +118,9 @@ function UsersAdminContent() {
   const toggleBadge = async (userId: string, slug: string, has: boolean) => {
     setBusy(`badge:${userId}:${slug}`);
     if (has) {
-      const { error } = await supabase
-        .from("user_badges")
-        .delete()
-        .eq("user_id", userId)
-        .eq("badge_slug", slug);
+      const { error } = await supabase.from("user_badges").delete().eq("user_id", userId).eq("badge_slug", slug);
       setBusy(null);
-      if (error) {
-        setFeedback({ kind: "err", text: error.message });
-        return;
-      }
+      if (error) { setFeedback({ kind: "err", text: error.message }); return; }
       setUserBadges((prev) => {
         const next = new Map(prev);
         const set = new Set(next.get(userId) ?? []);
@@ -170,14 +130,9 @@ function UsersAdminContent() {
       });
       setFeedback({ kind: "ok", text: `Badge ${slug} retiré` });
     } else {
-      const { error } = await supabase
-        .from("user_badges")
-        .insert({ user_id: userId, badge_slug: slug, awarded_reason: "admin grant" });
+      const { error } = await supabase.from("user_badges").insert({ user_id: userId, badge_slug: slug, awarded_reason: "admin grant" });
       setBusy(null);
-      if (error) {
-        setFeedback({ kind: "err", text: error.message });
-        return;
-      }
+      if (error) { setFeedback({ kind: "err", text: error.message }); return; }
       setUserBadges((prev) => {
         const next = new Map(prev);
         const set = new Set(next.get(userId) ?? []);
@@ -190,172 +145,113 @@ function UsersAdminContent() {
   };
 
   if (authLoading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Ticker />
-        <Nav />
-        <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">
-          Chargement…
-        </div>
-      </div>
-    );
+    return <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">Chargement…</div>;
   }
 
   if (!user || !isAdmin) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Ticker />
-        <Nav />
-        <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
-          <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
-            ★ Accès refusé
-          </div>
-          <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
-            style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
-          >
-            Réservé aux admins
-          </h1>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors rounded-md"
-          >
-            RETOUR
-            <span aria-hidden>→</span>
-          </Link>
-        </div>
+      <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
+        <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">★ Accès refusé</div>
+        <h1 className="font-bold leading-[0.95] tracking-[-0.04em] text-balance" style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>Réservé aux admins</h1>
+        <Link href="/" className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors">RETOUR <span aria-hidden>→</span></Link>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Ticker />
-      <Nav />
-
-      <header className="px-10 py-24 border-b border-line flex flex-col items-center text-center gap-6 max-md:px-5 max-md:py-16">
-        <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.16em] uppercase text-ink-3">
-          ★ <span className="text-red font-bold">Admin</span>
-          {" · Channel 01"}
-        </div>
-        <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em] uppercase text-balance"
-          style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
-        >
-          Users
-        </h1>
-        <AdminCrossNav current="/admin/users" />
+    <>
+      <header className="px-10 py-8 border-b border-line max-md:px-5 max-md:py-6">
+        <h1 className="font-mono text-[11px] font-bold tracking-[0.16em] uppercase text-ink mb-1">Users</h1>
+        <p className="text-[13px] text-ink-3">{profiles.length} membre{profiles.length > 1 ? "s" : ""}</p>
       </header>
 
-      <div className="px-10 py-6 border-b border-line flex flex-wrap items-center gap-4 max-md:px-5">
+      <div className="px-10 py-4 border-b border-line flex flex-wrap items-center gap-4 max-md:px-5">
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Chercher un pseudo…"
-          className="bg-transparent border border-line-2 px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink rounded-md min-w-[260px]"
+          className="bg-transparent border border-line-2 px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 outline-none focus:border-ink min-w-[260px]"
         />
-        <div className="ml-auto font-mono text-[11px] tracking-[0.04em] text-ink-3">
+        <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
           {loading ? "…" : `${filtered.length} / ${profiles.length}`}
         </div>
         {feedback && (
-          <div
-            className={`font-mono text-[11px] tracking-[0.04em] ${feedback.kind === "ok" ? "text-red" : "text-red"}`}
-          >
+          <div className={`font-mono text-[11px] tracking-[0.04em] ${feedback.kind === "ok" ? "text-ink" : "text-red"}`}>
             {feedback.kind === "ok" ? "★" : "✕"} {feedback.text}
           </div>
         )}
       </div>
 
-      <main className="px-10 py-8 max-md:px-5">
+      <main className="px-10 py-6 max-md:px-5">
         {loading ? (
-          <div className="font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase py-12 text-center">
-            Chargement…
-          </div>
+          <div className="font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase py-12 text-center">Chargement…</div>
         ) : filtered.length === 0 ? (
-          <div className="font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase py-16 text-center">
-            ★ Aucun résultat
-          </div>
+          <div className="font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase py-16 text-center">★ Aucun résultat</div>
         ) : (
           <ul className="flex flex-col">
             {filtered.map((p) => {
               const userBadgesSet = userBadges.get(p.user_id) ?? new Set<string>();
               return (
-                <li
-                  key={p.user_id}
-                  className="border-t border-line first:border-t-0 py-5 grid grid-cols-[auto_1fr_auto] gap-5 items-start max-md:grid-cols-1"
-                >
-                  <ProfileAvatar username={p.username} src={p.avatar_url} />
-
-                  <div className="flex flex-col gap-3 min-w-0">
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                      <Link
-                        href={`/u/${encodeURIComponent(p.username)}`}
-                        className="font-semibold text-[15px] text-ink hover:text-red transition-colors"
-                      >
-                        @{p.username}
-                      </Link>
-                      <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
-                        {new Date(p.created_at).toLocaleDateString("fr-FR")}
-                      </span>
+                <li key={p.user_id} className="border-t border-line first:border-t-0 py-5 flex flex-col gap-4 max-md:gap-3">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <ProfileAvatar username={p.username} src={p.avatar_url} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-3 flex-wrap">
+                        <Link href={`/u/${encodeURIComponent(p.username)}`} className="font-semibold text-[15px] text-ink hover:text-red transition-colors">
+                          @{p.username}
+                        </Link>
+                        <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
+                          {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                        </span>
+                      </div>
                     </div>
-
-                    <div className="flex flex-col gap-3">
-                      {BADGE_CATEGORIES.map((cat) => {
-                        const catBadges = cat.slugs
-                          .map((slug) => badges.find((b) => b.slug === slug))
-                          .filter((b): b is Badge => !!b);
-                        if (catBadges.length === 0) return null;
-                        return (
-                          <div key={cat.label} className="flex items-baseline gap-3 flex-wrap">
-                            <span className="font-mono text-[9px] font-bold tracking-[0.16em] uppercase text-ink-3 shrink-0 min-w-[100px]">
-                              {cat.label}
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {catBadges.map((b) => {
-                                const has = userBadgesSet.has(b.slug);
-                                const loadingThis = busy === `badge:${p.user_id}:${b.slug}`;
-                                return (
-                                  <button
-                                    key={b.slug}
-                                    type="button"
-                                    onClick={() => toggleBadge(p.user_id, b.slug, has)}
-                                    disabled={loadingThis}
-                                    title={b.label}
-                                    className={`inline-flex items-center gap-1.5 px-2 py-1 border text-[10px] font-mono tracking-[0.08em] uppercase rounded-md transition-colors cursor-pointer disabled:opacity-30 ${
-                                      has
-                                        ? "border-red text-ink"
-                                        : "border-line-2 text-ink-3 hover:text-ink hover:border-ink"
-                                    }`}
-                                  >
-                                    <BadgeIcon slug={b.slug} size={12} color={has ? b.color : undefined} />
-                                    {b.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">Rôle</span>
+                      <select
+                        value={p.role}
+                        onChange={(e) => updateRole(p.user_id, e.target.value as Role)}
+                        disabled={busy === `role:${p.user_id}`}
+                        className="bg-bg border border-line-2 text-ink text-[12px] font-mono tracking-[0.04em] uppercase px-2 py-1.5 cursor-pointer focus:border-ink outline-none disabled:opacity-30"
+                      >
+                        {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 max-md:mt-3">
-                    <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
-                      Rôle
-                    </span>
-                    <select
-                      value={p.role}
-                      onChange={(e) => updateRole(p.user_id, e.target.value as Role)}
-                      disabled={busy === `role:${p.user_id}`}
-                      className="bg-bg border border-line-2 text-ink text-[12px] font-mono tracking-[0.04em] uppercase px-2 py-1.5 rounded-md cursor-pointer focus:border-ink outline-none disabled:opacity-30"
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="flex flex-col gap-2 pl-12 max-md:pl-0">
+                    {BADGE_CATEGORIES.map((cat) => {
+                      const catBadges = cat.slugs.map((slug) => badges.find((b) => b.slug === slug)).filter((b): b is Badge => !!b);
+                      if (catBadges.length === 0) return null;
+                      return (
+                        <div key={cat.label} className="flex items-center gap-3 flex-wrap">
+                          <span className="font-mono text-[9px] font-bold tracking-[0.16em] uppercase text-ink-3 shrink-0 w-16">
+                            {cat.label}
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {catBadges.map((b) => {
+                              const has = userBadgesSet.has(b.slug);
+                              const loadingThis = busy === `badge:${p.user_id}:${b.slug}`;
+                              return (
+                                <button
+                                  key={b.slug}
+                                  type="button"
+                                  onClick={() => toggleBadge(p.user_id, b.slug, has)}
+                                  disabled={loadingThis}
+                                  title={b.label}
+                                  className={`inline-flex items-center gap-1.5 px-2 py-1 border text-[10px] font-mono tracking-[0.08em] uppercase transition-colors cursor-pointer disabled:opacity-30 ${
+                                    has ? "border-red text-ink" : "border-line-2 text-ink-3 hover:text-ink hover:border-ink"
+                                  }`}
+                                >
+                                  <BadgeIcon slug={b.slug} size={12} color={has ? b.color : undefined} />
+                                  {b.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </li>
               );
@@ -363,14 +259,7 @@ function UsersAdminContent() {
           </ul>
         )}
       </main>
-
-      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
-        <span>CLUBCINE.XYZ · ADMIN · 2026</span>
-        <Link href="/" className="hover:text-ink transition-colors">
-          ← RETOUR
-        </Link>
-      </footer>
-    </div>
+    </>
   );
 }
 

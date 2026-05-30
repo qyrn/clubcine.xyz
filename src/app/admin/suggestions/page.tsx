@@ -4,9 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import Nav from "@/components/Nav";
-import Ticker from "@/components/Ticker";
-import AdminCrossNav from "@/components/AdminCrossNav";
 
 type Kind = "film" | "soiree";
 type Status = "pending" | "accepted" | "rejected";
@@ -22,33 +19,12 @@ interface Suggestion {
   created_at: string;
 }
 
-const KIND_LABELS: Record<Kind | "all", string> = {
-  all: "Tous",
-  film: "Films",
-  soiree: "Soirées",
-};
-
-const STATUS_LABELS: Record<Status | "all", string> = {
-  all: "Tous",
-  pending: "En attente",
-  accepted: "Acceptées",
-  rejected: "Rejetées",
-};
-
-const STATUS_COLORS: Record<Status, string> = {
-  pending: "text-red",
-  accepted: "text-ink",
-  rejected: "text-ink-3",
-};
+const KIND_LABELS: Record<Kind | "all", string> = { all: "Tous", film: "Films", soiree: "Soirées" };
+const STATUS_LABELS: Record<Status | "all", string> = { all: "Tous", pending: "En attente", accepted: "Acceptées", rejected: "Rejetées" };
 
 function formatDate(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 function PayloadView({ kind, payload }: { kind: Kind; payload: Record<string, unknown> }) {
@@ -60,22 +36,12 @@ function PayloadView({ kind, payload }: { kind: Kind; payload: Record<string, un
       <div className="flex gap-3 items-start">
         {poster && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={poster}
-            alt=""
-            className="w-12 h-[72px] object-cover border border-line rounded-md shrink-0"
-          />
+          <img src={poster} alt="" className="w-10 h-[60px] object-cover border border-line shrink-0" />
         )}
         <div className="flex flex-col gap-1 min-w-0">
-          {title && (
-            <span className="text-[14px] font-semibold text-ink">{title}</span>
-          )}
-          <a
-            href={letterboxd}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[12px] text-ink-2 hover:text-red transition-colors break-all"
-          >
+          {title && <span className="text-[14px] font-semibold text-ink">{title}</span>}
+          <a href={letterboxd} target="_blank" rel="noopener noreferrer"
+            className="text-[12px] text-ink-2 hover:text-red transition-colors break-all">
             {letterboxd}
           </a>
         </div>
@@ -108,11 +74,7 @@ function SuggestionsAdminContent() {
     const load = async () => {
       setLoading(true);
       try {
-        let query = supabase
-          .from("suggestions")
-          .select("id,kind,user_id,username,payload,credit,status,created_at")
-          .order("created_at", { ascending: false })
-          .limit(200);
+        let query = supabase.from("suggestions").select("id,kind,user_id,username,payload,credit,status,created_at").order("created_at", { ascending: false }).limit(200);
         if (kindFilter !== "all") query = query.eq("kind", kindFilter);
         if (statusFilter !== "all") query = query.eq("status", statusFilter);
         const { data } = await query;
@@ -125,17 +87,12 @@ function SuggestionsAdminContent() {
       }
     };
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [isAdmin, kindFilter, statusFilter]);
 
   const updateStatus = async (id: string, next: Status) => {
     setUpdating(id);
-    const { error } = await supabase
-      .from("suggestions")
-      .update({ status: next })
-      .eq("id", id);
+    const { error } = await supabase.from("suggestions").update({ status: next }).eq("id", id);
     setUpdating(null);
     if (!error) {
       setItems((prev) =>
@@ -147,86 +104,32 @@ function SuggestionsAdminContent() {
   };
 
   if (authLoading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Ticker />
-        <Nav />
-        <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">
-          Chargement…
-        </div>
-      </div>
-    );
+    return <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">Chargement…</div>;
   }
 
   if (!user || !isAdmin) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Ticker />
-        <Nav />
-        <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
-          <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
-            ★ Accès refusé
-          </div>
-          <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
-            style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
-          >
-            Réservé aux admins
-          </h1>
-          <p className="text-[14px] text-ink-2 max-w-[420px] text-balance">
-            Cette page est protégée. Connecte-toi avec un compte qui a le rôle
-            <span className="font-mono text-ink"> admin </span> dans Supabase.
-          </p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors rounded-md"
-          >
-            RETOUR
-            <span aria-hidden>→</span>
-          </Link>
-        </div>
+      <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
+        <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">★ Accès refusé</div>
+        <h1 className="font-bold leading-[0.95] tracking-[-0.04em] text-balance" style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>Réservé aux admins</h1>
+        <Link href="/" className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors">RETOUR <span aria-hidden>→</span></Link>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Ticker />
-      <Nav />
-
-      <header className="px-10 py-16 border-b border-line max-md:px-5 max-md:py-12">
-        <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.16em] uppercase text-ink-3 mb-3">
-          ★ <span className="text-red font-bold">Admin</span>
-          {" · Channel 01"}
-        </div>
-        <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
-          style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
-        >
-          Suggestions
-        </h1>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[560px] mt-3 text-balance">
-          Boîte de réception des propositions de films et de soirées envoyées
-          depuis le site.
-        </p>
-        <div className="mt-4">
-          <AdminCrossNav current="/admin/suggestions" />
-        </div>
+    <>
+      <header className="px-10 py-8 border-b border-line max-md:px-5 max-md:py-6">
+        <h1 className="font-mono text-[11px] font-bold tracking-[0.16em] uppercase text-ink mb-1">Suggestions</h1>
+        <p className="text-[13px] text-ink-3">Propositions de films et de soirées envoyées depuis le site.</p>
       </header>
 
-      <div className="px-10 py-6 border-b border-line flex flex-wrap items-center gap-6 max-md:px-5">
+      <div className="px-10 py-4 border-b border-line flex flex-wrap items-center gap-5 max-md:px-5">
         <div className="flex items-center gap-2">
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">Type</span>
           {(["all", "film", "soiree"] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => setKindFilter(k)}
-              className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.08em] uppercase border rounded-md transition-colors cursor-pointer ${
-                kindFilter === k
-                  ? "border-ink text-ink"
-                  : "border-line-2 text-ink-3 hover:text-ink hover:border-line-2"
-              }`}
-            >
+            <button key={k} onClick={() => setKindFilter(k)}
+              className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.08em] uppercase border transition-colors cursor-pointer ${kindFilter === k ? "border-ink text-ink" : "border-line-2 text-ink-3 hover:text-ink"}`}>
               {KIND_LABELS[k]}
             </button>
           ))}
@@ -234,15 +137,8 @@ function SuggestionsAdminContent() {
         <div className="flex items-center gap-2">
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">Statut</span>
           {(["all", "pending", "accepted", "rejected"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.08em] uppercase border rounded-md transition-colors cursor-pointer ${
-                statusFilter === s
-                  ? "border-ink text-ink"
-                  : "border-line-2 text-ink-3 hover:text-ink hover:border-line-2"
-              }`}
-            >
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.08em] uppercase border transition-colors cursor-pointer ${statusFilter === s ? "border-ink text-ink" : "border-line-2 text-ink-3 hover:text-ink"}`}>
               {STATUS_LABELS[s]}
             </button>
           ))}
@@ -252,95 +148,61 @@ function SuggestionsAdminContent() {
         </div>
       </div>
 
-      <main className="px-10 py-8 max-md:px-5">
+      <main className="px-10 py-6 max-md:px-5">
         {loading ? (
-          <div className="font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase py-12 text-center">
-            Chargement…
-          </div>
+          <div className="font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase py-12 text-center">Chargement…</div>
         ) : items.length === 0 ? (
-          <div className="font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase py-16 text-center">
-            ★ Boîte vide
-          </div>
+          <div className="font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase py-16 text-center">★ Boîte vide</div>
         ) : (
           <ul className="flex flex-col">
             {items.map((s) => (
-              <li
-                key={s.id}
-                className="border-t border-line first:border-t-0 py-5 grid grid-cols-[100px_120px_1fr_auto] items-start gap-6 max-md:grid-cols-1 max-md:gap-3"
-              >
-                <div className="font-mono text-[10px] tracking-[0.16em] uppercase">
-                  <div className={`${STATUS_COLORS[s.status]} font-semibold`}>
-                    {STATUS_LABELS[s.status]}
+              <li key={s.id} className="border-t border-line first:border-t-0 py-5 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="flex flex-col gap-0.5">
+                    {s.username ? (
+                      <Link href={`/u/${encodeURIComponent(s.username)}`} className="font-semibold text-[14px] text-ink hover:text-red transition-colors">
+                        @{s.username}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold text-[14px] text-ink-3">anonyme</span>
+                    )}
+                    <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.04em] text-ink-3 flex-wrap">
+                      <span>{formatDate(s.created_at)}</span>
+                      <span className="text-ink-4">·</span>
+                      <span className="uppercase">{s.kind}</span>
+                      {s.credit && <><span className="text-ink-4">·</span><span className="text-red">★ avec attribution</span></>}
+                      <span className="text-ink-4">·</span>
+                      <span className={s.status === "pending" ? "text-red font-semibold" : s.status === "accepted" ? "text-ink" : ""}>{STATUS_LABELS[s.status]}</span>
+                    </div>
                   </div>
-                  <div className="text-ink-3 mt-1">{s.kind}</div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {s.status !== "accepted" && (
+                      <button type="button" onClick={() => updateStatus(s.id, "accepted")} disabled={updating === s.id}
+                        className="px-3 py-1.5 border border-ink text-ink font-semibold text-[11px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30">
+                        Accepter
+                      </button>
+                    )}
+                    {s.status !== "rejected" && (
+                      <button type="button" onClick={() => updateStatus(s.id, "rejected")} disabled={updating === s.id}
+                        className="px-3 py-1.5 border border-line-2 text-ink-3 font-semibold text-[11px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30">
+                        Rejeter
+                      </button>
+                    )}
+                    {s.status !== "pending" && (
+                      <button type="button" onClick={() => updateStatus(s.id, "pending")} disabled={updating === s.id}
+                        className="px-3 py-1.5 border border-line-2 text-ink-3 font-semibold text-[11px] uppercase tracking-[0.08em] hover:text-ink hover:border-ink transition-colors cursor-pointer disabled:opacity-30">
+                        Rouvrir
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-                <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
-                  <div>{formatDate(s.created_at)}</div>
-                  {s.username ? (
-                    <Link
-                      href={`/u/${encodeURIComponent(s.username)}`}
-                      className="text-ink-2 hover:text-red transition-colors"
-                    >
-                      @{s.username}
-                    </Link>
-                  ) : (
-                    <span className="text-ink-3">anonyme</span>
-                  )}
-                  {s.credit && (
-                    <div className="text-red mt-1">★ avec attribution</div>
-                  )}
-                </div>
-
-                <div className="min-w-0">
-                  <PayloadView kind={s.kind} payload={s.payload} />
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0 max-md:flex-wrap">
-                  {s.status !== "accepted" && (
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(s.id, "accepted")}
-                      disabled={updating === s.id}
-                      className="px-3 py-1.5 border border-ink text-ink font-semibold text-[10px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30 rounded-md"
-                    >
-                      Accepter
-                    </button>
-                  )}
-                  {s.status !== "rejected" && (
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(s.id, "rejected")}
-                      disabled={updating === s.id}
-                      className="px-3 py-1.5 border border-line-2 text-ink-3 font-semibold text-[10px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30 rounded-md"
-                    >
-                      Rejeter
-                    </button>
-                  )}
-                  {s.status !== "pending" && (
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(s.id, "pending")}
-                      disabled={updating === s.id}
-                      className="px-3 py-1.5 border border-line-2 text-ink-3 font-semibold text-[10px] uppercase tracking-[0.08em] hover:text-ink hover:border-ink transition-colors cursor-pointer disabled:opacity-30 rounded-md"
-                    >
-                      Re-pending
-                    </button>
-                  )}
-                </div>
+                <PayloadView kind={s.kind} payload={s.payload} />
               </li>
             ))}
           </ul>
         )}
       </main>
-
-      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
-        <span>CLUBCINE.XYZ · ADMIN · 2026</span>
-        <Link href="/" className="hover:text-ink transition-colors">
-          ← RETOUR
-        </Link>
-      </footer>
-    </div>
+    </>
   );
 }
 
