@@ -552,39 +552,40 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             return (
             <div
               key={msg.id}
-              className={`group text-[12px] leading-[1.6] break-words flex items-start gap-1.5 ${
+              title={formatTime(msg.timestamp)}
+              className={`group relative text-[12px] leading-[1.55] break-words ${
                 mine
                   ? "-mx-1.5 px-1.5 py-0.5 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
                   : ""
               }`}
             >
-              <span className="text-ink-3 text-[10px] font-mono shrink-0 mt-[3px]">{formatTime(msg.timestamp)}</span>
               <UserChip
                 username={msg.username}
                 profile={profileMap.get(msg.username.toLowerCase())}
                 size="sm"
-                className="font-semibold text-ink"
+                className="font-semibold text-ink align-middle mr-1"
               />
-              <span className="flex-1 min-w-0">
-                <EmoteText
-                  text={msg.text}
-                  emotes={emotes}
-                  size={18}
-                  className="text-ink-2"
-                  highlightSelf={selfLower}
-                />
-              </span>
+              <span className="text-ink-3">: </span>
+              <EmoteText
+                text={msg.text}
+                emotes={emotes}
+                size={18}
+                className="text-ink-2"
+                highlightSelf={selfLower}
+              />
               {canModerate && (
-                <ModTools
-                  username={msg.username}
-                  onDeleteMessage={() => deleteMessage(msg)}
-                  onPurgeUser={() => deleteAllFromUser(msg)}
-                  onBanUser={
-                    targetProfile?.userId
-                      ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
-                      : undefined
-                  }
-                />
+                <span className="absolute top-0 right-0 group-hover:bg-bg/90 rounded-sm">
+                  <ModTools
+                    username={msg.username}
+                    onDeleteMessage={() => deleteMessage(msg)}
+                    onPurgeUser={() => deleteAllFromUser(msg)}
+                    onBanUser={
+                      targetProfile?.userId
+                        ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
+                        : undefined
+                    }
+                  />
+                </span>
               )}
             </div>
             );
@@ -688,39 +689,40 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           return (
           <div
             key={msg.id}
-            className={`group py-1 text-[13px] leading-[1.5] break-words flex items-start gap-2 ${
+            title={formatTime(msg.timestamp)}
+            className={`group relative py-1 text-[13px] leading-[1.6] break-words ${
               mine
                 ? "-mx-2 px-2 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
                 : ""
             }`}
           >
-            <span className="text-ink-3 text-[10px] font-mono shrink-0 mt-[4px]">{formatTime(msg.timestamp)}</span>
             <UserChip
               username={msg.username}
               profile={profileMap.get(msg.username.toLowerCase())}
               size="sm"
-              className="font-semibold text-ink"
+              className="font-semibold text-ink align-middle mr-1"
             />
-            <span className="flex-1 min-w-0">
-              <EmoteText
-                text={msg.text}
-                emotes={emotes}
-                size={22}
-                className="text-ink-2"
-                highlightSelf={selfLower}
-              />
-            </span>
+            <span className="text-ink-3">: </span>
+            <EmoteText
+              text={msg.text}
+              emotes={emotes}
+              size={22}
+              className="text-ink-2"
+              highlightSelf={selfLower}
+            />
             {canModerate && (
-              <ModTools
-                username={msg.username}
-                onDeleteMessage={() => deleteMessage(msg)}
-                onPurgeUser={() => deleteAllFromUser(msg)}
-                onBanUser={
-                  targetProfile?.userId
-                    ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
-                    : undefined
-                }
-              />
+              <span className="absolute top-0.5 right-0 group-hover:bg-bg/90 rounded-sm">
+                <ModTools
+                  username={msg.username}
+                  onDeleteMessage={() => deleteMessage(msg)}
+                  onPurgeUser={() => deleteAllFromUser(msg)}
+                  onBanUser={
+                    targetProfile?.userId
+                      ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
+                      : undefined
+                  }
+                />
+              </span>
             )}
           </div>
           );
