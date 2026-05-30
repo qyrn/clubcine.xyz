@@ -963,17 +963,30 @@ grant execute on function public.admin_set_role(uuid, text) to authenticated;
 create unique index if not exists profiles_username_lower_unique
   on public.profiles (lower(username));
 
--- c) rate limit messages : 10 inserts max par username sur les 10 dernières secondes
+-- c) rate limit messages : 10 inserts max par username sur les 10 dernières secondes.
+-- Dépassement = pause anti-spam de 60s posée dans chat_timeouts (sauf staff), que
+-- enforce_chat_moderation fait respecter pour les inserts suivants.
 create or replace function public.rate_limit_messages()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 declare
   recent_count int;
+  is_staff boolean := false;
 begin
   select count(*) into recent_count
   from public.messages
   where username = new.username
     and timestamp > (extract(epoch from now() - interval '10 seconds') * 1000)::bigint;
   if recent_count >= 10 then
+    if auth.uid() is not null then
+      select role in ('admin', 'moderateur') into is_staff
+        from public.profiles where user_id = auth.uid();
+    end if;
+    if not coalesce(is_staff, false) then
+      insert into public.chat_timeouts (username, until)
+        values (new.username, now() + interval '60 seconds')
+        on conflict (username) do update set until = excluded.until;
+      raise exception 'trop de messages, pause de 60 secondes';
+    end if;
     raise exception 'trop de messages, ralentis un peu';
   end if;
   return new;
@@ -1289,6 +1302,19 @@ alter table public.chat_settings enable row level security;
 drop policy if exists "chat_settings read all" on public.chat_settings;
 create policy "chat_settings read all" on public.chat_settings for select using (true);
 
+-- Pauses anti-spam temporaires, posées par rate_limit_messages quand un username
+-- dépasse le rate limit. Clé = username (couvre comptes connectés ET anonymes).
+-- Écriture uniquement via triggers security definer ; lecture publique pour l'UI.
+create table if not exists public.chat_timeouts (
+  username  text primary key,
+  until     timestamptz not null
+);
+
+alter table public.chat_timeouts enable row level security;
+
+drop policy if exists "chat_timeouts read all" on public.chat_timeouts;
+create policy "chat_timeouts read all" on public.chat_timeouts for select using (true);
+
 alter table public.profiles
   add column if not exists chat_banned_until timestamptz,
   add column if not exists chat_ban_reason   text;
@@ -1339,6 +1365,7 @@ declare
   settings_slow      int;
   threshold_ms       bigint;
   recent_msg_ts      bigint;
+  spam_until         timestamptz;
 begin
   select frozen, slow_mode_seconds
     into settings_frozen, settings_slow
@@ -1358,6 +1385,13 @@ begin
 
   if is_staff then
     return new;
+  end if;
+
+  select until into spam_until
+    from public.chat_timeouts where username = new.username;
+  if spam_until is not null and spam_until > now() then
+    raise exception 'tu spammes, pause % secondes',
+      greatest(1, ceil(extract(epoch from (spam_until - now())))::int);
   end if;
 
   if caller_banned is not null and caller_banned > now() then
