@@ -16,6 +16,18 @@ import MentionSuggestions from "./MentionSuggestions";
 import EmoteSuggestions from "./EmoteSuggestions";
 import BanUserDialog from "./BanUserDialog";
 import { readStorage, writeStorage } from "@/lib/safe-storage";
+import { usePersistentState } from "@/lib/use-persistent-state";
+
+const LAST_SENT_KEY = "clubcine-chat-last-sent";
+
+function parseLastSent(raw: string): number | null {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function serializeLastSent(value: number | null): string {
+  return value === null ? "" : String(value);
+}
 
 function generateUsername(): string {
   const p = ANON_PSEUDOS[Math.floor(Math.random() * ANON_PSEUDOS.length)];
@@ -212,7 +224,12 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const canModerate = profile?.role === "admin" || profile?.role === "moderateur";
 
   const { frozen, slowModeSeconds } = useChatSettings();
-  const [lastSentAt, setLastSentAt] = useState<number | null>(null);
+  const [lastSentAt, setLastSentAt] = usePersistentState<number | null>(
+    LAST_SENT_KEY,
+    null,
+    parseLastSent,
+    serializeLastSent
+  );
   const [spamLockUntil, setSpamLockUntil] = useState<number | null>(null);
   const [clockTick, setClockTick] = useState(() => Date.now());
 
@@ -676,6 +693,14 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
   };
 
+  const statusText = frozen
+    ? "Chat figé par la modération"
+    : slowModeSeconds > 0
+      ? `Slow mode · 1 message toutes les ${slowModeSeconds}s`
+      : null;
+
+  const statusTone = frozen ? "bg-red/10 text-red" : "bg-line/20 text-ink-3";
+
   if (compact) {
     return (
       <div className="flex flex-col h-full">
@@ -706,6 +731,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             >
               ×
             </button>
+          </div>
+        )}
+        {statusText && (
+          <div
+            className={`px-3 py-1.5 border-b border-line text-[10px] font-mono tracking-[0.12em] uppercase text-center ${statusTone}`}
+          >
+            {statusText}
           </div>
         )}
         <div className="relative flex-1 min-h-0">
@@ -877,6 +909,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           >
             ×
           </button>
+        </div>
+      )}
+      {statusText && (
+        <div
+          className={`mb-3 px-3 py-2 rounded-md border border-line text-[11px] font-mono tracking-[0.12em] uppercase text-center ${statusTone}`}
+        >
+          {statusText}
         </div>
       )}
       <div className="relative flex-1 min-h-[280px] max-h-[60vh] mb-4">
