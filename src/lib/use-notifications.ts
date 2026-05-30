@@ -53,15 +53,20 @@ export function useNotifications(userId: string | null) {
 
     const load = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("notifications")
-        .select("id,actor_id,actor_username,type,read,created_at")
-        .eq("recipient_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(PAGE_SIZE);
-      if (cancelled) return;
-      setNotifications(((data ?? []) as NotificationRow[]).map(rowToNotification));
-      setLoading(false);
+      try {
+        const { data } = await supabase
+          .from("notifications")
+          .select("id,actor_id,actor_username,type,read,created_at")
+          .eq("recipient_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(PAGE_SIZE);
+        if (cancelled) return;
+        setNotifications(((data ?? []) as NotificationRow[]).map(rowToNotification));
+      } catch (e) {
+        console.error("[useNotifications] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     load();
 

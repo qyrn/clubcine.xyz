@@ -36,33 +36,37 @@ export default function FollowListModal({ userId, username, kind, onClose }: Pro
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const column = kind === "followers" ? "follower_id" : "following_id";
-      const filter = kind === "followers" ? "following_id" : "follower_id";
+      try {
+        const column = kind === "followers" ? "follower_id" : "following_id";
+        const filter = kind === "followers" ? "following_id" : "follower_id";
 
-      const { data: relRows } = await supabase
-        .from("follows")
-        .select(column)
-        .eq(filter, userId);
+        const { data: relRows } = await supabase
+          .from("follows")
+          .select(column)
+          .eq(filter, userId);
 
-      if (cancelled) return;
-      const ids = ((relRows ?? []) as Array<Record<string, string>>)
-        .map((r) => r[column])
-        .filter(Boolean);
+        if (cancelled) return;
+        const ids = ((relRows ?? []) as Array<Record<string, string>>)
+          .map((r) => r[column])
+          .filter(Boolean);
 
-      if (ids.length === 0) {
-        setUsernames([]);
-        setLoading(false);
-        return;
+        if (ids.length === 0) {
+          setUsernames([]);
+          return;
+        }
+
+        const { data: profileRows } = await supabase
+          .from("profiles")
+          .select("user_id,username")
+          .in("user_id", ids);
+
+        if (cancelled) return;
+        setUsernames(((profileRows ?? []) as ProfileRow[]).map((p) => p.username));
+      } catch (e) {
+        console.error("[FollowListModal] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      const { data: profileRows } = await supabase
-        .from("profiles")
-        .select("user_id,username")
-        .in("user_id", ids);
-
-      if (cancelled) return;
-      setUsernames(((profileRows ?? []) as ProfileRow[]).map((p) => p.username));
-      setLoading(false);
     };
     load();
     return () => {

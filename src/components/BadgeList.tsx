@@ -35,22 +35,27 @@ export default function BadgeList({ userId }: Props) {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("user_badges")
-        .select("badge_slug,awarded_at,awarded_reason,badges(slug,label,description,color)")
-        .eq("user_id", userId)
-        .order("awarded_at", { ascending: false });
-      if (cancelled) return;
-      const rows = (data ?? []) as unknown as UserBadgeRow[];
-      const list: AwardedBadge[] = rows
-        .filter((r) => r.badges)
-        .map((r) => ({
-          ...r.badges,
-          awardedAt: r.awarded_at,
-          reason: r.awarded_reason,
-        }));
-      setBadges(list);
-      setLoading(false);
+      try {
+        const { data } = await supabase
+          .from("user_badges")
+          .select("badge_slug,awarded_at,awarded_reason,badges(slug,label,description,color)")
+          .eq("user_id", userId)
+          .order("awarded_at", { ascending: false });
+        if (cancelled) return;
+        const rows = (data ?? []) as unknown as UserBadgeRow[];
+        const list: AwardedBadge[] = rows
+          .filter((r) => r.badges)
+          .map((r) => ({
+            ...r.badges,
+            awardedAt: r.awarded_at,
+            reason: r.awarded_reason,
+          }));
+        setBadges(list);
+      } catch (e) {
+        console.error("[BadgeList] load error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     load();
     return () => {

@@ -193,25 +193,30 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     let cancelled = false;
 
     const loadMessages = async () => {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*")
-        .order("timestamp", { ascending: false })
-        .limit(MAX_MESSAGES);
-      if (cancelled) return;
-      if (error) {
-        console.error("[Chat] fetch error:", error);
+      try {
+        const { data, error } = await supabase
+          .from("messages")
+          .select("*")
+          .order("timestamp", { ascending: false })
+          .limit(MAX_MESSAGES);
+        if (cancelled) return;
+        if (error) {
+          console.error("[Chat] fetch error:", error);
+          setLoadError(true);
+          return;
+        }
+        const tombstones = deletedIdsRef.current;
+        const fresh = ((data ?? []) as ChatMessage[])
+          .filter((m) => !tombstones.has(String(m.id)))
+          .reverse();
+        setLoadError(false);
+        setMessages(fresh);
+      } catch (e) {
+        console.error("[Chat] fetch error:", e);
         setLoadError(true);
-        setLoading(false);
-        return;
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      const tombstones = deletedIdsRef.current;
-      const fresh = ((data ?? []) as ChatMessage[])
-        .filter((m) => !tombstones.has(String(m.id)))
-        .reverse();
-      setLoadError(false);
-      setMessages(fresh);
-      setLoading(false);
     };
 
     loadMessages();
