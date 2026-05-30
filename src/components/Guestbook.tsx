@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useProfilesByUsername } from "@/lib/use-profiles";
 import UserChip from "./UserChip";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Entry {
   id: string;
@@ -38,6 +39,7 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,7 +104,6 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Supprimer ce message du livre d'or ?")) return;
     const prev = entries;
     setEntries((p) => p.filter((e) => e.id !== id));
     const { error } = await supabase.from("guestbook").delete().eq("id", id);
@@ -113,6 +114,7 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
   };
 
   return (
+    <>
     <div className="grid grid-cols-[280px_1fr] gap-6 max-md:grid-cols-1">
       <div className="border border-line rounded-md p-5 flex flex-col gap-3 bg-bg">
         {isOwner ? (
@@ -178,12 +180,15 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
             Aucun message pour le moment…
           </div>
         ) : (
-          <ul className="flex flex-col divide-y divide-line">
+          <ul className="flex flex-col gap-3">
             {entries.map((e) => {
               const canDelete =
                 user && (user.id === e.author_user_id || user.id === e.profile_user_id);
               return (
-                <li key={e.id} className="py-3 first:pt-0 last:pb-0 flex flex-col gap-1.5">
+                <li
+                  key={e.id}
+                  className="group relative border border-line-2 rounded-md bg-surface px-4 py-3 flex flex-col gap-2"
+                >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <UserChip
@@ -199,15 +204,18 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
                     {canDelete && (
                       <button
                         type="button"
-                        onClick={() => remove(e.id)}
+                        onClick={() => setPendingDelete(e.id)}
                         title="supprimer"
-                        className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer shrink-0"
+                        aria-label="supprimer ce message"
+                        className="font-mono text-[11px] leading-none text-ink-3 hover:text-red transition-colors cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
                       >
                         ✕
                       </button>
                     )}
                   </div>
-                  <p className="text-[13px] leading-[1.6] text-ink-2 break-words">{e.message}</p>
+                  <p className="text-[13px] leading-[1.6] text-ink-2 break-words whitespace-pre-line">
+                    {e.message}
+                  </p>
                 </li>
               );
             })}
@@ -215,5 +223,17 @@ export default function Guestbook({ profileUserId, profileUsername, isOwner }: P
         )}
       </div>
     </div>
+
+    {pendingDelete && (
+      <ConfirmDialog
+        title="Supprimer le message"
+        message="Ce mot du livre d'or sera définitivement retiré."
+        confirmLabel="Supprimer"
+        destructive
+        onConfirm={() => remove(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+      />
+    )}
+    </>
   );
 }
