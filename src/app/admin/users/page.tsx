@@ -130,7 +130,7 @@ function UsersAdminContent() {
       });
       setFeedback({ kind: "ok", text: `Badge ${slug} retiré` });
     } else {
-      const { error } = await supabase.from("user_badges").insert({ user_id: userId, badge_slug: slug, awarded_reason: "admin grant" });
+      const { error } = await supabase.from("user_badges").insert({ user_id: userId, badge_slug: slug, awarded_reason: null });
       setBusy(null);
       if (error) { setFeedback({ kind: "err", text: error.message }); return; }
       setUserBadges((prev) => {

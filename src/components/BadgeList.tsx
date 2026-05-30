@@ -30,7 +30,8 @@ interface Props {
 function BadgeChip({ badge }: { badge: AwardedBadge }) {
   const [setRef, pos, show, hide] = useTooltipPos();
   const color = badgeColor(badge.slug, badge.color);
-  const detail = badge.reason ?? badge.description;
+  const reason = badge.reason && badge.reason.trim().toLowerCase() !== "admin grant" ? badge.reason : null;
+  const detail = reason ?? badge.description;
 
   return (
     <span
