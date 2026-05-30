@@ -4,7 +4,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useProfilesByUsername } from "@/lib/use-profiles";
-import { useEmotes } from "@/lib/use-emotes";
+import { useEmotes, type Emote } from "@/lib/use-emotes";
 import { useMentionSearch, type MentionCandidate } from "@/lib/use-mention-search";
 import { useChatSettings } from "@/lib/use-chat-settings";
 import { ANON_PSEUDOS } from "@/data/anon-pseudos";
@@ -13,6 +13,7 @@ import UserChip from "./UserChip";
 import EmoteText from "./EmoteText";
 import EmotePicker from "./EmotePicker";
 import MentionSuggestions from "./MentionSuggestions";
+import EmoteSuggestions from "./EmoteSuggestions";
 import BanUserDialog from "./BanUserDialog";
 import { readStorage, writeStorage } from "@/lib/safe-storage";
 
@@ -57,6 +58,31 @@ function detectMention(
 const MAX_MESSAGES = 50;
 const MAX_LEN = 280;
 const WARN_LEN = 240;
+const EMOTE_MIN_QUERY = 2;
+const EMOTE_MAX_RESULTS = 8;
+
+function detectEmote(
+  value: string,
+  caret: number
+): { query: string; anchor: number } | null {
+  let i = caret - 1;
+  let length = 0;
+  while (i >= 0) {
+    const c = value[i];
+    if (c === ":") {
+      const before = i === 0 ? " " : value[i - 1];
+      if (i === 0 || /\s/.test(before)) {
+        return { query: value.slice(i + 1, caret), anchor: i };
+      }
+      return null;
+    }
+    if (!/[a-z0-9-]/i.test(c)) return null;
+    length++;
+    if (length > 32) return null;
+    i--;
+  }
+  return null;
+}
 
 function fmtFullDate(ts: number): string {
   return new Date(ts).toLocaleString("fr-FR", {
@@ -234,6 +260,48 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     Math.max(0, mentionResults.length - 1)
   );
 
+  const [emoteQuery, setEmoteQuery] = useState<string | null>(null);
+  const [emoteAnchor, setEmoteAnchor] = useState(-1);
+  const [emoteIndex, setEmoteIndex] = useState(0);
+  const emoteResults = useMemo(() => {
+    if (emoteQuery === null) return [];
+    const q = emoteQuery.toLowerCase();
+    if (q.length < EMOTE_MIN_QUERY) return [];
+    const matches: Emote[] = [];
+    for (const e of emotes.values()) {
+      if (e.slug.includes(q) || e.label.toLowerCase().includes(q)) matches.push(e);
+    }
+    matches.sort((a, b) => {
+      const ap = a.slug.startsWith(q) ? 0 : 1;
+      const bp = b.slug.startsWith(q) ? 0 : 1;
+      if (ap !== bp) return ap - bp;
+      return a.slug.localeCompare(b.slug);
+    });
+    return matches.slice(0, EMOTE_MAX_RESULTS);
+  }, [emoteQuery, emotes]);
+  const showEmotes = !showMentions && emoteQuery !== null && emoteResults.length > 0;
+  const safeEmoteIndex = Math.min(emoteIndex, Math.max(0, emoteResults.length - 1));
+
+  const [atBottom, setAtBottom] = useState(true);
+  const atBottomRef = useRef(true);
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const next = dist < 60;
+    atBottomRef.current = next;
+    setAtBottom(next);
+  };
+
+  const scrollToBottom = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    atBottomRef.current = true;
+    setAtBottom(true);
+  };
+
   const selfLower = username ? username.toLowerCase() : undefined;
   const selfMentionRe = useMemo(
     () => (selfLower ? new RegExp(`@${escapeRegExp(selfLower)}(?![a-z0-9_])`, "i") : null),
@@ -327,6 +395,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   }, []);
 
   useEffect(() => {
+    if (!atBottomRef.current) return;
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
@@ -365,13 +434,26 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     setMentionAnchor(-1);
   };
 
-  const syncMention = (value: string, caret: number) => {
-    const ctx = detectMention(value, caret);
-    if (ctx) {
-      setMentionQuery(ctx.query);
-      setMentionAnchor(ctx.anchor);
+  const closeEmote = () => {
+    setEmoteQuery(null);
+    setEmoteAnchor(-1);
+  };
+
+  const syncToken = (value: string, caret: number) => {
+    const mention = detectMention(value, caret);
+    if (mention) {
+      setMentionQuery(mention.query);
+      setMentionAnchor(mention.anchor);
+      closeEmote();
+      return;
+    }
+    closeMention();
+    const emote = detectEmote(value, caret);
+    if (emote) {
+      setEmoteQuery(emote.query);
+      setEmoteAnchor(emote.anchor);
     } else {
-      closeMention();
+      closeEmote();
     }
   };
 
@@ -379,13 +461,22 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     const value = e.target.value;
     setInput(value);
     const caret = e.target.selectionStart ?? value.length;
-    const ctx = detectMention(value, caret);
-    if (ctx) {
-      setMentionQuery(ctx.query);
-      setMentionAnchor(ctx.anchor);
+    const mention = detectMention(value, caret);
+    if (mention) {
+      setMentionQuery(mention.query);
+      setMentionAnchor(mention.anchor);
       setMentionIndex(0);
+      closeEmote();
+      return;
+    }
+    closeMention();
+    const emote = detectEmote(value, caret);
+    if (emote) {
+      setEmoteQuery(emote.query);
+      setEmoteAnchor(emote.anchor);
+      setEmoteIndex(0);
     } else {
-      closeMention();
+      closeEmote();
     }
   };
 
@@ -406,7 +497,40 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     });
   };
 
+  const applyEmote = (emote: Emote) => {
+    const el = inputRef.current;
+    if (emoteAnchor < 0) return;
+    const caret = el?.selectionStart ?? input.length;
+    const before = input.slice(0, emoteAnchor);
+    const after = input.slice(caret);
+    const insertion = `:${emote.slug}: `;
+    setInput(before + insertion + after);
+    closeEmote();
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = before.length + insertion.length;
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (showEmotes) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setEmoteIndex((i) => (i + 1) % emoteResults.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setEmoteIndex((i) => (i - 1 + emoteResults.length) % emoteResults.length);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        applyEmote(emoteResults[safeEmoteIndex]);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeEmote();
+      }
+      return;
+    }
     if (!showMentions) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -448,6 +572,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     }
     setInput("");
     closeMention();
+    closeEmote();
 
     const { error } = await supabase.from("messages").insert({
       username,
@@ -583,7 +708,8 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             </button>
           </div>
         )}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 space-y-0.5 min-h-0">
+        <div className="relative flex-1 min-h-0">
+        <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto overflow-x-hidden px-3 py-2 space-y-0.5">
           {messages.length === 0 && (
             <div className="text-ink-3 text-[12px] pt-6 text-center font-mono uppercase tracking-[0.12em]">
               {loading ? "chargement…" : loadError ? "indisponible" : "personne ne parle"}
@@ -649,6 +775,20 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             );
           })}
         </div>
+          {!atBottom && messages.length > 0 && (
+            <button
+              type="button"
+              onClick={scrollToBottom}
+              aria-label="revenir au direct"
+              title="revenir au direct"
+              className="absolute left-1/2 -translate-x-1/2 bottom-2 z-20 flex items-center justify-center w-8 h-8 rounded-full border border-line-2 bg-bg/90 backdrop-blur-sm text-ink-3 hover:text-red hover:border-red transition-colors cursor-pointer shadow-lg"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          )}
+        </div>
 
         <div className="relative">
           {showMentions && (
@@ -657,6 +797,14 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               activeIndex={safeMentionIndex}
               onPick={applyMention}
               onHover={setMentionIndex}
+            />
+          )}
+          {showEmotes && (
+            <EmoteSuggestions
+              candidates={emoteResults}
+              activeIndex={safeEmoteIndex}
+              onPick={applyEmote}
+              onHover={setEmoteIndex}
             />
           )}
           {charCount >= WARN_LEN && (
@@ -676,7 +824,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               onChange={onInputChange}
               onKeyDown={onInputKeyDown}
               onSelect={(e) =>
-                syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
+                syncToken(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
               }
               placeholder={isFrozenForMe ? "Chat figé" : "Envoyer un message"}
               disabled={inputDisabled}
@@ -731,7 +879,8 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           </button>
         </div>
       )}
-      <div ref={scrollRef} className="flex-1 min-h-[280px] max-h-[60vh] overflow-y-auto overflow-x-hidden mb-4">
+      <div className="relative flex-1 min-h-[280px] max-h-[60vh] mb-4">
+      <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto overflow-x-hidden">
         {messages.length === 0 && (
           <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
         )}
@@ -795,6 +944,20 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           );
         })}
       </div>
+        {!atBottom && messages.length > 0 && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            aria-label="revenir au direct"
+            title="revenir au direct"
+            className="absolute left-1/2 -translate-x-1/2 bottom-2 z-20 flex items-center justify-center w-9 h-9 rounded-full border border-line-2 bg-bg/90 backdrop-blur-sm text-ink-3 hover:text-red hover:border-red transition-colors cursor-pointer shadow-lg"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       <div className="relative">
         {showMentions && (
@@ -803,6 +966,14 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             activeIndex={safeMentionIndex}
             onPick={applyMention}
             onHover={setMentionIndex}
+          />
+        )}
+        {showEmotes && (
+          <EmoteSuggestions
+            candidates={emoteResults}
+            activeIndex={safeEmoteIndex}
+            onPick={applyEmote}
+            onHover={setEmoteIndex}
           />
         )}
         {charCount >= WARN_LEN && (
@@ -822,7 +993,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             onChange={onInputChange}
             onKeyDown={onInputKeyDown}
             onSelect={(e) =>
-              syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
+              syncToken(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
             }
             placeholder={isFrozenForMe ? "Chat figé" : "Envoyer un message"}
             disabled={inputDisabled}
