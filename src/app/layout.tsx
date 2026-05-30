@@ -10,6 +10,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Providers from "./providers";
 import PWARegister from "@/components/PWARegister";
+import MobileNotice from "@/components/MobileNotice";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -98,6 +99,7 @@ export default function RootLayout({
     >
       <body className="h-full">
         <Providers>{children}</Providers>
+        <MobileNotice />
         <PWARegister />
         <Analytics />
         <SpeedInsights />
