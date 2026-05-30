@@ -642,13 +642,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
         <>
           <section className="border-b border-line">
             <div className="grid grid-cols-[1fr_auto] gap-0 max-[900px]:grid-cols-1">
-              <div className="px-8 py-6 max-md:px-5">
-                {!isMe && view && (
-                  <div className="mb-4">
-                    <FollowButton targetUserId={view.userId} isMe={isMe} />
-                  </div>
-                )}
-
+              <div className="px-8 py-6 max-md:px-5 flex items-start justify-between gap-5 max-md:flex-col max-md:items-center">
                 <div className="flex items-start gap-5 max-md:flex-col max-md:items-center max-md:text-center">
                   <ProfileAvatar username={displayUsername} src={view?.avatarUrl ?? null} />
                   <div className="flex flex-col gap-3 min-w-0 pt-1">
@@ -713,6 +707,18 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
                     </div>
                   </div>
                 </div>
+
+                {!isMe && view && (
+                  <div className="shrink-0 max-md:mt-1">
+                    <FollowButton
+                      isMe={isMe}
+                      stats={followStats.stats}
+                      loading={followStats.loading}
+                      busy={followStats.busy}
+                      toggle={followStats.toggle}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-4 border-l border-line max-[900px]:grid-cols-4 max-[900px]:border-l-0 max-[900px]:border-t max-md:grid-cols-2">

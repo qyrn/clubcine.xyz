@@ -11,9 +11,11 @@ interface Stats {
 }
 
 interface Props {
-  targetUserId: string;
   isMe: boolean;
-  onStatsChange?: (s: Stats) => void;
+  stats: Stats;
+  loading: boolean;
+  busy: boolean;
+  toggle: () => void;
 }
 
 async function loadStats(targetUserId: string, viewerId: string | null): Promise<Stats> {
@@ -93,13 +95,8 @@ export function useFollowStats(targetUserId: string | null, isMe: boolean) {
   return { stats, loading, busy, toggle };
 }
 
-export default function FollowButton({ targetUserId, isMe, onStatsChange }: Props) {
+export default function FollowButton({ isMe, stats, loading, busy, toggle }: Props) {
   const { user } = useAuth();
-  const { stats, loading, busy, toggle } = useFollowStats(targetUserId, isMe);
-
-  useEffect(() => {
-    if (!loading) onStatsChange?.(stats);
-  }, [stats, loading, onStatsChange]);
 
   if (isMe) return null;
   if (!user) {
