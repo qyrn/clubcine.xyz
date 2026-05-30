@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { invalidateEmotesCache, type Emote } from "@/lib/use-emotes";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const SLUG_REGEX = /^[a-z0-9-]{2,32}$/;
 const MAX_BYTES = 1024 * 1024;
@@ -63,6 +64,7 @@ function EmotesAdminContent() {
   const [submitting, setSubmitting] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Emote | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -237,7 +239,6 @@ function EmotesAdminContent() {
 
   const deleteEmote = async (em: Emote) => {
     if (!user) return;
-    if (!confirm(`Supprimer :${em.slug}: ?`)) return;
     const { error: delErr } = await supabase
       .from("emotes")
       .delete()
@@ -461,7 +462,7 @@ function EmotesAdminContent() {
                   {canDelete && (
                     <button
                       type="button"
-                      onClick={() => deleteEmote(em)}
+                      onClick={() => setPendingDelete(em)}
                       className="border border-line-2 text-ink-3 text-[10px] font-mono uppercase tracking-[0.08em] py-1.5 hover:text-red hover:border-red cursor-pointer transition-colors"
                     >
                       Supprimer
@@ -474,6 +475,16 @@ function EmotesAdminContent() {
         )}
       </main>
 
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Supprimer l'emote"
+          message={`L'emote :${pendingDelete.slug}: sera définitivement supprimée.`}
+          confirmLabel="Supprimer"
+          destructive
+          onConfirm={() => deleteEmote(pendingDelete)}
+          onClose={() => setPendingDelete(null)}
+        />
+      )}
     </>
   );
 }
