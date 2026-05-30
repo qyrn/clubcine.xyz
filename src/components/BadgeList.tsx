@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabase";
-import { BadgeIcon } from "./RoleBadge";
+import { BadgeIcon, badgeColor, useTooltipPos } from "./RoleBadge";
 
 interface BadgeRow {
   slug: string;
@@ -25,6 +25,54 @@ interface AwardedBadge extends BadgeRow {
 
 interface Props {
   userId: string;
+}
+
+function BadgeChip({ badge }: { badge: AwardedBadge }) {
+  const [setRef, pos, show, hide] = useTooltipPos();
+  const color = badgeColor(badge.slug, badge.color);
+  const detail = badge.reason ?? badge.description;
+
+  return (
+    <span
+      ref={setRef}
+      tabIndex={0}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+      style={{ "--badge": color } as CSSProperties}
+      className="relative inline-flex items-center gap-2 px-3 py-2 border border-line-2 rounded-md bg-bg cursor-default outline-none transition-colors hover:border-[var(--badge)] focus-visible:border-[var(--badge)]"
+    >
+      <BadgeIcon slug={badge.slug} size={16} color={color} />
+      <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-ink">
+        {badge.label}
+      </span>
+      {pos && (
+        <span
+          role="tooltip"
+          style={{
+            position: "fixed",
+            top: pos.top - 8,
+            left: pos.left,
+            transform: "translate(-50%, -100%)",
+          }}
+          className="pointer-events-none z-50 w-max max-w-[240px] px-3 py-2 bg-bg border border-line-2 rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.6)] flex flex-col gap-1 text-left"
+        >
+          <span
+            className="font-mono text-[10px] font-bold tracking-[0.16em] uppercase"
+            style={{ color }}
+          >
+            {badge.label}
+          </span>
+          {detail && (
+            <span className="text-[11px] leading-[1.45] text-ink-2 normal-case tracking-normal">
+              {detail}
+            </span>
+          )}
+        </span>
+      )}
+    </span>
+  );
 }
 
 export default function BadgeList({ userId }: Props) {
@@ -80,18 +128,9 @@ export default function BadgeList({ userId }: Props) {
   }
 
   return (
-    <div className="flex flex-wrap gap-3 justify-center">
+    <div className="flex flex-wrap gap-2 justify-center">
       {badges.map((b) => (
-        <div
-          key={b.slug}
-          title={b.reason ?? b.description}
-          className="flex items-center gap-2 px-3 py-2 border border-line-2 rounded-md bg-bg hover:border-line-2 transition-colors"
-        >
-          <BadgeIcon slug={b.slug} size={16} color={b.color} />
-          <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-ink">
-            {b.label}
-          </span>
-        </div>
+        <BadgeChip key={b.slug} badge={b} />
       ))}
     </div>
   );

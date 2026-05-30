@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 
 type TooltipPos = { top: number; left: number } | null;
 
-function useTooltipPos() {
+export function useTooltipPos() {
   const elRef = useRef<HTMLSpanElement | null>(null);
   const [pos, setPos] = useState<TooltipPos>(null);
   const setRef = useCallback((el: HTMLSpanElement | null) => {
@@ -179,6 +179,34 @@ export const BADGE_ICONS: Record<string, IconName> = {
   "soiree-suggest-5": "ticket",
   "soiree-suggest-10": "ticket",
 };
+
+export const BADGE_COLORS: Record<string, string> = {
+  supporter: "#facc15",
+  "founding-viewer": "#ff0033",
+  "night-owl": "#a5b4fc",
+  "top-10": "#fbbf24",
+  curator: "#06b6d4",
+  admin: "#ff0033",
+  "bug-hunter": "#86efac",
+  "viewer-habitue": "#9aa0a6",
+  "viewer-cinephile": "#f0eae0",
+  "viewer-connaisseur": "#a5b4fc",
+  "viewer-cingle": "#fb923c",
+  "viewer-legende": "#fbbf24",
+  "chatter-bavard": "#86efac",
+  "chatter-animateur": "#fb923c",
+  "chatter-voix": "#a855f7",
+  "film-suggest-1": "#22d3ee",
+  "film-suggest-5": "#06b6d4",
+  "film-suggest-10": "#0891b2",
+  "soiree-suggest-1": "#f472b6",
+  "soiree-suggest-5": "#ec4899",
+  "soiree-suggest-10": "#db2777",
+};
+
+export function badgeColor(slug: string, fallback?: string | null): string {
+  return BADGE_COLORS[slug] ?? fallback ?? "#9aa0a6";
+}
 
 export const VIEWER_TIER_ICONS: Record<string, IconName> = {
   habitue: "eye",
