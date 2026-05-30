@@ -5,9 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { invalidateEmotesCache, type Emote } from "@/lib/use-emotes";
-import Nav from "@/components/Nav";
-import Ticker from "@/components/Ticker";
-import AdminCrossNav from "@/components/AdminCrossNav";
 
 const SLUG_REGEX = /^[a-z0-9-]{2,32}$/;
 const MAX_BYTES = 1024 * 1024;
@@ -63,6 +60,7 @@ function EmotesAdminContent() {
   const [slug, setSlug] = useState("");
   const [label, setLabel] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -127,6 +125,12 @@ function EmotesAdminContent() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    onPickFile(e.dataTransfer.files[0] ?? null);
+  };
+
   const onPickFile = (f: File | null) => {
     if (!f) {
       setFile(null);
@@ -164,52 +168,55 @@ function EmotesAdminContent() {
     }
 
     setSubmitting(true);
-    const path = `${user.id}/${cleanSlug}.${ext}`;
+    try {
+      const path = `${user.id}/${cleanSlug}.${ext}`;
 
-    const { error: upErr } = await supabase.storage
-      .from("emotes")
-      .upload(path, file, {
-        cacheControl: "31536000",
-        contentType: file.type,
-        upsert: false,
+      const { error: upErr } = await supabase.storage
+        .from("emotes")
+        .upload(path, file, {
+          cacheControl: "31536000",
+          contentType: file.type,
+          upsert: false,
+        });
+      if (upErr) {
+        setFeedback({ kind: "err", text: upErr.message });
+        return;
+      }
+
+      const { data: pub } = supabase.storage.from("emotes").getPublicUrl(path);
+      const imageUrl = pub.publicUrl;
+
+      const { error: insErr } = await supabase.from("emotes").insert({
+        slug: cleanSlug,
+        label: label.trim(),
+        image_url: imageUrl,
+        image_path: path,
+        uploader_id: user.id,
       });
-    if (upErr) {
+
+      if (insErr) {
+        await supabase.storage.from("emotes").remove([path]);
+        setFeedback({ kind: "err", text: insErr.message });
+        return;
+      }
+
+      const newEmote: Emote = {
+        slug: cleanSlug,
+        label: label.trim(),
+        imageUrl,
+        imagePath: path,
+        uploaderId: user.id,
+        createdAt: new Date().toISOString(),
+      };
+      setEmotes((prev) => [newEmote, ...prev]);
+      invalidateEmotesCache();
+      resetForm();
+      setFeedback({ kind: "ok", text: `Emote :${cleanSlug}: ajoutée` });
+    } catch (err) {
+      setFeedback({ kind: "err", text: err instanceof Error ? err.message : "Erreur inconnue" });
+    } finally {
       setSubmitting(false);
-      setFeedback({ kind: "err", text: upErr.message });
-      return;
     }
-
-    const { data: pub } = supabase.storage.from("emotes").getPublicUrl(path);
-    const imageUrl = pub.publicUrl;
-
-    const { error: insErr } = await supabase.from("emotes").insert({
-      slug: cleanSlug,
-      label: label.trim(),
-      image_url: imageUrl,
-      image_path: path,
-      uploader_id: user.id,
-    });
-
-    if (insErr) {
-      await supabase.storage.from("emotes").remove([path]);
-      setSubmitting(false);
-      setFeedback({ kind: "err", text: insErr.message });
-      return;
-    }
-
-    const newEmote: Emote = {
-      slug: cleanSlug,
-      label: label.trim(),
-      imageUrl,
-      imagePath: path,
-      uploaderId: user.id,
-      createdAt: new Date().toISOString(),
-    };
-    setEmotes((prev) => [newEmote, ...prev]);
-    invalidateEmotesCache();
-    resetForm();
-    setSubmitting(false);
-    setFeedback({ kind: "ok", text: `Emote :${cleanSlug}: ajoutée` });
   };
 
   const deleteEmote = async (em: Emote) => {
@@ -239,71 +246,30 @@ function EmotesAdminContent() {
   };
 
   if (authLoading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Ticker />
-        <Nav />
-        <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">
-          Chargement…
-        </div>
-      </div>
-    );
+    return <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">Chargement…</div>;
   }
 
   if (!canUse) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Ticker />
-        <Nav />
-        <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
-          <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">
-            ★ Accès refusé
-          </div>
-          <h1
-            className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
-            style={{ fontSize: "clamp(40px, 6vw, 72px)" }}
-          >
-            Réservé aux admins et soutiens
-          </h1>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors rounded-md"
-          >
-            RETOUR
-            <span aria-hidden>→</span>
-          </Link>
-        </div>
+      <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
+        <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">★ Accès refusé</div>
+        <h1 className="font-bold leading-[0.95] tracking-[-0.04em] text-balance" style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>
+          Réservé aux admins et soutiens
+        </h1>
+        <Link href="/" className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors">
+          RETOUR <span aria-hidden>→</span>
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Ticker />
-      <Nav />
-
-      <header className="px-10 py-16 border-b border-line max-md:px-5 max-md:py-12">
-        <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.16em] uppercase text-ink-3 mb-3">
-          ★ <span className="text-red font-bold">Admin</span>
-          {" · Channel 01"}
-        </div>
-        <h1
-          className="font-bold leading-[0.95] tracking-[-0.04em] text-balance"
-          style={{ fontSize: "clamp(40px, 5vw, 72px)" }}
-        >
-          Emotes
-        </h1>
-        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[620px] mt-3 text-balance">
-          Catalogue des emotes affichées dans le chat. Insère un shortcode{" "}
-          <span className="font-mono text-red">:slug:</span> dans un message
-          pour qu&apos;il soit remplacé par l&apos;image. Formats acceptés :
-          PNG, WebP, GIF animé (1 Mo max).
+    <>
+      <header className="px-10 py-8 border-b border-line max-md:px-5 max-md:py-6">
+        <h1 className="font-mono text-[11px] font-bold tracking-[0.16em] uppercase text-ink mb-1">Emotes</h1>
+        <p className="text-[13px] text-ink-3">
+          Shortcode <span className="font-mono text-red">:slug:</span> dans le chat. PNG, WebP, GIF animé · 1 Mo max.
         </p>
-        {isAdmin && (
-          <div className="mt-4">
-            <AdminCrossNav current="/admin/emotes" />
-          </div>
-        )}
       </header>
 
       <section className="px-10 py-8 border-b border-line max-md:px-5">
@@ -314,15 +280,19 @@ function EmotesAdminContent() {
         <form onSubmit={submit} className="grid grid-cols-[112px_1fr_auto] gap-5 items-start max-md:grid-cols-1">
           <label
             htmlFor="emote-file"
-            className="aspect-square border border-line-2 hover:border-ink transition-colors cursor-pointer flex items-center justify-center bg-bg overflow-hidden"
-            title="choisir un fichier"
+            onDrop={onDrop}
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDragEnd={() => setDragging(false)}
+            className={`aspect-square border transition-colors cursor-pointer flex items-center justify-center bg-bg overflow-hidden ${dragging ? "border-ink" : "border-line-2 hover:border-ink"}`}
+            title="cliquer ou glisser un fichier"
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={preview} alt="" className="max-h-full max-w-full" />
             ) : (
               <span className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 text-center px-2 leading-[1.4]">
-                cliquer pour choisir
+                {dragging ? "déposer" : "cliquer ou glisser"}
               </span>
             )}
             <input
@@ -488,13 +458,7 @@ function EmotesAdminContent() {
         )}
       </main>
 
-      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
-        <span>CLUBCINE.XYZ · ADMIN · 2026</span>
-        <Link href="/" className="hover:text-ink transition-colors">
-          ← RETOUR
-        </Link>
-      </footer>
-    </div>
+    </>
   );
 }
 
