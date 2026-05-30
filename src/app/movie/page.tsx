@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
@@ -148,26 +148,39 @@ function MovieContent() {
   const [overlayVisible, setOverlayVisible] = useState(true);
   const pageRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<number | null>(null);
+  const overChatRef = useRef(false);
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const showOverlay = useCallback(() => {
+    setOverlayVisible(true);
+    clearHideTimer();
+    if (overChatRef.current) return;
+    hideTimerRef.current = window.setTimeout(() => {
+      setOverlayVisible(false);
+      hideTimerRef.current = null;
+    }, OVERLAY_HIDE_DELAY_MS);
+  }, [clearHideTimer]);
+
+  const handleChatEnter = useCallback(() => {
+    overChatRef.current = true;
+    setOverlayVisible(true);
+    clearHideTimer();
+  }, [clearHideTimer]);
+
+  const handleChatLeave = useCallback(() => {
+    overChatRef.current = false;
+    showOverlay();
+  }, [showOverlay]);
 
   useEffect(() => {
     const page = pageRef.current;
     if (!page) return;
-
-    const clearHideTimer = () => {
-      if (hideTimerRef.current !== null) {
-        window.clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = null;
-      }
-    };
-
-    const showOverlay = () => {
-      setOverlayVisible(true);
-      clearHideTimer();
-      hideTimerRef.current = window.setTimeout(() => {
-        setOverlayVisible(false);
-        hideTimerRef.current = null;
-      }, OVERLAY_HIDE_DELAY_MS);
-    };
 
     const onMove = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
@@ -184,7 +197,7 @@ function MovieContent() {
       page.removeEventListener("touchstart", showOverlay);
       clearHideTimer();
     };
-  }, []);
+  }, [showOverlay, clearHideTimer]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -232,6 +245,8 @@ function MovieContent() {
         <aside
           className="shrink-0 border-l border-line flex flex-col bg-surface transition-all duration-400 overflow-hidden z-30"
           style={{ width: chatOpen ? 340 : 0, opacity: chatOpen ? 1 : 0 }}
+          onMouseEnter={handleChatEnter}
+          onMouseLeave={handleChatLeave}
         >
           <Chat onCollapse={() => setChatOpen(false)} extra={<ViewerCount />} />
         </aside>

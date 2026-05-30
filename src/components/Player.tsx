@@ -5,7 +5,7 @@ import Hls from "hls.js";
 import { ScheduleState } from "@/types";
 import { useSchedule } from "@/lib/schedule-context";
 import IntermissionOverlay from "./IntermissionOverlay";
-import { readStorage, writeStorage } from "@/lib/safe-storage";
+import { usePersistentState } from "@/lib/use-persistent-state";
 
 const SYNC_THRESHOLD = 4;
 const DRIFT_CHECK_INTERVAL = 10_000;
@@ -55,34 +55,25 @@ const MUTED_STORAGE_KEY = "clubcine-player-muted";
 
 const DEFAULT_VOLUME = 0.8;
 
-function loadVolume(): number {
-  const raw = readStorage(VOLUME_STORAGE_KEY);
-  if (raw === null) return DEFAULT_VOLUME;
+const parseBool = (raw: string): boolean => raw === "1";
+const serializeBool = (v: boolean): string => (v ? "1" : "0");
+
+const parseVolume = (raw: string): number => {
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0 || n > 1) return DEFAULT_VOLUME;
   return n;
-}
+};
+const serializeVolume = (v: number): string => String(v);
 
-function loadMuted(): boolean {
-  const raw = readStorage(MUTED_STORAGE_KEY);
-  return raw === null ? true : raw === "1";
-}
-
-function loadSubsSettings(): SubsSettings {
-  const raw = readStorage(SUBS_STORAGE_KEY);
-  if (!raw) return DEFAULT_SUBS_SETTINGS;
+const parseSubsSettings = (raw: string): SubsSettings => {
   try {
     const parsed = JSON.parse(raw) as Partial<SubsSettings>;
     return { ...DEFAULT_SUBS_SETTINGS, ...parsed };
   } catch {
     return DEFAULT_SUBS_SETTINGS;
   }
-}
-
-function loadSubsOn(): boolean {
-  const raw = readStorage(SUBS_ON_STORAGE_KEY);
-  return raw === null ? true : raw === "1";
-}
+};
+const serializeSubsSettings = (v: SubsSettings): string => JSON.stringify(v);
 
 function pinCue(cue: VTTCue, position: number): void {
   cue.snapToLines = false;
@@ -118,8 +109,8 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
   const intermissionEndedRef = useRef(false);
 
   const [error, setError] = useState<string | null>(null);
-  const [muted, setMuted] = useState<boolean>(() => loadMuted());
-  const [volume, setVolume] = useState<number>(() => loadVolume());
+  const [muted, setMuted] = usePersistentState(MUTED_STORAGE_KEY, true, parseBool, serializeBool);
+  const [volume, setVolume] = usePersistentState(VOLUME_STORAGE_KEY, DEFAULT_VOLUME, parseVolume, serializeVolume);
   const [internalControls, setInternalControls] = useState(false);
   const showControls = controlsVisible ?? internalControls;
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -127,8 +118,8 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
   const [hasSubs, setHasSubs] = useState(false);
   const [airplayAvailable, setAirplayAvailable] = useState(false);
   const [airplayActive, setAirplayActive] = useState(false);
-  const [subsOn, setSubsOn] = useState<boolean>(() => loadSubsOn());
-  const [subsSettings, setSubsSettings] = useState<SubsSettings>(() => loadSubsSettings());
+  const [subsOn, setSubsOn] = usePersistentState(SUBS_ON_STORAGE_KEY, true, parseBool, serializeBool);
+  const [subsSettings, setSubsSettings] = usePersistentState(SUBS_STORAGE_KEY, DEFAULT_SUBS_SETTINGS, parseSubsSettings, serializeSubsSettings);
   const [showSubsPanel, setShowSubsPanel] = useState(false);
   const subsOnRef = useRef(true);
   const subsSettingsRef = useRef<SubsSettings>(DEFAULT_SUBS_SETTINGS);
@@ -375,20 +366,7 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
   }, [subsOn, hasSubs]);
 
   useEffect(() => {
-    writeStorage(SUBS_ON_STORAGE_KEY, subsOn ? "1" : "0");
-  }, [subsOn]);
-
-  useEffect(() => {
-    writeStorage(VOLUME_STORAGE_KEY, String(volume));
-  }, [volume]);
-
-  useEffect(() => {
-    writeStorage(MUTED_STORAGE_KEY, muted ? "1" : "0");
-  }, [muted]);
-
-  useEffect(() => {
     subsSettingsRef.current = subsSettings;
-    writeStorage(SUBS_STORAGE_KEY, JSON.stringify(subsSettings));
     const video = videoRef.current;
     if (!video) return;
     for (const track of Array.from(video.textTracks)) {
@@ -502,11 +480,11 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
 
   const toggleMute = useCallback(() => {
     setMuted((prev) => !prev);
-  }, []);
+  }, [setMuted]);
 
   const toggleSubs = useCallback(() => {
     setSubsOn((prev) => !prev);
-  }, []);
+  }, [setSubsOn]);
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
