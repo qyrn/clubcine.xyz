@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/auth-context";
 import { useWatchHeartbeat } from "@/lib/use-watch-heartbeat";
@@ -14,7 +13,7 @@ import SoireesGrid from "@/components/SoireesGrid";
 import Suggestions from "@/components/Suggestions";
 import Chat from "@/components/Chat";
 import Classement from "@/components/Classement";
-import BugReportButton from "@/components/BugReportButton";
+import Footer from "@/components/Footer";
 
 const SupportPopup = dynamic(() => import("@/components/SupportPopup"), { ssr: false });
 
@@ -52,25 +51,7 @@ export default function HomeClient({ initialSchedule }: Props) {
           </section>
         </main>
 
-        <footer className="px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
-          <span>CLUBCINE.XYZ · CHANNEL 01 · 2026</span>
-          <span className="flex gap-3">
-            <a
-              href="https://ko-fi.com/clubcinefr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-ink transition-colors"
-            >
-              KO-FI
-            </a>
-            <span>·</span>
-            <Link href="/about" className="hover:text-ink transition-colors">
-              À PROPOS
-            </Link>
-            <span>·</span>
-            <BugReportButton inline />
-          </span>
-        </footer>
+        <Footer />
 
         <SupportPopup />
       </div>

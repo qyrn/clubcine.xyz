@@ -12,6 +12,7 @@ import BadgeList from "@/components/BadgeList";
 import Guestbook from "@/components/Guestbook";
 import FollowButton, { useFollowStats } from "@/components/FollowButton";
 import FollowListModal from "@/components/FollowListModal";
+import Footer from "@/components/Footer";
 import { RoleBadge } from "@/components/RoleBadge";
 import {
   normalizeLetterboxdProfile,
@@ -794,12 +795,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
         </>
       )}
 
-      <footer className="mt-auto px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
-        <span>CLUBCINE.XYZ · CHANNEL 01 · 2026</span>
-        <Link href="/" className="hover:text-ink transition-colors">
-          ← RETOUR
-        </Link>
-      </footer>
+      <Footer className="mt-auto" />
 
       {editing && user && (
         <ProfileEditModal

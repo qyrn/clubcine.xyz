@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
+import Footer from "@/components/Footer";
 import { Film } from "@/types";
 import { formatDuration } from "@/lib/schedule-engine";
 
@@ -168,12 +169,7 @@ function ProgrammeContent() {
         </div>
       )}
 
-      <footer className="px-10 py-6 flex justify-between items-center font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 max-md:px-5 max-md:py-4 max-md:flex-col max-md:gap-2">
-        <span>CLUBCINE.XYZ · CHANNEL 01 · 2026</span>
-        <Link href="/" className="hover:text-ink transition-colors">
-          ← RETOUR
-        </Link>
-      </footer>
+      <Footer />
     </div>
   );
 }
