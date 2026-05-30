@@ -102,6 +102,16 @@ export const USERNAME_COLORS: { slug: string; label: string; value: string }[] =
   { slug: "rose", label: "Rose", value: "#fda4af" },
 ];
 
+export const ACCENT_COLORS: { slug: string; label: string; value: string }[] = [
+  { slug: "red", label: "Rouge", value: "#ff0033" },
+  { slug: "blue", label: "Bleu", value: "#3b82f6" },
+  { slug: "violet", label: "Violet", value: "#a855f7" },
+  { slug: "green", label: "Vert", value: "#22c55e" },
+  { slug: "amber", label: "Ambre", value: "#f59e0b" },
+  { slug: "cyan", label: "Cyan", value: "#06b6d4" },
+  { slug: "pink", label: "Rose", value: "#ec4899" },
+];
+
 const HEX_REGEX = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 export function isHexColor(value?: string | null): boolean {
@@ -112,4 +122,10 @@ export function findColor(slug?: string | null): string {
   if (!slug) return USERNAME_COLORS[0].value;
   if (isHexColor(slug)) return slug;
   return (USERNAME_COLORS.find((c) => c.slug === slug) ?? USERNAME_COLORS[0]).value;
+}
+
+export function findAccent(slug?: string | null): string {
+  if (!slug) return ACCENT_COLORS[0].value;
+  if (isHexColor(slug)) return slug;
+  return (ACCENT_COLORS.find((c) => c.slug === slug) ?? ACCENT_COLORS[0]).value;
 }

@@ -3,14 +3,30 @@
 import { useRef } from "react";
 import { USERNAME_COLORS, findColor, isHexColor } from "@/lib/fonts";
 
+interface ColorOption {
+  slug: string;
+  label: string;
+  value: string;
+}
+
 interface Props {
   value: string | null;
   onChange: (slug: string) => void;
   label?: string;
+  colors?: ColorOption[];
+  resolve?: (slug?: string | null) => string;
+  defaultSlug?: string;
 }
 
-export default function ColorPicker({ value, onChange, label }: Props) {
-  const current = value ?? "default";
+export default function ColorPicker({
+  value,
+  onChange,
+  label,
+  colors = USERNAME_COLORS,
+  resolve = findColor,
+  defaultSlug = "default",
+}: Props) {
+  const current = value ?? defaultSlug;
   const customRef = useRef<HTMLInputElement>(null);
   const isCustom = isHexColor(value);
   const customValue = isCustom ? (value as string) : "#ff0033";
@@ -23,7 +39,7 @@ export default function ColorPicker({ value, onChange, label }: Props) {
         </div>
       )}
       <div className="flex flex-wrap gap-2 items-center">
-        {USERNAME_COLORS.map((c) => {
+        {colors.map((c) => {
           const active = !isCustom && c.slug === current;
           return (
             <button
@@ -37,7 +53,7 @@ export default function ColorPicker({ value, onChange, label }: Props) {
                   ? "border-ink scale-110"
                   : "border-line-2 hover:border-ink-3"
               }`}
-              style={{ background: findColor(c.slug) }}
+              style={{ background: resolve(c.slug) }}
             />
           );
         })}

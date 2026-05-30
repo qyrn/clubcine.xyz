@@ -64,8 +64,11 @@
   --color-ink-4: #5a5a5a;
   --color-line: #1a1a1a;
   --color-line-2: #2a2a2a;
-  --color-red: #ff0033;
   --color-surface: #0a0a0a;
+}
+
+@theme {
+  --color-red: #ff0033;
 }
 
 * {

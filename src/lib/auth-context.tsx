@@ -15,6 +15,7 @@ export interface UserProfile {
   role: string;
   usernameFontSlug: string | null;
   usernameColorSlug: string | null;
+  profileAccentSlug: string | null;
 }
 
 interface AuthState {
@@ -36,6 +37,7 @@ interface AuthState {
         | "avatarUrl"
         | "usernameFontSlug"
         | "usernameColorSlug"
+        | "profileAccentSlug"
       >
     >
   ) => Promise<string | null>;
@@ -63,6 +65,7 @@ interface ProfileRow {
   role: string;
   username_font_slug: string | null;
   username_color_slug: string | null;
+  profile_accent_slug: string | null;
 }
 
 function rowToProfile(row: ProfileRow): UserProfile {
@@ -77,6 +80,7 @@ function rowToProfile(row: ProfileRow): UserProfile {
     role: row.role ?? "spectateur",
     usernameFontSlug: row.username_font_slug,
     usernameColorSlug: row.username_color_slug,
+    profileAccentSlug: row.profile_accent_slug,
   };
 }
 
@@ -89,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug"
+        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug"
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -181,13 +185,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl;
     if (patch.usernameFontSlug !== undefined) dbPatch.username_font_slug = patch.usernameFontSlug;
     if (patch.usernameColorSlug !== undefined) dbPatch.username_color_slug = patch.usernameColorSlug;
+    if (patch.profileAccentSlug !== undefined) dbPatch.profile_accent_slug = patch.profileAccentSlug;
 
     const { data, error } = await supabase
       .from("profiles")
       .update(dbPatch)
       .eq("user_id", user.id)
       .select(
-        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug"
+        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug"
       );
 
     if (error) {
@@ -214,11 +219,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatar_url: patch.avatarUrl ?? null,
             username_font_slug: patch.usernameFontSlug ?? null,
             username_color_slug: patch.usernameColorSlug ?? null,
+            profile_accent_slug: patch.profileAccentSlug ?? null,
           },
           { onConflict: "user_id" }
         )
         .select(
-          "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug"
+          "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug"
         )
         .single();
       if (upErr) {

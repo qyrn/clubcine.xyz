@@ -26,7 +26,7 @@ import {
 import { useEscapeKey } from "@/lib/use-escape-key";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { safeImageUrl } from "@/lib/safe-url";
-import { fontStack, findColor } from "@/lib/fonts";
+import { fontStack, findColor, findAccent, ACCENT_COLORS } from "@/lib/fonts";
 import FontPicker from "@/components/FontPicker";
 import ColorPicker from "@/components/ColorPicker";
 
@@ -49,6 +49,7 @@ interface ProfileRow {
   created_at: string;
   username_font_slug: string | null;
   username_color_slug: string | null;
+  profile_accent_slug: string | null;
 }
 
 function rowToProfile(row: ProfileRow): UserProfile {
@@ -63,6 +64,7 @@ function rowToProfile(row: ProfileRow): UserProfile {
     role: row.role ?? "spectateur",
     usernameFontSlug: row.username_font_slug,
     usernameColorSlug: row.username_color_slug,
+    profileAccentSlug: row.profile_accent_slug,
   };
 }
 
@@ -286,6 +288,9 @@ function ProfileEditModal({
   const [usernameColorSlug, setUsernameColorSlug] = useState<string>(
     profile.usernameColorSlug ?? "default"
   );
+  const [profileAccentSlug, setProfileAccentSlug] = useState<string>(
+    profile.profileAccentSlug ?? "red"
+  );
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -363,6 +368,7 @@ function ProfileEditModal({
             ? null
             : usernameFontSlug,
         usernameColorSlug: usernameColorSlug === "default" ? null : usernameColorSlug,
+        profileAccentSlug: profileAccentSlug === "red" ? null : profileAccentSlug,
       };
       if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl;
 
@@ -454,6 +460,14 @@ function ProfileEditModal({
 
           <div className="border-t border-line pt-4 flex flex-col gap-4">
             <ColorPicker
+              value={profileAccentSlug}
+              onChange={setProfileAccentSlug}
+              label="Couleur du profil"
+              colors={ACCENT_COLORS}
+              resolve={findAccent}
+              defaultSlug="red"
+            />
+            <ColorPicker
               value={usernameColorSlug}
               onChange={setUsernameColorSlug}
               label="Couleur du pseudo"
@@ -521,7 +535,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
       const { data: profileRow } = await supabase
         .from("profiles")
         .select(
-          "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,created_at,username_font_slug,username_color_slug"
+          "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,created_at,username_font_slug,username_color_slug,profile_accent_slug"
         )
         .ilike("username", targetUsername)
         .maybeSingle();
@@ -578,9 +592,13 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
 
   const role = view?.role ?? "spectateur";
   const displayUsername = view?.username ?? targetUsername;
+  const accentValue = view?.profileAccentSlug ? findAccent(view.profileAccentSlug) : null;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div
+      className="flex flex-col min-h-screen"
+      style={accentValue ? ({ "--color-red": accentValue } as React.CSSProperties) : undefined}
+    >
       <Ticker />
       <Nav />
 
@@ -791,6 +809,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
               role: "spectateur",
               usernameFontSlug: null,
               usernameColorSlug: null,
+              profileAccentSlug: null,
             }
           }
           onClose={() => setEditing(false)}
