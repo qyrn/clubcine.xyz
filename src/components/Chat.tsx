@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useProfilesByUsername } from "@/lib/use-profiles";
@@ -57,6 +57,55 @@ function detectMention(
 const MAX_MESSAGES = 50;
 const MAX_LEN = 280;
 const WARN_LEN = 240;
+
+function fmtFullDate(ts: number): string {
+  return new Date(ts).toLocaleString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function isSameDay(a: number, b: number): boolean {
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate()
+  );
+}
+
+function dayLabel(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const that = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((today - that) / 86_400_000);
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return "Hier";
+  return d.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function DaySeparator({ label, compact }: { label: string; compact?: boolean }) {
+  return (
+    <div className={`flex items-center gap-3 ${compact ? "py-1.5" : "py-2.5"}`}>
+      <div className="flex-1 h-px bg-line" />
+      <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-ink-3 whitespace-nowrap">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-line" />
+    </div>
+  );
+}
 
 interface ChatProps {
   onCollapse?: () => void;
@@ -541,7 +590,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             </div>
           )}
 
-          {messages.map((msg) => {
+          {messages.map((msg, i) => {
             const mine =
               !!selfMentionRe &&
               msg.username.toLowerCase() !== selfLower &&
@@ -549,16 +598,24 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             const targetProfile = canModerate
               ? profileMap.get(msg.username.toLowerCase())
               : undefined;
+            const showSep =
+              i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
             return (
+            <Fragment key={msg.id}>
+            {showSep && <DaySeparator label={dayLabel(msg.timestamp)} compact />}
             <div
-              key={msg.id}
-              title={formatTime(msg.timestamp)}
               className={`group relative text-[12px] leading-[1.55] break-words ${
                 mine
                   ? "-mx-1.5 px-1.5 py-0.5 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
                   : ""
               }`}
             >
+              <span
+                className="text-ink-3 text-[10px] font-mono tabular-nums align-middle mr-1.5 cursor-default"
+                title={fmtFullDate(msg.timestamp)}
+              >
+                {formatTime(msg.timestamp)}
+              </span>
               <UserChip
                 username={msg.username}
                 profile={profileMap.get(msg.username.toLowerCase())}
@@ -588,6 +645,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
                 </span>
               )}
             </div>
+            </Fragment>
             );
           })}
         </div>
@@ -678,7 +736,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
         )}
 
-        {messages.map((msg) => {
+        {messages.map((msg, i) => {
           const mine =
             !!selfMentionRe &&
             msg.username.toLowerCase() !== selfLower &&
@@ -686,16 +744,24 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           const targetProfile = canModerate
             ? profileMap.get(msg.username.toLowerCase())
             : undefined;
+          const showSep =
+            i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
           return (
+          <Fragment key={msg.id}>
+          {showSep && <DaySeparator label={dayLabel(msg.timestamp)} />}
           <div
-            key={msg.id}
-            title={formatTime(msg.timestamp)}
             className={`group relative py-1 text-[13px] leading-[1.6] break-words ${
               mine
                 ? "-mx-2 px-2 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
                 : ""
             }`}
           >
+            <span
+              className="text-ink-3 text-[10px] font-mono tabular-nums align-middle mr-1.5 cursor-default"
+              title={fmtFullDate(msg.timestamp)}
+            >
+              {formatTime(msg.timestamp)}
+            </span>
             <UserChip
               username={msg.username}
               profile={profileMap.get(msg.username.toLowerCase())}
@@ -725,6 +791,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               </span>
             )}
           </div>
+          </Fragment>
           );
         })}
       </div>
