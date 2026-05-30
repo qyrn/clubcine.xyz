@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     auth: { persistSession: false },
   });
 
-  await supabase.from("error_log").insert({
+  const { error: insertError } = await supabase.from("error_log").insert({
     source,
     message,
     stack,
@@ -112,6 +112,11 @@ export async function POST(req: NextRequest) {
     user_id: userId,
     username,
   });
+
+  if (insertError) {
+    console.error("[log-error] insert failed:", insertError.message);
+    return NextResponse.json({ ok: false }, { status: 200 });
+  }
 
   if (DISCORD_WEBHOOK && shouldAlert(message)) {
     after(() => notifyDiscord({ source, message, stack, url, username }));

@@ -1318,6 +1318,25 @@ begin
   );
 end $$;
 
+-- Cleanup auto des error_log > 30 jours (pg_cron, daily 04:30 UTC). La table
+-- grossit sans limite sinon (un insert par erreur runtime client).
+create or replace function public.cleanup_old_error_logs()
+returns void language sql security definer set search_path = public as $$
+  delete from public.error_log where created_at < now() - interval '30 days';
+$$;
+
+do $$
+begin
+  if exists (select 1 from cron.job where jobname = 'cleanup-old-error-logs') then
+    perform cron.unschedule('cleanup-old-error-logs');
+  end if;
+  perform cron.schedule(
+    'cleanup-old-error-logs',
+    '30 4 * * *',
+    $cron$ select public.cleanup_old_error_logs(); $cron$
+  );
+end $$;
+
 -- =============================================================================
 -- 16. modération chat avancée (ban comptes, slow mode global, gel chat)
 -- =============================================================================
