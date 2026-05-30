@@ -18,14 +18,14 @@ import BanUserDialog from "./BanUserDialog";
 import { readStorage, writeStorage } from "@/lib/safe-storage";
 import { usePersistentState } from "@/lib/use-persistent-state";
 
-const LAST_SENT_KEY = "clubcine-chat-last-sent";
+const COOLDOWN_KEY = "clubcine-chat-cooldown-until";
 
-function parseLastSent(raw: string): number | null {
+function parseTimestamp(raw: string): number | null {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function serializeLastSent(value: number | null): string {
+function serializeTimestamp(value: number | null): string {
   return value === null ? "" : String(value);
 }
 
@@ -224,17 +224,17 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const canModerate = profile?.role === "admin" || profile?.role === "moderateur";
 
   const { frozen, slowModeSeconds } = useChatSettings();
-  const [lastSentAt, setLastSentAt] = usePersistentState<number | null>(
-    LAST_SENT_KEY,
+  const [cooldownUntil, setCooldownUntil] = usePersistentState<number | null>(
+    COOLDOWN_KEY,
     null,
-    parseLastSent,
-    serializeLastSent
+    parseTimestamp,
+    serializeTimestamp
   );
   const [spamLockUntil, setSpamLockUntil] = useState<number | null>(null);
   const [clockTick, setClockTick] = useState(() => Date.now());
 
   useEffect(() => {
-    const slowTicking = !canModerate && lastSentAt !== null && slowModeSeconds > 0;
+    const slowTicking = !canModerate && cooldownUntil !== null && cooldownUntil > Date.now();
     const spamTicking = spamLockUntil !== null;
     if (!slowTicking && !spamTicking) return;
     const id = setInterval(() => {
@@ -243,14 +243,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       if (spamLockUntil !== null && now >= spamLockUntil) setSpamLockUntil(null);
     }, 250);
     return () => clearInterval(id);
-  }, [lastSentAt, slowModeSeconds, canModerate, spamLockUntil]);
+  }, [cooldownUntil, canModerate, spamLockUntil]);
 
   const cooldownRemaining = (() => {
-    if (canModerate) return 0;
-    if (!lastSentAt || slowModeSeconds === 0) return 0;
-    const remaining = Math.ceil(
-      (lastSentAt + slowModeSeconds * 1000 - clockTick) / 1000
-    );
+    if (canModerate || !cooldownUntil) return 0;
+    const remaining = Math.ceil((cooldownUntil - clockTick) / 1000);
     return Math.max(0, remaining);
   })();
 
@@ -605,7 +602,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       }
       return;
     }
-    setLastSentAt(Date.now());
+    setCooldownUntil(slowModeSeconds > 0 ? Date.now() + slowModeSeconds * 1000 : null);
   };
 
   const rollback = (msgs: ChatMessage[]) => {
