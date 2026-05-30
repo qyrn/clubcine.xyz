@@ -118,7 +118,7 @@ export default function FollowButton({ isMe, stats, loading, busy, toggle }: Pro
           : "border-ink text-ink hover:border-red hover:text-red"
       }`}
     >
-      {busy ? "…" : stats.isFollowing ? "Suivi" : "+ Suivre"}
+      {busy ? "…" : stats.isFollowing ? "Unfollow" : "+ Suivre"}
     </button>
   );
 }
