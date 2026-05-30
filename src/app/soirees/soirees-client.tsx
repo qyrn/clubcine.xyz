@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
+import SoireeUpcomingCard from "@/components/SoireeUpcomingCard";
 
 interface FilmView {
   id: string;
@@ -33,7 +34,6 @@ export interface LiveSoireeView extends SoireeView {
   currentIndex: number;
 }
 
-const WEEKDAYS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const MONTHS = [
   "janvier",
   "février",
@@ -48,15 +48,6 @@ const MONTHS = [
   "novembre",
   "décembre",
 ];
-
-function formatSoireeDate(ms: number): string {
-  const d = new Date(ms);
-  const day = WEEKDAYS[d.getDay()];
-  const month = MONTHS[d.getMonth()];
-  const h = d.getHours().toString().padStart(2, "0");
-  const m = d.getMinutes().toString().padStart(2, "0");
-  return `${day} ${d.getDate()} ${month} · ${h}h${m === "00" ? "" : m}`;
-}
 
 function formatPastDate(ms: number): string {
   const d = new Date(ms);
@@ -161,47 +152,6 @@ function LiveHero({ soiree }: { soiree: LiveSoireeView }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function UpcomingCard({ soiree }: { soiree: SoireeView }) {
-  const poster = getPoster(soiree);
-  return (
-    <article className="flex flex-col gap-4 border border-line rounded-lg p-5">
-      <div className="relative aspect-[2/3] border border-line rounded-md overflow-hidden bg-bg">
-        {poster && (
-          <Image
-            src={poster}
-            alt=""
-            fill
-            sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 25vw"
-            className="object-cover"
-          />
-        )}
-      </div>
-      <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red capitalize">
-        ★ {formatSoireeDate(soiree.startsAt)}
-      </div>
-      <h3 className="font-bold text-[22px] leading-[1.1] tracking-[-0.02em] text-balance">{soiree.title}</h3>
-      {!soiree.posterCustomUrl && (
-        <ul className="font-mono text-[11px] tracking-[0.04em] text-ink-3 flex flex-wrap gap-x-2 gap-y-1">
-          {soiree.films.map((f) => (
-            <li key={f.id}>★ {f.title}</li>
-          ))}
-        </ul>
-      )}
-      {soiree.creditedUsername && (
-        <div className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
-          ★ Suggérée par{" "}
-          <Link
-            href={`/u/${encodeURIComponent(soiree.creditedUsername)}`}
-            className="text-ink-2 hover:text-ink transition-colors"
-          >
-            @{soiree.creditedUsername}
-          </Link>
-        </div>
-      )}
-    </article>
   );
 }
 
@@ -368,7 +318,15 @@ export default function SoireesClient({ live, upcoming, past }: Props) {
           </div>
           <div className="grid grid-cols-4 gap-5 max-[1100px]:grid-cols-2 max-[600px]:grid-cols-1">
             {upcoming.map((s) => (
-              <UpcomingCard key={s.id} soiree={s} />
+              <SoireeUpcomingCard
+                key={s.id}
+                poster={getPoster(s)}
+                startsAt={s.startsAt}
+                title={s.title}
+                films={s.films}
+                custom={!!s.posterCustomUrl}
+                creditedUsername={s.creditedUsername}
+              />
             ))}
           </div>
         </section>
