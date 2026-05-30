@@ -146,6 +146,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchProfile]);
 
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`my-profile:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          void fetchProfile(user.id);
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchProfile]);
+
   const username = profile?.username ?? user?.user_metadata?.username ?? null;
 
   const updateProfile: AuthState["updateProfile"] = async (patch) => {

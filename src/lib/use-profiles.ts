@@ -93,8 +93,6 @@ export function useProfilesByUsername(usernames: string[]): Map<string, PublicPr
         msgByUser.set(u, (msgByUser.get(u) ?? 0) + 1);
       }
 
-      void lowerList;
-
       const next = new Map<string, PublicProfile>();
       for (const r of rows) {
         const lowerName = r.username.toLowerCase();
@@ -116,8 +114,23 @@ export function useProfilesByUsername(usernames: string[]): Map<string, PublicPr
     };
 
     load();
+
+    const channel = supabase
+      .channel(`profiles-live:${key}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { username?: string } | null;
+          const changed = row?.username?.toLowerCase();
+          if (changed && lowerList.includes(changed)) load();
+        }
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, [key]);
 

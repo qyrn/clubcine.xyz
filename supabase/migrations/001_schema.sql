@@ -1252,6 +1252,26 @@ begin
   end if;
 end $$;
 
+-- Realtime emotes (catalogue live, sans F5) et profiles (rôle / pseudo / avatar
+-- mis à jour en direct dans le chat). Idempotent.
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'emotes'
+    ) then
+      alter publication supabase_realtime add table public.emotes;
+    end if;
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'profiles'
+    ) then
+      alter publication supabase_realtime add table public.profiles;
+    end if;
+  end if;
+end $$;
+
 -- Cleanup auto des notifications > 60 jours (pg_cron, daily 04:15 UTC)
 create or replace function public.cleanup_old_notifications()
 returns void language sql security definer set search_path = public as $$

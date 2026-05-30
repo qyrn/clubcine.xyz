@@ -23,7 +23,21 @@ interface EmoteRow {
 
 let cache: Map<string, Emote> | null = null;
 let inflight: Promise<Map<string, Emote>> | null = null;
+let realtimeReady = false;
 const listeners = new Set<(map: Map<string, Emote>) => void>();
+
+function ensureEmotesRealtime() {
+  if (realtimeReady) return;
+  realtimeReady = true;
+  supabase
+    .channel("emotes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "emotes" },
+      () => invalidateEmotesCache()
+    )
+    .subscribe();
+}
 
 function rowToEmote(r: EmoteRow): Emote {
   return {
@@ -80,6 +94,7 @@ export function useEmotes(): Map<string, Emote> {
       if (!cancelled) setMap(next);
     };
     listeners.add(cb);
+    ensureEmotesRealtime();
     void primeEmotes().then((next) => {
       if (!cancelled) setMap(next);
     });

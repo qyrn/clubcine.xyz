@@ -55,6 +55,7 @@ function EmotesAdminContent() {
   const [emotes, setEmotes] = useState<Emote[]>([]);
   const [uploaderNames, setUploaderNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [reloadTick, setReloadTick] = useState(0);
 
   const [file, setFile] = useState<File | null>(null);
   const [slug, setSlug] = useState("");
@@ -68,7 +69,7 @@ function EmotesAdminContent() {
     if (!canUse) return;
     let cancelled = false;
     const load = async () => {
-      setLoading(true);
+      if (reloadTick === 0) setLoading(true);
       try {
         const { data } = await supabase
           .from("emotes")
@@ -102,6 +103,21 @@ function EmotesAdminContent() {
     load();
     return () => {
       cancelled = true;
+    };
+  }, [canUse, reloadTick]);
+
+  useEffect(() => {
+    if (!canUse) return;
+    const channel = supabase
+      .channel("admin-emotes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "emotes" },
+        () => setReloadTick((t) => t + 1)
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
     };
   }, [canUse]);
 
