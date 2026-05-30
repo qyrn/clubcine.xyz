@@ -135,24 +135,52 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
+function LetterboxdIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <circle cx="5.5" cy="12" r="5.5"/>
+      <ellipse cx="12" cy="12" rx="3.5" ry="5.5"/>
+      <circle cx="18.5" cy="12" r="5.5"/>
+    </svg>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="2" y="2" width="20" height="20" rx="5"/>
+      <circle cx="12" cy="12" r="4.5"/>
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    </svg>
+  );
+}
+
 function SocialLink({
   href,
-  label,
   handle,
+  icon,
 }: {
   href: string;
-  label: string;
   handle: string;
+  icon: React.ReactNode;
 }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 hover:text-red transition-colors"
+      className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.08em] text-ink-3 hover:text-red transition-colors"
     >
-      <span aria-hidden>★</span>
-      {label} / {handle || "qui"}
+      {icon}
+      <span>{handle}</span>
     </a>
   );
 }
@@ -179,15 +207,15 @@ function BioBlock({
         <p className="text-[13px] text-ink-3 italic text-balance">Aucune bio définie.</p>
       )}
       {hasSocials && (
-        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
+        <div className="flex flex-col items-center gap-2">
           {profile.letterboxd && (
-            <SocialLink href={profile.letterboxd} label="letterboxd" handle={lbHandle} />
+            <SocialLink href={profile.letterboxd} handle={lbHandle} icon={<LetterboxdIcon />} />
           )}
           {profile.twitter && (
-            <SocialLink href={profile.twitter} label="x" handle={xHandle} />
+            <SocialLink href={profile.twitter} handle={xHandle} icon={<XIcon />} />
           )}
           {profile.instagram && (
-            <SocialLink href={profile.instagram} label="instagram" handle={igHandle} />
+            <SocialLink href={profile.instagram} handle={igHandle} icon={<InstagramIcon />} />
           )}
         </div>
       )}
