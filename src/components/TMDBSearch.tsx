@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 export interface TMDBMovie {
   id: number;
   title: string;
+  originalTitle: string;
   year: string | null;
   posterUrl: string | null;
   overview: string;

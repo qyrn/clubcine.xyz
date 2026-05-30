@@ -179,10 +179,10 @@ function SocialLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.08em] text-ink-3 hover:text-red transition-colors"
+      className="grid grid-cols-[16px_auto] items-center gap-2 font-mono text-[10px] tracking-[0.08em] text-ink-3 hover:text-red transition-colors min-w-0"
     >
-      {icon}
-      <span>{handle}</span>
+      <span className="flex items-center justify-center">{icon}</span>
+      <span className="truncate">{handle}</span>
     </a>
   );
 }
@@ -202,14 +202,16 @@ function BioBlock({
   const hasSocials = !!(profile.letterboxd || profile.twitter || profile.instagram);
 
   return (
-    <div className="border border-dashed border-line-2 rounded-md p-4 flex flex-col gap-3 text-center">
+    <div className="border border-dashed border-line-2 rounded-md p-4 flex flex-col gap-3 text-center min-w-0">
       {profile.bio ? (
-        <p className="text-[13px] leading-[1.6] text-ink-2 text-balance">{profile.bio}</p>
+        <p className="text-[13px] leading-[1.6] text-ink-2 text-balance break-words [overflow-wrap:anywhere]">
+          {profile.bio}
+        </p>
       ) : (
         <p className="text-[13px] text-ink-3 italic text-balance">Aucune bio définie.</p>
       )}
       {hasSocials && (
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-start gap-2 w-fit mx-auto max-w-full">
           {profile.letterboxd && (
             <SocialLink href={profile.letterboxd} handle={lbHandle} icon={<LetterboxdIcon />} />
           )}
@@ -221,13 +223,13 @@ function BioBlock({
           )}
         </div>
       )}
-      {!profile.bio && isMe && (
+      {isMe && (
         <button
           type="button"
           onClick={onEditClick}
-          className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer"
+          className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 hover:text-red transition-colors cursor-pointer self-center"
         >
-          + ajouter
+          {profile.bio ? "modifier" : "+ ajouter"}
         </button>
       )}
     </div>

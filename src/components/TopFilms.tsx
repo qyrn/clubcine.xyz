@@ -137,7 +137,8 @@ function TopFilmSlot({ position, film, editable, userId, onChange }: SlotProps) 
   };
 
   const onTMDBPick = (m: TMDBPick) => {
-    setTitle(m.year ? `${m.title} (${m.year})` : m.title);
+    const vo = m.originalTitle || m.title;
+    setTitle(m.year ? `${vo} (${m.year})` : vo);
     if (m.posters.length > 0) {
       setPoster(m.posters[0]);
       setPosterChoices(m.posters);
@@ -363,17 +364,19 @@ function TopFilmSlot({ position, film, editable, userId, onChange }: SlotProps) 
           const cleanTitle = year
             ? film.title.replace(/\s*\(\d{4}\)\s*$/, "")
             : film.title;
+          const len = cleanTitle.length;
+          const fontSize = len > 30 ? 12 : len > 22 ? 14 : len > 14 ? 16 : 18;
           return (
             <a
               href={film.letterboxd}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center gap-0.5 text-center group/title"
+              className="flex flex-col items-center gap-0.5 text-center group/title w-full min-w-0 overflow-hidden"
               title={film.title}
             >
               <span
-                className="text-[18px] leading-[1.1] tracking-[-0.005em] text-ink group-hover/title:text-red transition-colors line-clamp-2"
-                style={{ fontFamily: fontStack(film.fontSlug ?? "marker") }}
+                className="block w-full max-w-full leading-[1.1] tracking-[-0.005em] text-ink group-hover/title:text-red transition-colors line-clamp-2 break-words [overflow-wrap:anywhere] hyphens-auto"
+                style={{ fontFamily: fontStack(film.fontSlug ?? "marker"), fontSize: `${fontSize}px` }}
               >
                 {cleanTitle}
               </span>

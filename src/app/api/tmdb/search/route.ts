@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
     const results = data.results.slice(0, 8).map((r) => ({
       id: r.id,
       title: r.title || r.original_title,
+      originalTitle: r.original_title || r.title,
       year: r.release_date ? r.release_date.slice(0, 4) : null,
       posterUrl: r.poster_path ? `${POSTER_BASE}${r.poster_path}` : null,
       overview: r.overview ?? "",

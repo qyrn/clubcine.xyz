@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 
-const MAX_BYTES = 1_024 * 1_024;
-const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+const MAX_BYTES = 5 * 1_024 * 1_024;
+const ALLOWED = ["image/webp", "image/png", "image/gif"];
 
 interface Props {
   username: string;
@@ -31,11 +31,11 @@ export default function AvatarUpload({
     e.target.value = "";
 
     if (!ALLOWED.includes(file.type)) {
-      setErr("JPEG, PNG ou WebP uniquement");
+      setErr("WebP, PNG ou GIF uniquement");
       return;
     }
     if (file.size > MAX_BYTES) {
-      setErr("Image trop grosse (1 Mo max)");
+      setErr("Image trop grosse (5 Mo max)");
       return;
     }
 
@@ -51,7 +51,7 @@ export default function AvatarUpload({
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/webp,image/png,image/gif"
         onChange={onFile}
         className="hidden"
       />
