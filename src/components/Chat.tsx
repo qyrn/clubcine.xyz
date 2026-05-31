@@ -1211,7 +1211,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             }
             placeholder={isFrozenForMe ? "Chat figé" : "Envoyer un message"}
             disabled={inputDisabled}
-            className={`flex-1 bg-transparent border px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`flex-1 min-w-0 bg-transparent border px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-3 outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               overLimit ? "border-red focus:border-red" : "border-line-2 focus:border-ink"
             }`}
           />
