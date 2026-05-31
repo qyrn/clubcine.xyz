@@ -280,7 +280,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateEmail = async (email: string): Promise<string | null> => {
-    const { error } = await supabase.auth.updateUser({ email });
+    const emailRedirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/compte` : undefined;
+    const { error } = await supabase.auth.updateUser({ email }, { emailRedirectTo });
     if (error) return error.message;
     return null;
   };

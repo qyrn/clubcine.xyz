@@ -64,7 +64,7 @@ function EmailCard() {
     setEmail("");
     setMessage({
       kind: "ok",
-      text: "lien de confirmation envoyé. Le changement prend effet après validation depuis ta boîte mail.",
+      text: "lien de confirmation envoyé. Ouvre le lien depuis ta nouvelle adresse (et l'ancienne si un second mail arrive) pour valider. L'email se met à jour après validation.",
     });
   };
 
