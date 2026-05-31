@@ -189,7 +189,7 @@ export default function Nav({ active }: { active?: string }) {
 
   return (
     <>
-      <nav className="grid grid-cols-[auto_1fr_auto] items-center gap-10 px-10 py-6 border-b border-line max-md:px-5 max-md:py-4 max-md:gap-4">
+      <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-10 px-10 py-6 border-b border-line max-md:px-5 max-md:py-4 max-md:gap-4">
         <Brand />
 
         <div className="flex justify-center gap-8 max-md:hidden">
@@ -207,7 +207,7 @@ export default function Nav({ active }: { active?: string }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-4 text-[12px] text-ink-3 max-md:gap-3">
+        <div className="flex items-center justify-end gap-4 text-[12px] text-ink-3 max-md:gap-3">
           <ViewerCount />
           {loading ? (
             <span
