@@ -154,7 +154,7 @@ export default function ComptePage() {
       <Nav />
 
       <main className="flex-1 px-10 py-14 max-md:px-5 max-md:py-10 max-w-[640px] w-full mx-auto">
-        <h1 className="font-bold tracking-[-0.02em] mb-8" style={{ fontSize: "clamp(32px, 5vw, 48px)" }}>
+        <h1 className="font-bold tracking-[-0.02em] mb-8 text-center" style={{ fontSize: "clamp(32px, 5vw, 48px)" }}>
           Compte
         </h1>
 
