@@ -199,16 +199,19 @@ function DashboardContent() {
     const staffBuckets = { pending: 0, accepted: 0, rejected: 0 };
     for (const a of staff) staffBuckets[a.status]++;
 
-    const totalWatchSeconds = watch.reduce((sum, w) => sum + (w.seconds ?? 0), 0);
     const profileByUsername = new Map<string, ProfileRow>();
     for (const p of profiles) profileByUsername.set(p.username.toLowerCase(), p);
 
-    const topWatchers = watch.slice(0, 5).map((w) => ({ ...w, profile: profileByUsername.get(w.username.toLowerCase()) }));
+    const knownWatch = watch.filter((w) => profileByUsername.has(w.username.toLowerCase()));
+    const totalWatchSeconds = knownWatch.reduce((sum, w) => sum + (w.seconds ?? 0), 0);
+    const knownWatchCount = knownWatch.length;
+
+    const topWatchers = knownWatch.slice(0, 5).map((w) => ({ ...w, profile: profileByUsername.get(w.username.toLowerCase()) }));
     const recentSignups = profiles.slice(0, 5);
     const pendingStaff = staff.filter((s) => s.status === "pending").slice(0, 5);
     const pendingBugs = bugs.filter((b) => b.status === "pending").slice(0, 5);
 
-    return { roles, suggBuckets, bugBuckets, staffBuckets, totalWatchSeconds, topWatchers, recentSignups, pendingStaff, pendingBugs };
+    return { roles, suggBuckets, bugBuckets, staffBuckets, totalWatchSeconds, knownWatchCount, topWatchers, recentSignups, pendingStaff, pendingBugs };
   }, [profiles, suggestions, bugs, staff, watch]);
 
   if (authLoading) {
@@ -285,7 +288,7 @@ function DashboardContent() {
               <KpiCard
                 label="Antenne cumulée"
                 value={formatHours(stats.totalWatchSeconds)}
-                sub={`${watch.length} viewer${watch.length > 1 ? "s" : ""} actifs`}
+                sub={`${stats.knownWatchCount} viewer${stats.knownWatchCount > 1 ? "s" : ""} actifs`}
               />
               <KpiCard
                 label="Chat · 30 jours"

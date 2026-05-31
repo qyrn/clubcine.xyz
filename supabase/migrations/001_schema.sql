@@ -566,6 +566,15 @@ revoke all on function public.increment_watch_time(text, integer) from public;
 revoke all on function public.increment_watch_time(text, integer) from anon;
 grant execute on function public.increment_watch_time(text, integer) to authenticated;
 
+-- Nettoyage des lignes watch_time orphelines (pseudo sans profil réel : anciens
+-- enregistrements anonymes laissés avant le durcissement de increment_watch_time).
+-- Idempotent, sans effet une fois la table propre.
+delete from public.watch_time wt
+where not exists (
+  select 1 from public.profiles p
+  where lower(p.username) = lower(wt.username)
+);
+
 -- 9c. Trigger chat
 create or replace function public.award_chat_badges()
 returns trigger language plpgsql security definer set search_path = public as $$
