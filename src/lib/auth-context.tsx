@@ -16,6 +16,8 @@ export interface UserProfile {
   usernameFontSlug: string | null;
   usernameColorSlug: string | null;
   profileAccentSlug: string | null;
+  chatBannedUntil: string | null;
+  chatBanReason: string | null;
 }
 
 interface AuthState {
@@ -72,6 +74,8 @@ interface ProfileRow {
   username_font_slug: string | null;
   username_color_slug: string | null;
   profile_accent_slug: string | null;
+  chat_banned_until: string | null;
+  chat_ban_reason: string | null;
 }
 
 function rowToProfile(row: ProfileRow): UserProfile {
@@ -87,6 +91,8 @@ function rowToProfile(row: ProfileRow): UserProfile {
     usernameFontSlug: row.username_font_slug,
     usernameColorSlug: row.username_color_slug,
     profileAccentSlug: row.profile_accent_slug,
+    chatBannedUntil: row.chat_banned_until,
+    chatBanReason: row.chat_ban_reason,
   };
 }
 
@@ -99,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug"
+        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug,chat_banned_until,chat_ban_reason"
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -198,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .update(dbPatch)
       .eq("user_id", user.id)
       .select(
-        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug"
+        "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug,chat_banned_until,chat_ban_reason"
       );
 
     if (error) {
@@ -230,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           { onConflict: "user_id" }
         )
         .select(
-          "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug"
+          "user_id,username,bio,letterboxd,twitter,instagram,avatar_url,role,username_font_slug,username_color_slug,profile_accent_slug,chat_banned_until,chat_ban_reason"
         )
         .single();
       if (upErr) {

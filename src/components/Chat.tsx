@@ -15,6 +15,7 @@ import EmotePicker from "./EmotePicker";
 import MentionSuggestions from "./MentionSuggestions";
 import EmoteSuggestions from "./EmoteSuggestions";
 import BanUserDialog from "./BanUserDialog";
+import ChatBanNotice from "./ChatBanNotice";
 import { readStorage, writeStorage } from "@/lib/safe-storage";
 import { usePersistentState } from "@/lib/use-persistent-state";
 
@@ -233,23 +234,30 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [spamLockUntil, setSpamLockUntil] = useState<number | null>(null);
   const [clockTick, setClockTick] = useState(() => Date.now());
 
+  const banUntilMs = profile?.chatBannedUntil
+    ? new Date(profile.chatBannedUntil).getTime()
+    : null;
+
   useEffect(() => {
     const slowTicking = !canModerate && cooldownUntil !== null && cooldownUntil > Date.now();
+    const banTicking = banUntilMs !== null && banUntilMs > Date.now();
     const spamTicking = spamLockUntil !== null;
-    if (!slowTicking && !spamTicking) return;
+    if (!slowTicking && !banTicking && !spamTicking) return;
     const id = setInterval(() => {
       const now = Date.now();
       setClockTick(now);
       if (spamLockUntil !== null && now >= spamLockUntil) setSpamLockUntil(null);
     }, 250);
     return () => clearInterval(id);
-  }, [cooldownUntil, canModerate, spamLockUntil]);
+  }, [cooldownUntil, banUntilMs, canModerate, spamLockUntil]);
 
   const cooldownRemaining = (() => {
     if (canModerate || !cooldownUntil) return 0;
     const remaining = Math.ceil((cooldownUntil - clockTick) / 1000);
     return Math.max(0, remaining);
   })();
+
+  const isBanned = !canModerate && banUntilMs !== null && banUntilMs > clockTick;
 
   const spamRemaining = spamLockUntil
     ? Math.max(0, Math.ceil((spamLockUntil - clockTick) / 1000))
@@ -845,6 +853,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               {charCount}/{MAX_LEN}
             </span>
           )}
+          {isBanned && banUntilMs ? (
+            <ChatBanNotice
+              untilMs={banUntilMs}
+              reason={profile?.chatBanReason ?? null}
+              compact
+            />
+          ) : (
           <form onSubmit={sendMessage} className="border-t border-line p-2 flex gap-1.5">
             <input
               ref={inputRef}
@@ -874,6 +889,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               {lockSeconds > 0 ? `${lockSeconds}s` : "Envoyer"}
             </button>
           </form>
+          )}
         </div>
         {banTarget && (
           <BanUserDialog
@@ -1021,6 +1037,13 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             {charCount}/{MAX_LEN}
           </span>
         )}
+        {isBanned && banUntilMs ? (
+          <ChatBanNotice
+            untilMs={banUntilMs}
+            reason={profile?.chatBanReason ?? null}
+            compact={false}
+          />
+        ) : (
         <form onSubmit={sendMessage} className="flex gap-2">
           <input
             ref={inputRef}
@@ -1049,6 +1072,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             {lockSeconds > 0 ? `${lockSeconds}s` : "Envoyer"}
           </button>
         </form>
+        )}
       </div>
       {banTarget && (
         <BanUserDialog

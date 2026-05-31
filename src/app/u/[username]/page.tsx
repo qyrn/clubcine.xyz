@@ -66,6 +66,8 @@ function rowToProfile(row: ProfileRow): UserProfile {
     usernameFontSlug: row.username_font_slug,
     usernameColorSlug: row.username_color_slug,
     profileAccentSlug: row.profile_accent_slug,
+    chatBannedUntil: null,
+    chatBanReason: null,
   };
 }
 
@@ -814,6 +816,8 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
               usernameFontSlug: null,
               usernameColorSlug: null,
               profileAccentSlug: null,
+              chatBannedUntil: null,
+              chatBanReason: null,
             }
           }
           onClose={() => setEditing(false)}
