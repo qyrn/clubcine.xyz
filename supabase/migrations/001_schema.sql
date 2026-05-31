@@ -1185,10 +1185,14 @@ create table if not exists public.notifications (
   recipient_id    uuid not null references auth.users(id) on delete cascade,
   actor_id        uuid references auth.users(id) on delete cascade,
   actor_username  text not null,
-  type            text not null check (type in ('follow', 'guestbook', 'mention')),
+  type            text not null check (type in ('follow', 'guestbook', 'mention', 'role', 'suggestion_accepted', 'suggestion_rejected', 'badge')),
+  detail          text,
   read            boolean not null default false,
   created_at      timestamptz not null default now()
 );
+
+alter table public.notifications
+  add column if not exists detail text;
 
 -- type check étendu (idempotent : drop + re-add pour les installs antérieures)
 do $$
@@ -1202,7 +1206,7 @@ begin
   end if;
   alter table public.notifications
     add constraint notifications_type_check
-    check (type in ('follow', 'guestbook', 'mention'));
+    check (type in ('follow', 'guestbook', 'mention', 'role', 'suggestion_accepted', 'suggestion_rejected', 'badge'));
 end $$;
 
 create index if not exists notifications_recipient_idx
@@ -1287,6 +1291,70 @@ drop trigger if exists messages_notify_mention on public.messages;
 create trigger messages_notify_mention
   after insert on public.messages
   for each row execute function public.notify_on_mention();
+
+-- Changement de rôle : notif au membre concerné. detail = slug du nouveau rôle.
+create or replace function public.notify_on_role_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.role is distinct from old.role then
+    insert into public.notifications (recipient_id, actor_id, actor_username, type, detail)
+    values (new.user_id, null, 'clubcine', 'role', new.role);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_notify_role on public.profiles;
+create trigger profiles_notify_role
+  after update of role on public.profiles
+  for each row execute function public.notify_on_role_change();
+
+-- Suggestion traitée (acceptée / refusée) : notif à l'auteur si connu.
+-- detail = titre de la suggestion (payload->>'title').
+create or replace function public.notify_on_suggestion_status()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  title text;
+begin
+  if new.status is distinct from old.status
+     and new.status in ('accepted', 'rejected')
+     and new.user_id is not null then
+    title := coalesce(nullif(new.payload->>'title', ''), 'ta suggestion');
+    insert into public.notifications (recipient_id, actor_id, actor_username, type, detail)
+    values (
+      new.user_id,
+      null,
+      'clubcine',
+      case when new.status = 'accepted' then 'suggestion_accepted' else 'suggestion_rejected' end,
+      title
+    );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists suggestions_notify_status on public.suggestions;
+create trigger suggestions_notify_status
+  after update of status on public.suggestions
+  for each row execute function public.notify_on_suggestion_status();
+
+-- Badge débloqué : notif au membre. detail = libellé du badge.
+create or replace function public.notify_on_badge()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  badge_label text;
+begin
+  select label into badge_label from public.badges where slug = new.badge_slug;
+  insert into public.notifications (recipient_id, actor_id, actor_username, type, detail)
+  values (new.user_id, null, 'clubcine', 'badge', coalesce(badge_label, new.badge_slug));
+  return new;
+end;
+$$;
+
+drop trigger if exists user_badges_notify on public.user_badges;
+create trigger user_badges_notify
+  after insert on public.user_badges
+  for each row execute function public.notify_on_badge();
 
 -- Realtime INSERT (idempotent : on n'ajoute la table à la publication qu'une fois)
 do $$

@@ -3,13 +3,31 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
-export type NotificationType = "follow" | "guestbook" | "mention";
+export type NotificationType =
+  | "follow"
+  | "guestbook"
+  | "mention"
+  | "role"
+  | "suggestion_accepted"
+  | "suggestion_rejected"
+  | "badge";
+
+const KNOWN_TYPES: NotificationType[] = [
+  "follow",
+  "guestbook",
+  "mention",
+  "role",
+  "suggestion_accepted",
+  "suggestion_rejected",
+  "badge",
+];
 
 export interface AppNotification {
   id: string;
   actorId: string | null;
   actorUsername: string;
   type: NotificationType;
+  detail: string | null;
   read: boolean;
   createdAt: string;
 }
@@ -19,6 +37,7 @@ interface NotificationRow {
   actor_id: string | null;
   actor_username: string;
   type: string;
+  detail: string | null;
   read: boolean;
   created_at: string;
 }
@@ -26,9 +45,7 @@ interface NotificationRow {
 const PAGE_SIZE = 20;
 
 function toNotificationType(raw: string): NotificationType {
-  if (raw === "guestbook") return "guestbook";
-  if (raw === "mention") return "mention";
-  return "follow";
+  return (KNOWN_TYPES as string[]).includes(raw) ? (raw as NotificationType) : "follow";
 }
 
 function rowToNotification(r: NotificationRow): AppNotification {
@@ -37,6 +54,7 @@ function rowToNotification(r: NotificationRow): AppNotification {
     actorId: r.actor_id,
     actorUsername: r.actor_username,
     type: toNotificationType(r.type),
+    detail: r.detail ?? null,
     read: r.read,
     createdAt: r.created_at,
   };
@@ -56,7 +74,7 @@ export function useNotifications(userId: string | null) {
       try {
         const { data } = await supabase
           .from("notifications")
-          .select("id,actor_id,actor_username,type,read,created_at")
+          .select("id,actor_id,actor_username,type,detail,read,created_at")
           .eq("recipient_id", userId)
           .order("created_at", { ascending: false })
           .limit(PAGE_SIZE);

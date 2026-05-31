@@ -36,10 +36,127 @@ function timeAgo(iso: string): string {
   return `${d} j`;
 }
 
-function actionLabel(type: AppNotification["type"]): string {
-  if (type === "guestbook") return "a signé ton livre d'or";
-  if (type === "mention") return "t'a mentionné dans le chat";
-  return "t'a suivi";
+function NotifIcon({ type }: { type: AppNotification["type"] }) {
+  const common = {
+    width: 14,
+    height: 14,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  let glyph: React.ReactNode;
+  let accent = false;
+  switch (type) {
+    case "follow":
+      glyph = (
+        <>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <line x1="19" y1="8" x2="19" y2="14" />
+          <line x1="22" y1="11" x2="16" y2="11" />
+        </>
+      );
+      break;
+    case "guestbook":
+      glyph = (
+        <>
+          <path d="M12 19l7-7 3 3-7 7-3-3z" />
+          <path d="M18 13l-1.5-1.5" />
+          <path d="M2 2l7.586 7.586" />
+          <circle cx="11" cy="11" r="2" />
+        </>
+      );
+      break;
+    case "mention":
+      glyph = (
+        <>
+          <circle cx="12" cy="12" r="4" />
+          <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
+        </>
+      );
+      break;
+    case "role":
+      glyph = (
+        <>
+          <path d="M12 2l3 6 6 .5-4.5 4 1.5 6L12 15l-6 3.5 1.5-6L3 8.5 9 8z" />
+        </>
+      );
+      accent = true;
+      break;
+    case "suggestion_accepted":
+      glyph = (
+        <>
+          <path d="M20 6L9 17l-5-5" />
+        </>
+      );
+      accent = true;
+      break;
+    case "suggestion_rejected":
+      glyph = (
+        <>
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </>
+      );
+      break;
+    case "badge":
+      glyph = (
+        <>
+          <circle cx="12" cy="8" r="6" />
+          <path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12" />
+        </>
+      );
+      accent = true;
+      break;
+  }
+  return (
+    <span
+      className={`mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full border shrink-0 ${
+        accent ? "border-red text-red" : "border-line-2 text-ink-2"
+      }`}
+    >
+      <svg {...common}>{glyph}</svg>
+    </span>
+  );
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  spectateur: "spectateur",
+  soutien: "soutien",
+  moderateur: "modérateur",
+  admin: "admin",
+};
+
+function NotifMessage({ n }: { n: AppNotification }) {
+  const actor = <span className="font-semibold text-ink">{n.actorUsername}</span>;
+  const detail = <span className="font-semibold text-ink">{n.detail}</span>;
+  switch (n.type) {
+    case "guestbook":
+      return <>{actor} a signé ton livre d&apos;or</>;
+    case "mention":
+      return <>{actor} t&apos;a mentionné dans le chat</>;
+    case "role":
+      return (
+        <>
+          Tu es désormais{" "}
+          <span className="font-semibold text-ink">
+            {n.detail ? ROLE_LABELS[n.detail] ?? n.detail : "promu"}
+          </span>
+        </>
+      );
+    case "suggestion_accepted":
+      return <>Ta suggestion {detail} a été acceptée</>;
+    case "suggestion_rejected":
+      return <>Ta suggestion {detail} n&apos;a pas été retenue</>;
+    case "badge":
+      return <>Nouveau badge débloqué : {detail}</>;
+    default:
+      return <>{actor} t&apos;a suivi</>;
+  }
 }
 
 export default function NotificationBell() {
@@ -65,9 +182,14 @@ export default function NotificationBell() {
 
   if (!user) return null;
 
+  const ownProfile = username ? `/u/${encodeURIComponent(username)}` : "/";
+
   const hrefFor = (n: AppNotification): string => {
-    if (n.type === "guestbook") {
-      return username ? `/u/${encodeURIComponent(username)}` : "/";
+    if (n.type === "guestbook" || n.type === "role" || n.type === "badge") {
+      return ownProfile;
+    }
+    if (n.type === "suggestion_accepted" || n.type === "suggestion_rejected") {
+      return "/programme";
     }
     if (n.type === "mention") return "/movie";
     return `/u/${encodeURIComponent(n.actorUsername)}`;
@@ -131,25 +253,25 @@ export default function NotificationBell() {
                         if (!n.read) markRead(n.id);
                         setOpen(false);
                       }}
-                      className="flex items-start gap-3 px-4 py-3 hover:bg-line/40 transition-colors"
+                      className={`flex items-start gap-3 px-4 py-3 hover:bg-line/40 transition-colors ${
+                        n.read ? "" : "bg-red/[0.06]"
+                      }`}
                     >
-                      <span
-                        className={`mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 ${
-                          n.read ? "bg-transparent" : "bg-red"
-                        }`}
-                        aria-hidden
-                      />
-                      <span className="flex flex-col gap-0.5 min-w-0">
+                      <NotifIcon type={n.type} />
+                      <span className="flex flex-col gap-0.5 min-w-0 flex-1">
                         <span className="text-[12px] leading-[1.5] text-ink-2 break-words">
-                          <span className="font-semibold text-ink">
-                            {n.actorUsername}
-                          </span>{" "}
-                          {actionLabel(n.type)}
+                          <NotifMessage n={n} />
                         </span>
                         <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
                           {timeAgo(n.createdAt)}
                         </span>
                       </span>
+                      {!n.read && (
+                        <span
+                          className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-red"
+                          aria-hidden
+                        />
+                      )}
                     </Link>
                   </li>
                 ))}
