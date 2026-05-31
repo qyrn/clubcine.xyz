@@ -1,4 +1,4 @@
-export const LAUNCH_ISO = "2026-06-01T00:00:00+02:00";
+export const LAUNCH_ISO = "2026-06-01T21:00:00+02:00";
 const LAUNCH_MS = Date.parse(LAUNCH_ISO);
 
 export function isSiteLocked(): boolean {
