@@ -29,7 +29,6 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<string | null>;
-  updateEmail: (email: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
   updateProfile: (
     patch: Partial<
@@ -57,7 +56,6 @@ const AuthContext = createContext<AuthState>({
   signIn: async () => null,
   signOut: async () => {},
   resetPassword: async () => null,
-  updateEmail: async () => null,
   updatePassword: async () => null,
   updateProfile: async () => null,
 });
@@ -279,14 +277,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   };
 
-  const updateEmail = async (email: string): Promise<string | null> => {
-    const emailRedirectTo =
-      typeof window !== "undefined" ? `${window.location.origin}/compte` : undefined;
-    const { error } = await supabase.auth.updateUser({ email }, { emailRedirectTo });
-    if (error) return error.message;
-    return null;
-  };
-
   const updatePassword = async (password: string): Promise<string | null> => {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) return error.message;
@@ -304,7 +294,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signOut,
         resetPassword,
-        updateEmail,
         updatePassword,
         updateProfile,
       }}

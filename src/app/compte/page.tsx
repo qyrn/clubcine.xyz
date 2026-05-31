@@ -5,6 +5,7 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
 import Footer from "@/components/Footer";
+import { RoleBadge } from "@/components/RoleBadge";
 import { useAuth } from "@/lib/auth-context";
 
 function Field({
@@ -39,60 +40,45 @@ function Feedback({ message }: { message: { kind: "ok" | "err"; text: string } |
   );
 }
 
-function EmailCard() {
-  const { user, updateEmail } = useAuth();
-  const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-4 py-2.5 border-t border-line first:border-t-0 first:pt-0">
+      <dt className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3 w-20 shrink-0">
+        {label}
+      </dt>
+      <dd className="min-w-0 flex-1">{children}</dd>
+    </div>
+  );
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage(null);
-    const next = email.trim();
-    if (!next) return;
-    if (next === user?.email) {
-      setMessage({ kind: "err", text: "c'est déjà ton email actuel" });
-      return;
-    }
-    setSubmitting(true);
-    const err = await updateEmail(next);
-    setSubmitting(false);
-    if (err) {
-      setMessage({ kind: "err", text: err });
-      return;
-    }
-    setEmail("");
-    setMessage({
-      kind: "ok",
-      text: "lien de confirmation envoyé. Ouvre le lien depuis ta nouvelle adresse (et l'ancienne si un second mail arrive) pour valider. L'email se met à jour après validation.",
-    });
-  };
+function IdentityCard() {
+  const { user, profile } = useAuth();
+  const joined = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "—";
 
   return (
-    <form onSubmit={handleSubmit} className="border border-line rounded-md p-5 flex flex-col gap-3">
-      <div>
-        <div className="text-[14px] font-semibold uppercase tracking-[0.16em] mb-1">Email</div>
-        <div className="font-mono text-[11px] text-ink-3 break-all">
-          actuel : {user?.email ?? "—"}
-        </div>
-      </div>
-      <Feedback message={message} />
-      <Field
-        label="nouvel email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        autoComplete="email"
-        required
-      />
-      <button
-        type="submit"
-        disabled={submitting}
-        className="border border-ink bg-transparent text-ink text-[12px] font-semibold py-2.5 hover:border-red hover:text-red cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-default uppercase tracking-[0.12em]"
-      >
-        {submitting ? "…" : "Changer l'email"}
-      </button>
-    </form>
+    <div className="border border-line rounded-md p-5 flex flex-col gap-4">
+      <div className="text-[14px] font-semibold uppercase tracking-[0.16em]">Identité</div>
+      <dl className="flex flex-col">
+        <InfoRow label="Email">
+          <span className="font-mono text-[12px] text-ink-2 break-all">{user?.email ?? "—"}</span>
+        </InfoRow>
+        <InfoRow label="Pseudo">
+          <span className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13px] text-ink">@{profile?.username ?? "—"}</span>
+            {profile?.role && <RoleBadge role={profile.role} showLabel />}
+          </span>
+        </InfoRow>
+        <InfoRow label="Inscrit le">
+          <span className="text-[12px] text-ink-2">{joined}</span>
+        </InfoRow>
+      </dl>
+    </div>
   );
 }
 
@@ -188,7 +174,7 @@ export default function ComptePage() {
           </div>
         ) : (
           <div className="flex flex-col gap-5">
-            <EmailCard />
+            <IdentityCard />
             <PasswordCard />
           </div>
         )}
