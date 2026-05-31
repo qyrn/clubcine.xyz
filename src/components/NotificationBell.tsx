@@ -115,8 +115,8 @@ function NotifIcon({ type }: { type: AppNotification["type"] }) {
   }
   return (
     <span
-      className={`mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full border shrink-0 ${
-        accent ? "border-red text-red" : "border-line-2 text-ink-2"
+      className={`inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
+        accent ? "bg-red/15 text-red" : "bg-line-2/70 text-ink-2"
       }`}
     >
       <svg {...common}>{glyph}</svg>
@@ -253,25 +253,21 @@ export default function NotificationBell() {
                         if (!n.read) markRead(n.id);
                         setOpen(false);
                       }}
-                      className={`flex items-start gap-3 px-4 py-3 hover:bg-line/40 transition-colors ${
-                        n.read ? "" : "bg-red/[0.06]"
+                      className={`flex items-center gap-3 pr-4 py-2.5 border-l-2 transition-colors ${
+                        n.read
+                          ? "border-transparent pl-4 hover:bg-line/30"
+                          : "border-red pl-[14px] bg-red/[0.05] hover:bg-red/[0.09]"
                       }`}
                     >
                       <NotifIcon type={n.type} />
-                      <span className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <span className="text-[12px] leading-[1.5] text-ink-2 break-words">
+                      <span className="min-w-0 flex-1 flex items-baseline justify-between gap-2.5">
+                        <span className="text-[12.5px] leading-[1.4] text-ink-2 break-words">
                           <NotifMessage n={n} />
                         </span>
-                        <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3">
+                        <span className="font-mono text-[10px] tracking-[0.04em] text-ink-3 shrink-0">
                           {timeAgo(n.createdAt)}
                         </span>
                       </span>
-                      {!n.read && (
-                        <span
-                          className="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 bg-red"
-                          aria-hidden
-                        />
-                      )}
                     </Link>
                   </li>
                 ))}
