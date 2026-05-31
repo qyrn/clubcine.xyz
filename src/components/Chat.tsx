@@ -41,6 +41,17 @@ function isFromCurrentPool(name: string): boolean {
   return (ANON_PSEUDOS as readonly string[]).includes(base);
 }
 
+function parseBanDuration(token: string | undefined): number | null {
+  if (!token) return null;
+  const t = token.toLowerCase();
+  if (t === "perma" || t === "permanent") return 100 * 365 * 24 * 60 * 60 * 1000;
+  const m = t.match(/^(\d+)(m|h|d|j)$/);
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  const mult = m[2] === "m" ? 60_000 : m[2] === "h" ? 3_600_000 : 86_400_000;
+  return n * mult;
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -213,6 +224,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [input, setInput] = useState("");
   const [anonUsername, setAnonUsername] = useState("");
   const [chatError, setChatError] = useState<string | null>(null);
+  const [cmdFeedback, setCmdFeedback] = useState<string | null>(null);
   const [banTarget, setBanTarget] = useState<{ userId: string; username: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -335,6 +347,12 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     const t = setTimeout(() => setChatError(null), 6000);
     return () => clearTimeout(t);
   }, [chatError]);
+
+  useEffect(() => {
+    if (!cmdFeedback) return;
+    const t = setTimeout(() => setCmdFeedback(null), 5000);
+    return () => clearTimeout(t);
+  }, [cmdFeedback]);
 
   useEffect(() => {
     const stored = readStorage("clubcine-username");
@@ -569,9 +587,136 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     }
   };
 
+  const handleCommand = async (raw: string) => {
+    const parts = raw.slice(1).trim().split(/\s+/);
+    const cmd = (parts[0] || "").toLowerCase();
+    const args = parts.slice(1);
+    setChatError(null);
+
+    const setSettings = async (f: boolean, s: number): Promise<boolean> => {
+      const { error } = await supabase.rpc("chat_set_settings", {
+        p_frozen: f,
+        p_slow_mode_seconds: s,
+      });
+      if (error) {
+        setChatError(error.message);
+        return false;
+      }
+      return true;
+    };
+
+    const resolveTarget = async (
+      pseudo: string
+    ): Promise<{ userId: string; username: string } | null> => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id,username")
+        .ilike("username", pseudo)
+        .maybeSingle();
+      if (!data) return null;
+      const row = data as { user_id: string; username: string };
+      return { userId: row.user_id, username: row.username };
+    };
+
+    if (cmd === "slow") {
+      const s = parseInt(args[0] ?? "", 10);
+      if (!Number.isFinite(s) || s < 1 || s > 300) {
+        setChatError("usage : /slow <1-300>");
+        return;
+      }
+      if (await setSettings(frozen, s)) setCmdFeedback(`Slow mode réglé à ${s}s`);
+      return;
+    }
+    if (cmd === "slowoff") {
+      if (await setSettings(frozen, 0)) setCmdFeedback("Slow mode désactivé");
+      return;
+    }
+    if (cmd === "freeze") {
+      if (await setSettings(true, slowModeSeconds)) setCmdFeedback("Chat figé");
+      return;
+    }
+    if (cmd === "unfreeze") {
+      if (await setSettings(false, slowModeSeconds)) setCmdFeedback("Chat dégelé");
+      return;
+    }
+    if (cmd === "ban") {
+      const pseudo = args[0];
+      if (!pseudo) {
+        setChatError("usage : /ban <pseudo> [durée] [raison]");
+        return;
+      }
+      let ms = 24 * 60 * 60 * 1000;
+      let reasonStart = 1;
+      const parsed = parseBanDuration(args[1]);
+      if (parsed !== null) {
+        ms = parsed;
+        reasonStart = 2;
+      }
+      const target = await resolveTarget(pseudo);
+      if (!target) {
+        setChatError(`compte introuvable : ${pseudo}`);
+        return;
+      }
+      const reason = args.slice(reasonStart).join(" ").trim() || null;
+      const { error } = await supabase.rpc("chat_ban_user", {
+        p_user_id: target.userId,
+        p_until: new Date(Date.now() + ms).toISOString(),
+        p_reason: reason,
+      });
+      if (error) {
+        setChatError(error.message);
+        return;
+      }
+      setCmdFeedback(`${target.username} banni`);
+      return;
+    }
+    if (cmd === "unban") {
+      const pseudo = args[0];
+      if (!pseudo) {
+        setChatError("usage : /unban <pseudo>");
+        return;
+      }
+      const target = await resolveTarget(pseudo);
+      if (!target) {
+        setChatError(`compte introuvable : ${pseudo}`);
+        return;
+      }
+      const { error } = await supabase.rpc("chat_ban_user", {
+        p_user_id: target.userId,
+        p_until: null,
+        p_reason: null,
+      });
+      if (error) {
+        setChatError(error.message);
+        return;
+      }
+      setCmdFeedback(`${target.username} débanni`);
+      return;
+    }
+    if (cmd === "clear") {
+      const { error } = await supabase.from("messages").delete().gte("timestamp", 0);
+      if (error) {
+        setChatError(error.message);
+        return;
+      }
+      setMessages([]);
+      setCmdFeedback("Chat purgé");
+      return;
+    }
+    setChatError(`commande inconnue : /${cmd}`);
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !username) return;
+    const trimmed = input.trim();
+    if (canModerate && trimmed.startsWith("/")) {
+      setInput("");
+      closeMention();
+      closeEmote();
+      await handleCommand(trimmed);
+      return;
+    }
     if (isFrozenForMe) {
       setChatError("chat figé par la modération");
       return;
@@ -736,6 +881,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             >
               ×
             </button>
+          </div>
+        )}
+        {cmdFeedback && (
+          <div className="px-3 py-2 border-b border-line bg-line/20 text-[11px] text-ink font-mono leading-[1.4] break-words">
+            ★ {cmdFeedback}
           </div>
         )}
         {statusText && (
@@ -922,6 +1072,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           >
             ×
           </button>
+        </div>
+      )}
+      {cmdFeedback && (
+        <div className="mb-3 px-3 py-2 rounded-md border border-line bg-line/20 text-[12px] text-ink font-mono leading-[1.4] break-words">
+          ★ {cmdFeedback}
         </div>
       )}
       {statusText && (
