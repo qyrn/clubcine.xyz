@@ -1015,6 +1015,40 @@ $$;
 revoke all on function public.admin_set_role(uuid, text) from public;
 grant execute on function public.admin_set_role(uuid, text) to authenticated;
 
+-- Suppression d'un compte (admin only). Supprime auth.users (cascade profiles,
+-- follows, guestbook, etc. via FK on delete) puis purge watch_time / messages
+-- indexés par username. Auto-suppression interdite.
+create or replace function public.admin_delete_user(p_user_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  is_admin boolean;
+  target_username text;
+begin
+  if auth.uid() is null then
+    raise exception 'auth required';
+  end if;
+  select exists (
+    select 1 from public.profiles
+    where user_id = auth.uid() and role = 'admin'
+  ) into is_admin;
+  if not is_admin then
+    raise exception 'admin privilege required';
+  end if;
+  if p_user_id = auth.uid() then
+    raise exception 'cannot delete your own account';
+  end if;
+  select username into target_username from public.profiles where user_id = p_user_id;
+  if target_username is not null then
+    delete from public.watch_time where lower(username) = lower(target_username);
+    delete from public.messages where lower(username) = lower(target_username);
+  end if;
+  delete from auth.users where id = p_user_id;
+end;
+$$;
+
+revoke all on function public.admin_delete_user(uuid) from public;
+grant execute on function public.admin_delete_user(uuid) to authenticated;
+
 -- b) username case-insensitive uniqueness
 -- Le `unique` column-level reste mais on ajoute un index unique sur lower().
 -- Échoue si la table contient déjà des doublons à la casse (le user les nettoie

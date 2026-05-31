@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { BadgeIcon } from "@/components/RoleBadge";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const ROLES = ["spectateur", "soutien", "moderateur", "admin"] as const;
 type Role = (typeof ROLES)[number];
@@ -60,6 +61,7 @@ function UsersAdminContent() {
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ userId: string; username: string } | null>(null);
 
   const isAdmin = profile?.role === "admin";
 
@@ -113,6 +115,15 @@ function UsersAdminContent() {
     if (error) { setFeedback({ kind: "err", text: error.message }); return; }
     setProfiles((prev) => prev.map((p) => (p.user_id === userId ? { ...p, role } : p)));
     setFeedback({ kind: "ok", text: `Rôle → ${role}` });
+  };
+
+  const deleteUser = async (userId: string, username: string) => {
+    setBusy(`delete:${userId}`);
+    const { error } = await supabase.rpc("admin_delete_user", { p_user_id: userId });
+    setBusy(null);
+    if (error) { setFeedback({ kind: "err", text: error.message }); return; }
+    setProfiles((prev) => prev.filter((p) => p.user_id !== userId));
+    setFeedback({ kind: "ok", text: `@${username} supprimé` });
   };
 
   const toggleBadge = async (userId: string, slug: string, has: boolean) => {
@@ -216,6 +227,23 @@ function UsersAdminContent() {
                       >
                         {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                       </select>
+                      {p.user_id !== user?.id && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget({ userId: p.user_id, username: p.username })}
+                          disabled={busy === `delete:${p.user_id}`}
+                          aria-label={`Supprimer @${p.username}`}
+                          title="Supprimer le compte"
+                          className="inline-flex items-center justify-center w-8 h-8 border border-line-2 text-ink-3 hover:border-red hover:text-red transition-colors cursor-pointer disabled:opacity-30"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -259,6 +287,17 @@ function UsersAdminContent() {
           </ul>
         )}
       </main>
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Supprimer le compte"
+          message={`@${deleteTarget.username} sera définitivement supprimé : profil, follows, messages, temps d'antenne. Action irréversible.`}
+          confirmLabel="Supprimer"
+          destructive
+          onConfirm={() => deleteUser(deleteTarget.userId, deleteTarget.username)}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
     </>
   );
 }
