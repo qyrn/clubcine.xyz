@@ -260,7 +260,7 @@ const FILMS_DATA: FilmData[] = [
     title: "Blonde",
     director: "Andrew Dominik",
     year: 2022,
-    duration: 10048,
+    duration: 10041,
     poster: "/posters/blonde.webp",
     letterboxd: "https://letterboxd.com/film/blonde-2022/",
     synopsis: "Portrait hallucinatoire et fragmenté de Marilyn Monroe, entre icône publique et destruction intime.",
