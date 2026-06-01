@@ -211,6 +211,12 @@ async function main() {
     console.log(`  ${r.delta! >= 0 ? "+" : ""}${r.delta!.toFixed(1)}s  ${r.id} (declaree ${r.declared}s)`);
   }
 
+  const noSubs = reports.filter((r) => r.probed !== null && !r.hasSubs);
+  console.log(`\nSans piste subs (${noSubs.length}) :`);
+  for (const r of noSubs) {
+    console.log(`  ${r.id} (${r.title})`);
+  }
+
   console.log("\nResume :");
   console.log(`  OK            ${reports.length - failed.length - warned.length}/${reports.length}`);
   console.log(`  WARN          ${warned.length}`);
