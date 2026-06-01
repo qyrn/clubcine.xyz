@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "award:soirees": "tsx --env-file=.env.local scripts/award-soiree-badges.ts"
+    "award:soirees": "tsx --env-file=.env.local scripts/award-soiree-badges.ts",
+    "verify:films": "tsx --env-file=.env.local scripts/verify-films.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
