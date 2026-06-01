@@ -32,26 +32,34 @@ export function ScheduleProvider({
   const fetchingRef = useRef(false);
   const initialScheduleRef = useRef(initialSchedule);
 
+  const fetchSchedule = useCallback(async () => {
+    const before = Date.now();
+    const res = await fetch("/api/schedule");
+    if (!res.ok) throw new Error(`schedule ${res.status}`);
+    const data = (await res.json()) as ScheduleState;
+    const rtt = Date.now() - before;
+    setSchedule({ ...data, currentOffset: data.currentOffset + rtt / 2000 });
+  }, []);
+
   const refresh = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const before = Date.now();
-      const res = await fetch("/api/schedule");
-      if (!res.ok) throw new Error(`schedule ${res.status}`);
-      const data = (await res.json()) as ScheduleState;
-      const rtt = Date.now() - before;
-      const correctedOffset = data.currentOffset + rtt / 2000;
-      setSchedule({ ...data, currentOffset: correctedOffset });
-    } catch (err) {
-      reportError({
-        source: "schedule-provider",
-        message: err instanceof Error ? err.message : "schedule fetch failed",
-      });
+      await fetchSchedule();
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      try {
+        await fetchSchedule();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "schedule fetch failed";
+        if (/^schedule \d/.test(message)) {
+          reportError({ source: "schedule-provider", message });
+        }
+      }
     } finally {
       fetchingRef.current = false;
     }
-  }, []);
+  }, [fetchSchedule]);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
