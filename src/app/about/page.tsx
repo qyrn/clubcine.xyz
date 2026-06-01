@@ -16,16 +16,17 @@ interface Member {
   username: string;
   role: string;
   image: string | null;
+  profileHref?: string;
   socials: SocialLink[];
 }
 
 const TEAM: Member[] = [
   {
-    username: "qyrn",
+    username: "club ciné",
     role: "Fondateur",
-    image: "/team/qyrn.png",
+    image: null,
     socials: [
-      { label: "Letterboxd", icon: "letterboxd", href: "https://letterboxd.com/qyrn/" },
+      { label: "Letterboxd", icon: "letterboxd", href: "https://letterboxd.com/clubcinefr/" },
       { label: "Ko-fi", icon: "kofi", href: "https://ko-fi.com/clubcinefr" },
     ],
   },
@@ -101,12 +102,18 @@ function MemberCard({ member }: { member: Member }) {
         <div className="font-mono text-[10px] tracking-[0.24em] uppercase text-red font-bold">
           {member.role}
         </div>
-        <Link
-          href={`/u/${encodeURIComponent(member.username)}`}
-          className="font-bold text-[20px] tracking-[-0.01em] uppercase text-ink hover:text-red transition-colors"
-        >
-          {member.username}
-        </Link>
+        {member.profileHref ? (
+          <Link
+            href={member.profileHref}
+            className="font-bold text-[20px] tracking-[-0.01em] uppercase text-ink hover:text-red transition-colors"
+          >
+            {member.username}
+          </Link>
+        ) : (
+          <span className="font-bold text-[20px] tracking-[-0.01em] uppercase text-ink">
+            {member.username}
+          </span>
+        )}
         {member.socials.length > 0 && (
           <div className="flex items-center gap-2 mt-1">
             {member.socials.map((s) => (
