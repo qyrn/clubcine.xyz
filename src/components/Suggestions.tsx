@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { normalizeLetterboxdFilm } from "@/lib/letterboxd";
 import TMDBSearch, { TMDBPick } from "./TMDBSearch";
 
-const LETTERBOXD_LIST = "https://letterboxd.com/clubcinefr/list/club-cine-juin-2026/";
-const CURRENT_MONTH_LABEL = "Juin 2026";
+const LETTERBOXD_LIST = "https://letterboxd.com/clubcinefr/list/club-cine-juillet-2026/";
+const CURRENT_MONTH_LABEL = "Juillet 2026";
 
 const POSTER_MAX_BYTES = 2 * 1024 * 1024;
 const POSTER_MIMES: Record<string, string> = {

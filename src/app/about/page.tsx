@@ -36,7 +36,7 @@ const QUICK_LINKS = [
   { label: "Soutenir sur Ko-fi", href: "https://ko-fi.com/clubcinefr", external: true },
   { label: "Suggérer un film", href: "/#suggestions", external: false },
   { label: "Proposer une soirée", href: "/soirees#suggest", external: false },
-  { label: "Liste Letterboxd du mois", href: "https://letterboxd.com/clubcinefr/list/club-cine-juin-2026/", external: true },
+  { label: "Liste Letterboxd du mois", href: "https://letterboxd.com/clubcinefr/list/club-cine-juillet-2026/", external: true },
 ];
 
 function SocialIcon({ icon }: { icon: SocialLink["icon"] }) {
