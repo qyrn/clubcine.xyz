@@ -15,8 +15,14 @@ vi.mock("hls.js", () => {
     SUBTITLE_TRACKS_UPDATED: "hlsSubtitleTracksUpdated",
     ERROR: "hlsError",
   };
+  const ErrorTypes = {
+    NETWORK_ERROR: "networkError",
+    MEDIA_ERROR: "mediaError",
+    OTHER_ERROR: "otherError",
+  };
   class MockHls {
     static Events = Events;
+    static ErrorTypes = ErrorTypes;
     static isSupported = () => true;
     config: unknown;
     handlers = new Map<string, (event: string, data: unknown) => void>();
@@ -24,6 +30,8 @@ vi.mock("hls.js", () => {
     attachMedia = vi.fn();
     loadSource = vi.fn();
     destroy = vi.fn();
+    startLoad = vi.fn();
+    recoverMediaError = vi.fn();
     on = vi.fn((event: string, cb: (event: string, data: unknown) => void) => {
       this.handlers.set(event, cb);
     });
@@ -43,6 +51,8 @@ interface HlsInstance {
   attachMedia: ReturnType<typeof vi.fn>;
   loadSource: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
+  startLoad: ReturnType<typeof vi.fn>;
+  recoverMediaError: ReturnType<typeof vi.fn>;
   trigger: (event: string, data?: unknown) => void;
 }
 
@@ -183,7 +193,7 @@ describe("Player · intermission", () => {
 });
 
 describe("Player · erreur HLS", () => {
-  it("affiche un message de resync sur erreur fatale", async () => {
+  it("tente un simple restart de charge sur erreur réseau fatale, sans reconstruire le flux", async () => {
     await renderPlayer(makeSchedule());
     await waitFor(() => expect(instances()).toHaveLength(1));
 
@@ -192,5 +202,39 @@ describe("Player · erreur HLS", () => {
     });
 
     await waitFor(() => expect(screen.getByText(/resync/)).toBeInTheDocument());
+    expect(instances()[0].startLoad).toHaveBeenCalled();
+    expect(instances()[0].destroy).not.toHaveBeenCalled();
+    expect(instances()).toHaveLength(1);
+  });
+
+  it("tente une récupération média sur erreur média fatale, sans reconstruire le flux", async () => {
+    await renderPlayer(makeSchedule());
+    await waitFor(() => expect(instances()).toHaveLength(1));
+
+    act(() => {
+      instances()[0].trigger("hlsError", { fatal: true, type: "mediaError", details: "x" });
+    });
+
+    await waitFor(() => expect(screen.getByText(/resync/)).toBeInTheDocument());
+    expect(instances()[0].recoverMediaError).toHaveBeenCalled();
+    expect(instances()[0].destroy).not.toHaveBeenCalled();
+    expect(instances()).toHaveLength(1);
+  });
+
+  it("reconstruit le flux depuis zéro sur une erreur fatale non récupérable", async () => {
+    const schedule = makeSchedule();
+    await renderPlayer(schedule);
+    await waitFor(() => expect(instances()).toHaveLength(1));
+
+    fetchMock.mockResolvedValue({ ok: true, json: async () => schedule });
+
+    act(() => {
+      instances()[0].trigger("hlsError", { fatal: true, type: "otherError", details: "x" });
+    });
+
+    await waitFor(() => expect(screen.getByText(/resync/)).toBeInTheDocument());
+    await waitFor(() => expect(instances()[0].destroy).toHaveBeenCalled(), { timeout: 3000 });
+    await waitFor(() => expect(instances()).toHaveLength(2), { timeout: 3000 });
+    expect(instances()[1].loadSource).toHaveBeenCalledWith(schedule.currentFilm.url);
   });
 });

@@ -168,6 +168,15 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
         if (!data.fatal) return;
         console.error("[HLS]", data.type, data.details, "FATAL");
         setError("erreur HLS, resync...");
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+          return;
+        }
+        currentUrlRef.current = null;
         if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
         resyncTimerRef.current = setTimeout(() => {
           refreshRef.current?.();
