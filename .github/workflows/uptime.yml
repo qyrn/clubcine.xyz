@@ -43,7 +43,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          prev=$(gh run list --workflow uptime.yml --branch main --status completed --json conclusion --limit 2 --jq '.[1].conclusion // "success"')
+          prev=$(gh run list --repo "${{ github.repository }}" --workflow uptime.yml --branch main --status completed --json conclusion --limit 2 --jq '.[1].conclusion // "success"')
           echo "prev=$prev" >> "$GITHUB_OUTPUT"
 
       - name: Alert on state change
