@@ -17,28 +17,14 @@ interface Props {
   director?: string;
   year?: number;
   posterUrl?: string | null;
-  musicUrl?: string | null;
   secondsLeft: number | null;
   soiree?: IntermissionSoiree | null;
 }
 
+const AMBIANCE_URL = "/audio/entracte.mp3";
 const DEFAULT_VOLUME = 0.35;
 const FADE_OUT_AT = 10;
 const VOLUME_KEY = "clubcine-intermission-volume";
-
-interface Track {
-  url: string;
-  title?: string;
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 function loadVolume(): number {
   const raw = readStorage(VOLUME_KEY);
@@ -53,16 +39,11 @@ export default function IntermissionOverlay({
   director,
   year,
   posterUrl,
-  musicUrl,
   secondsLeft,
   soiree,
 }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const tracksRef = useRef<Track[]>([]);
-  const trackIndexRef = useRef(0);
-  const playNextRef = useRef<(() => void) | null>(null);
   const [audioBlocked, setAudioBlocked] = useState(false);
-  const [currentTrackTitle, setCurrentTrackTitle] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState<number>(() => loadVolume());
   const emotes = useEmotes();
@@ -77,65 +58,22 @@ export default function IntermissionOverlay({
   }, [volume]);
 
   useEffect(() => {
-    if (!musicUrl) return;
-    let cancelled = false;
-
-    const audio = new Audio();
-    audio.loop = false;
+    const audio = new Audio(AMBIANCE_URL);
+    audio.loop = true;
     audio.volume = 0;
     audio.preload = "auto";
     audioRef.current = audio;
 
-    const playNext = () => {
-      if (cancelled || tracksRef.current.length === 0) return;
-      const i = trackIndexRef.current % tracksRef.current.length;
-      const t = tracksRef.current[i];
-      trackIndexRef.current = (i + 1) % tracksRef.current.length;
-      audio.src = t.url;
-      setCurrentTrackTitle(t.title ?? null);
-      audio.play()
-        .then(() => setAudioBlocked(false))
-        .catch(() => setAudioBlocked(true));
-    };
-    playNextRef.current = playNext;
-
-    audio.addEventListener("ended", playNext);
-
-    const load = async () => {
-      let tracks: Track[] = [];
-      try {
-        if (musicUrl.endsWith(".json")) {
-          const res = await fetch(musicUrl);
-          if (res.ok) {
-            const data = await res.json() as { tracks?: Track[] };
-            tracks = data.tracks ?? [];
-          }
-        } else {
-          tracks = [{ url: musicUrl }];
-        }
-      } catch {
-        tracks = [];
-      }
-      if (cancelled) return;
-      if (tracks.length === 0) return;
-      tracksRef.current = shuffle(tracks);
-      trackIndexRef.current = 0;
-      playNext();
-    };
-    load();
+    audio.play()
+      .then(() => setAudioBlocked(false))
+      .catch(() => setAudioBlocked(true));
 
     return () => {
-      cancelled = true;
-      audio.removeEventListener("ended", playNext);
       audio.pause();
       audio.src = "";
       audioRef.current = null;
-      tracksRef.current = [];
-      trackIndexRef.current = 0;
-      playNextRef.current = null;
-      setCurrentTrackTitle(null);
     };
-  }, [musicUrl]);
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -269,7 +207,7 @@ export default function IntermissionOverlay({
         </ol>
       )}
 
-      {audioBlocked && musicUrl && (
+      {audioBlocked && (
         <button
           type="button"
           onClick={tryUnlockAudio}
@@ -279,11 +217,8 @@ export default function IntermissionOverlay({
         </button>
       )}
 
-      {musicUrl && !audioBlocked && (
-        <div className="absolute bottom-6 right-6 flex items-center gap-3 border border-line-2 bg-black/60 backdrop-blur px-3 py-2 rounded-md max-w-[340px]">
-          <div className="font-mono text-[10px] tracking-[0.08em] uppercase text-ink-3 truncate min-w-0 max-w-[120px]">
-            {currentTrackTitle ? `♪ ${currentTrackTitle}` : "♪"}
-          </div>
+      {!audioBlocked && (
+        <div className="absolute bottom-6 right-6 flex items-center gap-3 border border-line-2 bg-black/60 backdrop-blur px-3 py-2 rounded-md">
           <button
             type="button"
             onClick={() => setMuted((m) => !m)}
@@ -307,14 +242,6 @@ export default function IntermissionOverlay({
             aria-label="Volume"
             className="w-20 accent-red cursor-pointer flex-shrink-0"
           />
-          <button
-            type="button"
-            onClick={() => playNextRef.current?.()}
-            aria-label="Piste suivante"
-            className="text-ink-2 hover:text-ink transition-colors cursor-pointer flex-shrink-0"
-          >
-            <ForwardIcon />
-          </button>
         </div>
       )}
 
@@ -390,15 +317,6 @@ function SpeakerOffIcon() {
       <path d="M11 5L6 9H2v6h4l5 4V5z" />
       <line x1="23" y1="9" x2="17" y2="15" />
       <line x1="17" y1="9" x2="23" y2="15" />
-    </svg>
-  );
-}
-
-function ForwardIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="5 4 15 12 5 20 5 4" />
-      <line x1="19" y1="5" x2="19" y2="19" />
     </svg>
   );
 }

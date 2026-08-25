@@ -10,7 +10,6 @@ export default function IntermissionTest() {
   const [filmIndex, setFilmIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(60);
   const [running, setRunning] = useState(false);
-  const [musicOverride, setMusicOverride] = useState("");
   const [soireeMode, setSoireeMode] = useState(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -53,12 +52,11 @@ export default function IntermissionTest() {
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden">
       <IntermissionOverlay
-        key={`${film.id}-${musicOverride}`}
+        key={film.id}
         title={film.title}
         director={film.director}
         year={film.year}
         posterUrl={film.poster}
-        musicUrl={musicOverride.trim() || film.music || null}
         secondsLeft={secondsLeft}
         soiree={soiree}
       />
@@ -151,27 +149,9 @@ export default function IntermissionTest() {
           </button>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
-            Musique (URL custom)
-          </span>
-          <input
-            type="url"
-            value={musicOverride}
-            onChange={(e) => setMusicOverride(e.target.value)}
-            placeholder={film.music ?? "https://…/track.mp3"}
-            className="bg-bg border border-line-2 px-2 py-1.5 text-[11px] text-ink rounded-md outline-none focus:border-ink font-mono placeholder:text-ink-3"
-          />
-          <span className="font-mono text-[9px] tracking-[0.04em] text-ink-3">
-            {film.music
-              ? `Défaut : ${film.music}`
-              : "Ce film n'a pas de musique définie (hasMusic absent)."}
-          </span>
-        </div>
-
         <p className="text-[10px] text-ink-3 leading-[1.5] text-balance">
           Cette page sert à prévisualiser l&apos;écran d&apos;entracte
-          (countdown + musique, mode soirée) sans attendre une vraie transition.
+          (countdown + ambiance sonore, mode soirée) sans attendre une vraie transition.
         </p>
       </div>
     </div>

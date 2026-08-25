@@ -179,7 +179,7 @@ describe("Player · intermission", () => {
     await pushSchedule(
       makeSchedule({
         intermission: { secondsLeft: 600, prevFilm: null },
-        currentFilm: makeFilm({ music: undefined }),
+        currentFilm: makeFilm(),
       }),
     );
 

@@ -766,7 +766,6 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
           director={schedule.currentFilm.director}
           year={schedule.currentFilm.year}
           posterUrl={schedule.currentFilm.poster}
-          musicUrl={schedule.currentFilm.music}
           secondsLeft={intermissionLeft}
           soiree={
             schedule.soiree

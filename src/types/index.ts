@@ -5,7 +5,6 @@ export interface Film {
   year: number;
   duration: number;
   url: string;
-  music?: string;
   poster?: string;
   letterboxd?: string;
   synopsis?: string;

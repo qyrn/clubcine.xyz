@@ -141,19 +141,6 @@ async function checkFilm(film: (typeof FILMS)[number]): Promise<FilmReport> {
     report.problems.push({ level: "FAIL", msg: `ffprobe echoue: ${(err as Error).message}` });
   }
 
-  if (film.music) {
-    try {
-      const res = await timedFetch(film.music);
-      if (res.status !== 200) {
-        report.problems.push({ level: "FAIL", msg: `musique HTTP ${res.status}` });
-      } else {
-        JSON.parse(await res.text());
-      }
-    } catch (err) {
-      report.problems.push({ level: "FAIL", msg: `manifest musique invalide: ${(err as Error).message}` });
-    }
-  }
-
   return report;
 }
 
