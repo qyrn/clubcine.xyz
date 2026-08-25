@@ -92,7 +92,7 @@ create policy "profiles insert self" on public.profiles for insert
   with check (auth.uid() = user_id);
 
 create or replace function public.touch_profiles_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 begin
   new.updated_at = now();
   return new;
@@ -212,7 +212,8 @@ create index if not exists suggestions_user_id_idx
 alter table public.suggestions enable row level security;
 
 drop policy if exists "suggestions insert any" on public.suggestions;
-create policy "suggestions insert any" on public.suggestions for insert with check (true);
+create policy "suggestions insert any" on public.suggestions for insert
+  with check (user_id is null or user_id = auth.uid());
 
 drop policy if exists "suggestions select own" on public.suggestions;
 create policy "suggestions select own" on public.suggestions for select
@@ -394,7 +395,8 @@ create index if not exists bug_reports_status_idx
 alter table public.bug_reports enable row level security;
 
 drop policy if exists "bugs insert any" on public.bug_reports;
-create policy "bugs insert any" on public.bug_reports for insert with check (true);
+create policy "bugs insert any" on public.bug_reports for insert
+  with check (user_id is null or user_id = auth.uid());
 
 drop policy if exists "bugs select own" on public.bug_reports;
 create policy "bugs select own" on public.bug_reports for select using (auth.uid() = user_id);
@@ -924,7 +926,7 @@ create policy "staff update admin" on public.staff_applications for update
 
 -- Rate limit : 1 candidature pending max par user (et 1 candidature / 7j si déjà refusée)
 create or replace function public.rate_limit_staff_applications()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   pending_count int;
   recent_count int;
@@ -1093,7 +1095,7 @@ create trigger messages_rate_limit
 
 -- c) rate limit suggestions : 5 inserts max par user_id (ou username si anon) / heure
 create or replace function public.rate_limit_suggestions()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   recent_count int;
 begin
@@ -1122,7 +1124,7 @@ create trigger suggestions_rate_limit
 
 -- c) rate limit bug_reports : 5 inserts max par user_id (ou username si anon) / heure
 create or replace function public.rate_limit_bug_reports()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   recent_count int;
 begin
@@ -1185,7 +1187,7 @@ create policy "error_log select admin" on public.error_log for select
 
 -- rate limit : 30 erreurs max / 10 minutes par user_id (ou username si anon)
 create or replace function public.rate_limit_error_log()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   recent_count int;
 begin
