@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAdminGuard } from "@/lib/use-admin-guard";
+import AdminGuard from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 import { invalidateEmotesCache, type Emote } from "@/lib/use-emotes";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -48,10 +49,7 @@ function formatBytes(b: number) {
 }
 
 function EmotesAdminContent() {
-  const { user, profile, loading: authLoading } = useAuth();
-  const isAdmin = profile?.role === "admin";
-  const isSoutien = profile?.role === "soutien";
-  const canUse = !!user && (isAdmin || isSoutien);
+  const { user, isAdmin, authLoading, allowed } = useAdminGuard(["admin", "soutien"]);
 
   const [emotes, setEmotes] = useState<Emote[]>([]);
   const [uploaderNames, setUploaderNames] = useState<Map<string, string>>(new Map());
@@ -68,7 +66,7 @@ function EmotesAdminContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!canUse) return;
+    if (!allowed) return;
     let cancelled = false;
     const load = async () => {
       if (reloadTick === 0) setLoading(true);
@@ -106,10 +104,10 @@ function EmotesAdminContent() {
     return () => {
       cancelled = true;
     };
-  }, [canUse, reloadTick]);
+  }, [allowed, reloadTick]);
 
   useEffect(() => {
-    if (!canUse) return;
+    if (!allowed) return;
     const channel = supabase
       .channel("admin-emotes")
       .on(
@@ -121,7 +119,7 @@ function EmotesAdminContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [canUse]);
+  }, [allowed]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -262,26 +260,8 @@ function EmotesAdminContent() {
     }
   };
 
-  if (authLoading) {
-    return <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">Chargement…</div>;
-  }
-
-  if (!canUse) {
-    return (
-      <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
-        <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">★ Accès refusé</div>
-        <h1 className="font-bold leading-[0.95] tracking-[-0.04em] text-balance" style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>
-          Réservé aux admins et soutiens
-        </h1>
-        <Link href="/" className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors">
-          RETOUR <span aria-hidden>→</span>
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <>
+    <AdminGuard authLoading={authLoading} allowed={allowed} heading="Réservé aux admins et soutiens">
       <header className="px-10 py-8 border-b border-line max-md:px-5 max-md:py-6">
         <h1 className="font-mono text-[11px] font-bold tracking-[0.16em] uppercase text-ink mb-1">Emotes</h1>
         <p className="text-[13px] text-ink-3">
@@ -485,7 +465,7 @@ function EmotesAdminContent() {
           onClose={() => setPendingDelete(null)}
         />
       )}
-    </>
+    </AdminGuard>
   );
 }
 

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAdminGuard } from "@/lib/use-admin-guard";
+import AdminGuard from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 
 type Status = "pending" | "accepted" | "rejected";
@@ -25,17 +26,15 @@ function formatDate(iso: string) {
 }
 
 function StaffAdminContent() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { authLoading, allowed } = useAdminGuard();
   const [items, setItems] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<Status | "all">("pending");
   const [updating, setUpdating] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
-  const isAdmin = profile?.role === "admin";
-
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!allowed) return;
     let cancelled = false;
     const load = async () => {
       setLoading(true);
@@ -53,7 +52,7 @@ function StaffAdminContent() {
     };
     load();
     return () => { cancelled = true; };
-  }, [isAdmin, statusFilter]);
+  }, [allowed, statusFilter]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -86,22 +85,8 @@ function StaffAdminContent() {
     );
   };
 
-  if (authLoading) {
-    return <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">Chargement…</div>;
-  }
-
-  if (!user || !isAdmin) {
-    return (
-      <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
-        <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">★ Accès refusé</div>
-        <h1 className="font-bold leading-[0.95] tracking-[-0.04em] text-balance" style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>Réservé aux admins</h1>
-        <Link href="/" className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors">RETOUR <span aria-hidden>→</span></Link>
-      </div>
-    );
-  }
-
   return (
-    <>
+    <AdminGuard authLoading={authLoading} allowed={allowed}>
       <header className="px-10 py-8 border-b border-line max-md:px-5 max-md:py-6">
         <h1 className="font-mono text-[11px] font-bold tracking-[0.16em] uppercase text-ink mb-1">Candidatures staff</h1>
         <p className="text-[13px] text-ink-3">Accepter promeut automatiquement le user au rôle demandé.</p>
@@ -176,7 +161,7 @@ function StaffAdminContent() {
           </ul>
         )}
       </main>
-    </>
+    </AdminGuard>
   );
 }
 

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAdminGuard } from "@/lib/use-admin-guard";
+import AdminGuard from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 import { RoleBadge } from "@/components/RoleBadge";
 
@@ -125,8 +126,7 @@ function KpiCard({ label, value, sub, href, cta, accent }: KpiCardProps) {
 }
 
 function DashboardContent() {
-  const { user, profile, loading: authLoading } = useAuth();
-  const isAdmin = profile?.role === "admin";
+  const { authLoading, allowed } = useAdminGuard();
 
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -139,7 +139,7 @@ function DashboardContent() {
   const [emotesCount, setEmotesCount] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!allowed) return;
     let cancelled = false;
 
     const load = async () => {
@@ -184,7 +184,7 @@ function DashboardContent() {
 
     load();
     return () => { cancelled = true; };
-  }, [isAdmin]);
+  }, [allowed]);
 
   const stats = useMemo(() => {
     const roles = { spectateur: 0, soutien: 0, moderateur: 0, admin: 0 } as Record<string, number>;
@@ -214,28 +214,10 @@ function DashboardContent() {
     return { roles, suggBuckets, bugBuckets, staffBuckets, totalWatchSeconds, knownWatchCount, topWatchers, recentSignups, pendingStaff, pendingBugs };
   }, [profiles, suggestions, bugs, staff, watch]);
 
-  if (authLoading) {
-    return <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">Chargement…</div>;
-  }
-
-  if (!user || !isAdmin) {
-    return (
-      <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
-        <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">★ Accès refusé</div>
-        <h1 className="font-bold leading-[0.95] tracking-[-0.04em] text-balance" style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>
-          Réservé aux admins
-        </h1>
-        <Link href="/" className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors">
-          RETOUR <span aria-hidden>→</span>
-        </Link>
-      </div>
-    );
-  }
-
   const pendingTotal = stats.suggBuckets.film.pending + stats.suggBuckets.soiree.pending + stats.bugBuckets.pending + stats.staffBuckets.pending;
 
   return (
-    <>
+    <AdminGuard authLoading={authLoading} allowed={allowed}>
       <header className="px-10 py-8 border-b border-line max-md:px-5 max-md:py-6">
         <h1 className="font-mono text-[11px] font-bold tracking-[0.16em] uppercase text-ink mb-1">Dashboard</h1>
         <p className="text-[13px] text-ink-3">
@@ -402,7 +384,7 @@ function DashboardContent() {
           </>
         )}
       </main>
-    </>
+    </AdminGuard>
   );
 }
 

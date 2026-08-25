@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAdminGuard } from "@/lib/use-admin-guard";
+import AdminGuard from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 import { useChatSettings } from "@/lib/use-chat-settings";
 
@@ -24,14 +25,12 @@ function formatBanExpiry(iso: string): string {
 }
 
 function ChatAdminContent() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { authLoading, allowed: isStaff } = useAdminGuard(["admin", "moderateur"]);
   const { frozen, slowModeSeconds, loading: settingsLoading } = useChatSettings();
   const [bans, setBans] = useState<BannedProfile[]>([]);
   const [bansLoading, setBansLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const isStaff = profile?.role === "admin" || profile?.role === "moderateur";
 
   useEffect(() => {
     if (!isStaff) return;
@@ -76,22 +75,8 @@ function ChatAdminContent() {
     setBans((prev) => prev.filter((b) => b.user_id !== target.user_id));
   };
 
-  if (authLoading) {
-    return <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">Chargement…</div>;
-  }
-
-  if (!user || !isStaff) {
-    return (
-      <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
-        <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">★ Accès refusé</div>
-        <h1 className="font-bold leading-[0.95] tracking-[-0.04em] text-balance" style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>Réservé à la modération</h1>
-        <Link href="/" className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors">RETOUR <span aria-hidden>→</span></Link>
-      </div>
-    );
-  }
-
   return (
-    <>
+    <AdminGuard authLoading={authLoading} allowed={isStaff} heading="Réservé à la modération">
       <header className="px-10 py-8 border-b border-line max-md:px-5 max-md:py-6">
         <h1 className="font-mono text-[11px] font-bold tracking-[0.16em] uppercase text-ink mb-1">Modération chat</h1>
         <p className="text-[13px] text-ink-3">Gel, slow mode et bans actifs. Admins et modérateurs gardent l&apos;accès au chat même en gel.</p>
@@ -182,7 +167,7 @@ function ChatAdminContent() {
           )}
         </section>
       </main>
-    </>
+    </AdminGuard>
   );
 }
 

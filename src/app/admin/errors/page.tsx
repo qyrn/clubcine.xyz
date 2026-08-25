@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAdminGuard } from "@/lib/use-admin-guard";
+import AdminGuard from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 
 type Range = "1h" | "24h" | "7d" | "30d" | "all";
@@ -35,8 +36,7 @@ function shortAgent(ua: string | null): string {
 }
 
 function ErrorsAdminContent() {
-  const { user, profile, loading: authLoading } = useAuth();
-  const isAdmin = profile?.role === "admin";
+  const { authLoading, allowed } = useAdminGuard();
 
   const [items, setItems] = useState<ErrorRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,7 @@ function ErrorsAdminContent() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!allowed) return;
     let cancelled = false;
     const load = async () => {
       setLoading(true);
@@ -69,7 +69,7 @@ function ErrorsAdminContent() {
     };
     load();
     return () => { cancelled = true; };
-  }, [isAdmin, range]);
+  }, [allowed, range]);
 
   const sources = useMemo(() => {
     const set = new Set<string>();
@@ -96,22 +96,8 @@ function ErrorsAdminContent() {
     return Array.from(buckets.entries()).sort((a, b) => b[1] - a[1]);
   }, [items]);
 
-  if (authLoading) {
-    return <div className="px-10 py-20 font-mono text-[12px] tracking-[0.04em] text-ink-3 uppercase">Chargement…</div>;
-  }
-
-  if (!user || !isAdmin) {
-    return (
-      <div className="px-10 py-32 flex flex-col items-center gap-6 text-center">
-        <div className="font-mono font-semibold text-[10px] leading-none tracking-[0.16em] uppercase text-red">★ Accès refusé</div>
-        <h1 className="font-bold leading-[0.95] tracking-[-0.04em] text-balance" style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>Réservé aux admins</h1>
-        <Link href="/" className="inline-flex items-center gap-3 px-5 py-3 border border-ink text-ink font-semibold text-[12px] tracking-wide hover:border-red hover:text-red transition-colors">RETOUR <span aria-hidden>→</span></Link>
-      </div>
-    );
-  }
-
   return (
-    <>
+    <AdminGuard authLoading={authLoading} allowed={allowed}>
       <header className="px-10 py-8 border-b border-line max-md:px-5 max-md:py-6">
         <h1 className="font-mono text-[11px] font-bold tracking-[0.16em] uppercase text-ink mb-1">Erreurs runtime</h1>
         <p className="text-[13px] text-ink-3">Capturées côté client via ErrorBoundary + reportError. Table <span className="text-red font-mono">error_log</span>, rate-limit 30/10min.</p>
@@ -220,7 +206,7 @@ function ErrorsAdminContent() {
           </ul>
         )}
       </main>
-    </>
+    </AdminGuard>
   );
 }
 
