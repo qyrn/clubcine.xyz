@@ -1,0 +1,63 @@
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check app health (Vercel)
+        id: app
+        continue-on-error: true
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://clubcine.xyz/api/health)
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          [ "$code" = "200" ]
+
+      - name: Check NAS origin (uncached)
+        id: nas
+        continue-on-error: true
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://cdn.clubcine.xyz/nas-health)
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          [ "$code" = "200" ]
+
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ steps.app.outcome }}" = "success" ] && [ "${{ steps.nas.outcome }}" = "success" ]; then
+            echo "up=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "up=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check previous run status
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prev=$(gh run list --workflow uptime.yml --branch main --status completed --json conclusion --limit 2 --jq '.[1].conclusion // "success"')
+          echo "prev=$prev" >> "$GITHUB_OUTPUT"
+
+      - name: Alert on state change
+        if: (steps.status.outputs.up == 'false' && steps.previous.outputs.prev == 'success') || (steps.status.outputs.up == 'true' && steps.previous.outputs.prev == 'failure')
+        run: |
+          if [ "${{ steps.status.outputs.up }}" = "false" ]; then
+            msg="clubcine.xyz : panne detectee (app=${{ steps.app.outputs.code }}, nas=${{ steps.nas.outputs.code }})"
+          else
+            msg="clubcine.xyz : retour a la normale, app et nas OK"
+          fi
+          curl -s -X POST -H "Content-Type: application/json" \
+            -d "{\"content\": \"${msg}\"}" \
+            "${{ secrets.DISCORD_ERROR_WEBHOOK_URL }}"
+
+      - name: Fail job if down
+        if: steps.status.outputs.up == 'false'
+        run: exit 1
