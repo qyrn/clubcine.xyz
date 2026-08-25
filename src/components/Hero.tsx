@@ -196,6 +196,10 @@ function CycleHero({ state }: { state: HeroState }) {
           REJOINDRE LA SALLE
           <span aria-hidden>→</span>
         </Link>
+
+        <p className="font-mono text-[11px] tracking-[0.06em] text-ink-3 max-w-[420px] text-balance">
+          Une seule chaîne, pas de lecture à la demande : tout le monde regarde ce film au même moment.
+        </p>
       </div>
 
       <div className="relative w-full max-[1000px]:max-w-[360px] max-[1000px]:mx-auto">

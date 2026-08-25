@@ -243,8 +243,11 @@ function MovieContent() {
         </div>
 
         <aside
-          className="shrink-0 border-l border-line flex flex-col bg-surface transition-all duration-400 overflow-hidden z-30"
-          style={{ width: chatOpen ? 340 : 0, opacity: chatOpen ? 1 : 0 }}
+          className={`shrink-0 border-l border-line flex flex-col bg-surface transition-all duration-400 overflow-hidden z-30 max-md:z-40 ${
+            chatOpen
+              ? "w-[340px] opacity-100 max-md:fixed max-md:inset-0 max-md:w-full max-md:border-l-0"
+              : "w-0 opacity-0"
+          }`}
           onMouseEnter={handleChatEnter}
           onMouseLeave={handleChatLeave}
         >
