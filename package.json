@@ -17,12 +17,12 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "hls.js": "^1.6.15",
-    "next": "16.2.6",
+    "next": "16.3.2",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@next/third-parties": "^16.2.6",
+    "@next/third-parties": "^16.3.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -32,7 +32,7 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.6",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.2",
     "happy-dom": "^20.9.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
