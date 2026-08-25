@@ -121,6 +121,39 @@ describe("getCurrentSchedule · soirée", () => {
   });
 });
 
+describe("getCurrentSchedule · rattrapage après soirée", () => {
+  const resolved = getResolvedSoirees();
+  const firstResolved = resolved[0];
+  const secondResolved = resolved[1];
+
+  it("reprend le cycle exactement là où il s'était arrêté avant la soirée, sans sauter sa durée", () => {
+    const before = getCurrentSchedule((firstResolved.startSec - 1) * 1000);
+    const after = getCurrentSchedule((firstResolved.endSec + 1) * 1000);
+
+    expect(before.soiree).toBeNull();
+    expect(after.soiree).toBeNull();
+    expect(after.currentFilm.id).toBe(before.currentFilm.id);
+    expect(after.currentOffset).toBeCloseTo(before.currentOffset + 2, 0);
+  });
+
+  it("absorbe la durée cumulée de deux soirées passées, pas seulement la dernière", () => {
+    // Enchaîne la même propriété (reprise sans saut) autour de chaque soirée : au moment où
+    // la 2e soirée se termine, computePausedSeconds doit avoir déjà compté la 1re en plus de
+    // la 2e, sinon le cycle aurait avancé en trop entre les deux (durée de la 1re soirée en trop).
+    const beforeFirst = getCurrentSchedule((firstResolved.startSec - 1) * 1000);
+    const afterFirst = getCurrentSchedule((firstResolved.endSec + 1) * 1000);
+    expect(afterFirst.currentFilm.id).toBe(beforeFirst.currentFilm.id);
+    expect(afterFirst.currentOffset).toBeCloseTo(beforeFirst.currentOffset + 2, 0);
+
+    const beforeSecond = getCurrentSchedule((secondResolved.startSec - 1) * 1000);
+    const afterSecond = getCurrentSchedule((secondResolved.endSec + 1) * 1000);
+    expect(beforeSecond.soiree).toBeNull();
+    expect(afterSecond.soiree).toBeNull();
+    expect(afterSecond.currentFilm.id).toBe(beforeSecond.currentFilm.id);
+    expect(afterSecond.currentOffset).toBeCloseTo(beforeSecond.currentOffset + 2, 0);
+  });
+});
+
 describe("getProgrammeForHours", () => {
   it("retourne au moins le film courant", () => {
     const list = getProgrammeForHours(1, CYCLE_EPOCH);
