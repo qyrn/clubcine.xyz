@@ -37,7 +37,7 @@ jobs:
         run: |
           ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
           schedule=$(curl -s --max-time 10 -A "$ua" https://clubcine.xyz/api/schedule)
-          film_url=$(echo "$schedule" | jq -r '.currentFilm.url // empty' 2>/dev/null)
+          film_url=$(echo "$schedule" | jq -r '.currentFilm.url // empty' 2>/dev/null || true)
           if [ -z "$film_url" ]; then
             echo "site verrouille (/soon) ou schedule indisponible, check ignore"
             echo "skip=true" >> "$GITHUB_OUTPUT"
