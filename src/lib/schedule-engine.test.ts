@@ -11,6 +11,28 @@ function alignToSlot(seconds: number): number {
 }
 
 const TOTAL_CYCLE = FILMS.reduce((acc, f) => acc + alignToSlot(f.duration), 0);
+const CYCLE_EPOCH_SEC = Math.floor(CYCLE_EPOCH / 1000);
+
+function expectedAtElapsed(elapsed: number): { filmId: string; offset: number } {
+  let cursor = 0;
+  for (let i = 0; i < FILMS.length; i++) {
+    const film = FILMS[i];
+    const end = cursor + film.duration;
+    const slotEnd = cursor + alignToSlot(film.duration);
+    if (slotEnd > elapsed) {
+      if (elapsed < end) return { filmId: film.id, offset: elapsed - cursor };
+      return { filmId: FILMS[(i + 1) % FILMS.length].id, offset: 0 };
+    }
+    cursor = slotEnd;
+  }
+  throw new Error("elapsed hors du cycle");
+}
+
+function expectedAt(nowSec: number, pausedSec: number): { filmId: string; offset: number } {
+  const effNowSec = nowSec - pausedSec;
+  const elapsed = ((effNowSec - CYCLE_EPOCH_SEC) % TOTAL_CYCLE + TOTAL_CYCLE) % TOTAL_CYCLE;
+  return expectedAtElapsed(elapsed);
+}
 
 describe("formatDuration", () => {
   it("formats hours+minutes when >=1h", () => {
@@ -149,8 +171,19 @@ describe("getCurrentSchedule · rattrapage après soirée", () => {
     const afterSecond = getCurrentSchedule((secondResolved.endSec + 1) * 1000);
     expect(beforeSecond.soiree).toBeNull();
     expect(afterSecond.soiree).toBeNull();
-    expect(afterSecond.currentFilm.id).toBe(beforeSecond.currentFilm.id);
-    expect(afterSecond.currentOffset).toBeCloseTo(beforeSecond.currentOffset + 2, 0);
+
+    // Comparaison directe avant/après non fiable ici : rien ne garantit que la reprise ne
+    // tombe pas pile sur une transition de film (fin d'intermission), auquel cas l'offset
+    // "avant" reste bloqué à 0 sans rapport linéaire avec l'offset "après". On vérifie donc
+    // l'absorption cumulée des deux pauses contre une valeur attendue recalculée indépendamment.
+    const pausedBeforeSecond = firstResolved.durationSec;
+    const pausedAfterSecond = firstResolved.durationSec + secondResolved.durationSec;
+    const expectedBefore = expectedAt(secondResolved.startSec - 1, pausedBeforeSecond);
+    const expectedAfter = expectedAt(secondResolved.endSec + 1, pausedAfterSecond);
+    expect(beforeSecond.currentFilm.id).toBe(expectedBefore.filmId);
+    expect(beforeSecond.currentOffset).toBeCloseTo(expectedBefore.offset, 0);
+    expect(afterSecond.currentFilm.id).toBe(expectedAfter.filmId);
+    expect(afterSecond.currentOffset).toBeCloseTo(expectedAfter.offset, 0);
   });
 });
 
