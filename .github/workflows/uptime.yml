@@ -31,10 +31,32 @@ jobs:
           echo "code=$code" >> "$GITHUB_OUTPUT"
           [ "$code" = "200" ]
 
+      - name: Check current film stream (uncached)
+        id: stream
+        continue-on-error: true
+        run: |
+          ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+          schedule=$(curl -s --max-time 10 -A "$ua" https://clubcine.xyz/api/schedule)
+          film_url=$(echo "$schedule" | jq -r '.currentFilm.url // empty' 2>/dev/null)
+          if [ -z "$film_url" ]; then
+            echo "site verrouille (/soon) ou schedule indisponible, check ignore"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -A "$ua" "$film_url")
+          echo "checked: $film_url -> $code"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          [ "$code" = "200" ]
+
       - name: Determine status
         id: status
         run: |
-          if [ "${{ steps.app.outcome }}" = "success" ] && [ "${{ steps.nas.outcome }}" = "success" ]; then
+          stream_ok=true
+          if [ "${{ steps.stream.outputs.skip }}" = "false" ] && [ "${{ steps.stream.outcome }}" != "success" ]; then
+            stream_ok=false
+          fi
+          if [ "${{ steps.app.outcome }}" = "success" ] && [ "${{ steps.nas.outcome }}" = "success" ] && [ "$stream_ok" = "true" ]; then
             echo "up=true" >> "$GITHUB_OUTPUT"
           else
             echo "up=false" >> "$GITHUB_OUTPUT"
@@ -52,9 +74,9 @@ jobs:
         if: (steps.status.outputs.up == 'false' && steps.previous.outputs.prev == 'success') || (steps.status.outputs.up == 'true' && steps.previous.outputs.prev == 'failure')
         run: |
           if [ "${{ steps.status.outputs.up }}" = "false" ]; then
-            msg="clubcine.xyz : panne detectee (app=${{ steps.app.outputs.code }}, nas=${{ steps.nas.outputs.code }})"
+            msg="clubcine.xyz : panne detectee (app=${{ steps.app.outputs.code }}, nas=${{ steps.nas.outputs.code }}, stream=${{ steps.stream.outputs.code }})"
           else
-            msg="clubcine.xyz : retour a la normale, app et nas OK"
+            msg="clubcine.xyz : retour a la normale, app, nas et stream OK"
           fi
           curl -s -X POST -H "Content-Type: application/json" \
             -d "{\"content\": \"${msg}\"}" \
