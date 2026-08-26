@@ -4,3 +4,5 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /soon
 Disallow: /u/
+
+Sitemap: https://clubcine.xyz/sitemap.xml
