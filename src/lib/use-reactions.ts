@@ -31,7 +31,6 @@ export function useReactions(): {
   send: (slug: string) => void;
 } {
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const queueRef = useRef<string[]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,7 +57,6 @@ export function useReactions(): {
         for (const slug of slugs) if (typeof slug === "string") spawn(slug);
       })
       .subscribe();
-    channelRef.current = channel;
 
     return () => {
       for (const timer of timers) clearTimeout(timer);
@@ -67,7 +65,6 @@ export function useReactions(): {
       flushTimerRef.current = null;
       queueRef.current = [];
       supabase.removeChannel(channel);
-      channelRef.current = null;
     };
   }, []);
 
@@ -75,9 +72,13 @@ export function useReactions(): {
     flushTimerRef.current = null;
     const slugs = queueRef.current;
     queueRef.current = [];
-    const channel = channelRef.current;
-    if (!channel || slugs.length === 0) return;
-    void channel.send({ type: "broadcast", event: "reaction", payload: { slugs } });
+    if (slugs.length === 0) return;
+    void fetch("/api/reactions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slugs }),
+      keepalive: true,
+    }).catch(() => {});
   }, []);
 
   const send = useCallback(
