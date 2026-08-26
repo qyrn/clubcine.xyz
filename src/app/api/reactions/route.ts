@@ -9,9 +9,31 @@ const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const SLUG_REGEX = /^[a-z0-9-]{2,32}$/;
 const BATCH_INTERVAL_MS = 150;
 const MAX_BUFFER = 300;
+const RATE_LIMIT_WINDOW_MS = 10_000;
+const RATE_LIMIT_MAX = 60;
 
 let buffer: string[] = [];
 let pendingFlush: Promise<void> | null = null;
+const rateLimitBuckets = new Map<string, { count: number; windowStart: number }>();
+
+function clientIp(req: NextRequest): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  return forwarded ? forwarded.split(",")[0].trim() : "unknown";
+}
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  for (const [key, bucket] of rateLimitBuckets) {
+    if (now - bucket.windowStart >= RATE_LIMIT_WINDOW_MS) rateLimitBuckets.delete(key);
+  }
+  const bucket = rateLimitBuckets.get(ip);
+  if (!bucket) {
+    rateLimitBuckets.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+  bucket.count += 1;
+  return bucket.count > RATE_LIMIT_MAX;
+}
 
 async function broadcast(slugs: string[]): Promise<void> {
   if (!SUPABASE_URL || !SUPABASE_ANON || slugs.length === 0) return;
@@ -45,6 +67,10 @@ function flushSoon(): Promise<void> {
 }
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(clientIp(req))) {
+    return NextResponse.json({ ok: false }, { status: 429 });
+  }
+
   let payload: { slugs?: unknown };
   try {
     payload = (await req.json()) as { slugs?: unknown };
