@@ -276,11 +276,11 @@ create policy "user_badges write admin" on public.user_badges for all
 -- Cleanup des badges périmés
 delete from public.user_badges where badge_slug in (
   'cinephile-100', 'polar-jp', 'nouvelle-vague', 'kubrickien',
-  'lundi-matin', 'marathon-12h', 'marathon-24h', 'chatterbox', 'vhs'
+  'lundi-matin', 'marathon-12h', 'marathon-24h', 'chatterbox', 'vhs', 'curator'
 );
 delete from public.badges where slug in (
   'cinephile-100', 'polar-jp', 'nouvelle-vague', 'kubrickien',
-  'lundi-matin', 'marathon-12h', 'marathon-24h', 'chatterbox', 'vhs'
+  'lundi-matin', 'marathon-12h', 'marathon-24h', 'chatterbox', 'vhs', 'curator'
 );
 
 -- Catalogue badges
@@ -289,7 +289,6 @@ insert into public.badges (slug, label, description, color) values
   ('founding-viewer',      'Premier viewer',           'Présent dès l''ouverture de la chaîne.',                  '#ff0033'),
   ('night-owl',            'Noctambule',               'Connecté entre 02h et 06h.',                              '#ff0033'),
   ('top-10',               'Top 10',                   'A atteint le top 10 du classement.',                      '#ff0033'),
-  ('curator',              'Programmateur',            'Une suggestion acceptée et programmée.',                  '#ff0033'),
   ('admin',                'Admin',                    'Membre de l''équipe technique.',                          '#ff0033'),
   ('viewer-habitue',       'Habitué',                  '1h+ d''antenne cumulée.',                                 '#ff0033'),
   ('viewer-cinephile',     'Cinéphile',                '10h+ d''antenne cumulée.',                                '#ff0033'),

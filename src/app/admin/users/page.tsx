@@ -12,7 +12,7 @@ const ROLES = ["spectateur", "soutien", "moderateur", "admin"] as const;
 type Role = (typeof ROLES)[number];
 
 const BADGE_CATEGORIES: { label: string; slugs: string[] }[] = [
-  { label: "Spéciaux", slugs: ["admin", "founding-viewer", "top-10", "curator", "soiree-jouee", "supporter", "night-owl", "bug-hunter"] },
+  { label: "Spéciaux", slugs: ["admin", "founding-viewer", "top-10", "soiree-jouee", "supporter", "night-owl", "bug-hunter"] },
   { label: "Antenne", slugs: ["viewer-habitue", "viewer-cinephile", "viewer-connaisseur", "viewer-cingle", "viewer-legende"] },
   { label: "Chat", slugs: ["chatter-bavard", "chatter-animateur", "chatter-voix"] },
   { label: "Films", slugs: ["film-suggest-1", "film-suggest-5", "film-suggest-10"] },
