@@ -1,52 +1,30 @@
-// Edge Function : reçoit un webhook Ko-fi, attribue badge `supporter` + role `soutien`
-// au user dont le pseudo Ko-fi (or l'email) matche un username clubcine.
-//
-// DÉPLOIEMENT
-//   supabase functions deploy kofi-webhook --no-verify-jwt
-//   supabase secrets set KOFI_VERIFICATION_TOKEN="<token affiché côté ko-fi>"
-//   supabase secrets set SUPABASE_SERVICE_ROLE_KEY="<service role key>"   (déjà set par défaut)
-//
-// CONFIG KO-FI
-//   ko-fi.com → settings → API → Webhook URL :
-//     https://<project>.functions.supabase.co/kofi-webhook
-//   Copie le verification_token et set-le dans la secret KOFI_VERIFICATION_TOKEN.
-//
-// PAYLOAD KO-FI (POST x-www-form-urlencoded, champ "data" = JSON)
-//   {
-//     verification_token: "...",
-//     message_id: "uuid",
-//     timestamp: "...",
-//     type: "Donation" | "Subscription" | "Shop Order",
-//     is_public: true,
-//     from_name: "Pseudo Ko-fi",         // <- ce qu'on tente de matcher en username
-//     message: "...",
-//     amount: "5.00",
-//     url: "...",
-//     email: "...",                       // <- fallback si from_name ne matche pas
-//     ...
-//   }
-//
-// RÈGLE DE MATCH
-//   1. Cherche profile.username = from_name (case-insensitive)
-//   2. Sinon, cherche auth.users.email = email (besoin service role)
-//   3. Sinon, log le webhook et n'attribue rien.
-
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const KOFI_TOKEN = Deno.env.get("KOFI_VERIFICATION_TOKEN")!;
+const TIPEEE_API_KEY = Deno.env.get("TIPEEE_API_KEY")!;
+const POLL_SECRET = Deno.env.get("TIPEEE_POLL_SECRET")!;
 
-interface KofiPayload {
-  verification_token: string;
-  message_id: string;
-  type: string;
-  from_name: string;
-  email: string;
-  amount: string;
-  is_public: boolean;
-  message?: string;
+const TIPEEE_EVENTS_URL = "https://api.tipeeestream.com/v1.0/events.json";
+const DONATION_BATCH_SIZE = 50;
+
+interface TipeeeDonationEvent {
+  ref?: string;
+  id?: string | number;
+  type?: string;
+  user?: { username?: string };
+  parameters?: {
+    username?: string;
+    amount?: number | string | { amount?: number | string };
+  };
+}
+
+interface AttributionResult {
+  ref: string;
+  username: string;
+  matched: boolean;
+  awarded: boolean;
 }
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
@@ -63,71 +41,140 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+function bearerToken(req: Request): string {
+  const header = req.headers.get("authorization") ?? "";
+  return header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+}
+
+function extractEvents(body: unknown): TipeeeDonationEvent[] {
+  if (Array.isArray(body)) return body as TipeeeDonationEvent[];
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    const candidates = [
+      record.events,
+      (record.datas as Record<string, unknown> | undefined)?.items,
+      record.data,
+      record.items,
+    ];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate as TipeeeDonationEvent[];
+    }
+  }
+  return [];
+}
+
+function eventRef(event: TipeeeDonationEvent): string {
+  if (event.ref) return event.ref;
+  if (event.id !== undefined) return String(event.id);
+  return "";
+}
+
+function donorUsername(event: TipeeeDonationEvent): string {
+  return (event.user?.username ?? event.parameters?.username ?? "").trim();
+}
+
+function donationAmount(event: TipeeeDonationEvent): string {
+  const raw = event.parameters?.amount;
+  if (raw === undefined || raw === null) return "";
+  if (typeof raw === "object") return String(raw.amount ?? "");
+  return String(raw);
+}
+
+async function attributeSupporter(
+  event: TipeeeDonationEvent,
+): Promise<AttributionResult | null> {
+  const ref = eventRef(event);
+  const username = donorUsername(event);
+  if (!ref || !username) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_id, role")
+    .ilike("username", username)
+    .maybeSingle();
+
+  if (!profile) {
+    return { ref, username, matched: false, awarded: false };
+  }
+
+  const { data: existingBadge } = await supabase
+    .from("user_badges")
+    .select("user_id")
+    .eq("user_id", profile.user_id)
+    .eq("badge_slug", "supporter")
+    .maybeSingle();
+
+  if (existingBadge) {
+    return { ref, username, matched: true, awarded: false };
+  }
+
+  const reason = `tipeee ${donationAmount(event)} (ref ${ref})`;
+
+  if (profile.role !== "admin") {
+    await supabase
+      .from("profiles")
+      .update({ role: "soutien" })
+      .eq("user_id", profile.user_id)
+      .neq("role", "admin");
+  }
+
+  await supabase.from("user_badges").upsert(
+    { user_id: profile.user_id, badge_slug: "supporter", awarded_reason: reason },
+    { onConflict: "user_id,badge_slug" },
+  );
+
+  return { ref, username, matched: true, awarded: true };
+}
+
 serve(async (req) => {
-  if (req.method !== "POST") {
+  if (req.method !== "POST" && req.method !== "GET") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  let payload: KofiPayload;
+  if (!safeEqual(bearerToken(req), POLL_SECRET)) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const query = new URLSearchParams({
+    apiKey: TIPEEE_API_KEY,
+    limit: String(DONATION_BATCH_SIZE),
+    order: "desc",
+    sort: "createdAt",
+  });
+  query.append("type[]", "donation");
+
+  let events: TipeeeDonationEvent[];
   try {
-    const form = await req.formData();
-    const raw = form.get("data");
-    if (typeof raw !== "string") throw new Error("missing data field");
-    payload = JSON.parse(raw) as KofiPayload;
+    const response = await fetch(`${TIPEEE_EVENTS_URL}?${query.toString()}`);
+    if (!response.ok) {
+      const detail = await response.text();
+      console.error("[tipeee-poll] events fetch failed", response.status, detail);
+      return new Response(`Tipeee API error: ${response.status}`, { status: 502 });
+    }
+    events = extractEvents(await response.json());
   } catch (err) {
-    return new Response(`Bad payload: ${err instanceof Error ? err.message : "unknown"}`, {
-      status: 400,
-    });
+    console.error("[tipeee-poll] events fetch threw", err);
+    return new Response("Tipeee API unreachable", { status: 502 });
   }
 
-  if (!safeEqual(payload.verification_token ?? "", KOFI_TOKEN)) {
-    return new Response("Invalid token", { status: 401 });
+  const results: AttributionResult[] = [];
+  for (const event of events) {
+    const result = await attributeSupporter(event);
+    if (result) results.push(result);
   }
 
-  const reason = `ko-fi ${payload.type} ${payload.amount} (msg ${payload.message_id})`;
-
-  let userId: string | null = null;
-
-  if (payload.from_name) {
-    const { data: byName } = await supabase
-      .from("profiles")
-      .select("user_id")
-      .ilike("username", payload.from_name)
-      .maybeSingle();
-    if (byName) userId = byName.user_id;
+  const awarded = results.filter((r) => r.awarded);
+  if (awarded.length > 0) {
+    console.log("[tipeee-poll] awarded", awarded.map((r) => `${r.username} (${r.ref})`));
   }
-
-  if (!userId && payload.email) {
-    const { data: list } = await supabase.auth.admin.listUsers();
-    const found = list?.users.find(
-      (u) => u.email?.toLowerCase() === payload.email.toLowerCase()
-    );
-    if (found) userId = found.id;
-  }
-
-  if (!userId) {
-    console.warn("[kofi] no match for", payload.from_name, payload.email);
-    return new Response(
-      JSON.stringify({ ok: true, matched: false, reason: "no user matched" }),
-      { headers: { "content-type": "application/json" }, status: 200 }
-    );
-  }
-
-  await supabase
-    .from("profiles")
-    .update({ role: "soutien" })
-    .eq("user_id", userId)
-    .neq("role", "admin");
-
-  await supabase
-    .from("user_badges")
-    .upsert(
-      { user_id: userId, badge_slug: "supporter", awarded_reason: reason },
-      { onConflict: "user_id,badge_slug" }
-    );
 
   return new Response(
-    JSON.stringify({ ok: true, matched: true, user_id: userId }),
-    { headers: { "content-type": "application/json" }, status: 200 }
+    JSON.stringify({
+      ok: true,
+      scanned: events.length,
+      matched: results.filter((r) => r.matched).length,
+      awarded: awarded.length,
+    }),
+    { headers: { "content-type": "application/json" }, status: 200 },
   );
 });
