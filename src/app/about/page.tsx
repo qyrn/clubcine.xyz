@@ -9,7 +9,7 @@ import StaffApplyButton from "@/components/StaffApplyButton";
 interface SocialLink {
   label: string;
   href: string;
-  icon: "letterboxd" | "kofi";
+  icon: "letterboxd" | "tipeee";
 }
 
 interface Member {
@@ -27,13 +27,13 @@ const TEAM: Member[] = [
     image: null,
     socials: [
       { label: "Letterboxd", icon: "letterboxd", href: "https://letterboxd.com/clubcinefr/" },
-      { label: "Ko-fi", icon: "kofi", href: "https://ko-fi.com/clubcinefr" },
+      { label: "Tipeee", icon: "tipeee", href: "https://www.tipeee.com/clubcine" },
     ],
   },
 ];
 
 const QUICK_LINKS = [
-  { label: "Soutenir sur Ko-fi", href: "https://ko-fi.com/clubcinefr", external: true },
+  { label: "Soutenir sur Tipeee", href: "https://www.tipeee.com/clubcine", external: true },
   { label: "Suggérer un film", href: "/#suggestions", external: false },
   { label: "Proposer une soirée", href: "/soirees#suggest", external: false },
   { label: "Liste Letterboxd du mois", href: "https://letterboxd.com/clubcinefr/list/club-cine-septembre-2026/", external: true },
@@ -51,11 +51,7 @@ function SocialIcon({ icon }: { icon: SocialLink["icon"] }) {
   }
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M18 8h1a3 3 0 0 1 0 6h-1" />
-      <path d="M2 8h16v9a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V8z" />
-      <line x1="6" y1="2" x2="6" y2="5" />
-      <line x1="10" y1="2" x2="10" y2="5" />
-      <line x1="14" y1="2" x2="14" y2="5" />
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
     </svg>
   );
 }
