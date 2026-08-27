@@ -987,6 +987,46 @@ create trigger profiles_guard_role
   before update of role on public.profiles
   for each row execute function public.guard_profiles_role_change();
 
+-- a-ter) guard personnalisation pseudo : couleur / police du pseudo et accent du
+-- profil réservés aux soutiens (contrepartie des dons Ko-fi). Le retour aux
+-- valeurs par défaut reste autorisé à tous. auth.uid() IS NULL = bypass owner
+-- SQL Editor / service_role.
+create or replace function public.guard_profiles_cosmetics_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  is_privileged boolean;
+  sets_custom boolean;
+begin
+  sets_custom :=
+    (new.username_font_slug is distinct from old.username_font_slug
+      and coalesce(new.username_font_slug, 'default') <> 'default')
+    or (new.username_color_slug is distinct from old.username_color_slug
+      and coalesce(new.username_color_slug, 'default') <> 'default')
+    or (new.profile_accent_slug is distinct from old.profile_accent_slug
+      and coalesce(new.profile_accent_slug, 'red') <> 'red');
+
+  if not sets_custom then
+    return new;
+  end if;
+  if auth.uid() is null then
+    return new;
+  end if;
+  select exists (
+    select 1 from public.profiles
+    where user_id = auth.uid() and role in ('soutien', 'moderateur', 'admin')
+  ) into is_privileged;
+  if not is_privileged then
+    raise exception 'personnalisation du pseudo réservée aux soutiens';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_guard_cosmetics on public.profiles;
+create trigger profiles_guard_cosmetics
+  before update of username_font_slug, username_color_slug, profile_accent_slug on public.profiles
+  for each row execute function public.guard_profiles_cosmetics_change();
+
 -- a-bis) RPC de promotion de rôle réservée admin. La seule policy update sur
 -- profiles est "update self", donc un admin ne peut pas changer le rôle d'autrui
 -- via un update direct (0 ligne, faux succès côté client). Cette RPC security

@@ -283,6 +283,7 @@ function ProfileEditModal({
   const { updateProfile } = useAuth();
   useEscapeKey(onClose);
   useBodyScrollLock(true);
+  const canCustomize = ["soutien", "moderateur", "admin"].includes(profile.role);
   const [bio, setBio] = useState(profile.bio);
   const [letterboxd, setLetterboxd] = useState(letterboxdProfileHandle(profile.letterboxd));
   const [twitter, setTwitter] = useState(twitterHandle(profile.twitter));
@@ -368,13 +369,15 @@ function ProfileEditModal({
         letterboxd: letterboxd.trim() ? normalizeLetterboxdProfile(letterboxd) : "",
         twitter: twitter.trim() ? normalizeTwitter(twitter) : "",
         instagram: instagram.trim() ? normalizeInstagram(instagram) : "",
-        usernameFontSlug:
+      };
+      if (canCustomize) {
+        patch.usernameFontSlug =
           usernameFontSlug === "marker" || usernameFontSlug === "default"
             ? null
-            : usernameFontSlug,
-        usernameColorSlug: usernameColorSlug === "default" ? null : usernameColorSlug,
-        profileAccentSlug: profileAccentSlug === "red" ? null : profileAccentSlug,
-      };
+            : usernameFontSlug;
+        patch.usernameColorSlug = usernameColorSlug === "default" ? null : usernameColorSlug;
+        patch.profileAccentSlug = profileAccentSlug === "red" ? null : profileAccentSlug;
+      }
       if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl;
 
       const result = await updateProfile(patch);
@@ -464,25 +467,47 @@ function ProfileEditModal({
           />
 
           <div className="border-t border-line pt-4 flex flex-col gap-4">
-            <ColorPicker
-              value={profileAccentSlug}
-              onChange={setProfileAccentSlug}
-              label="Couleur du profil"
-              colors={ACCENT_COLORS}
-              resolve={findAccent}
-              defaultSlug="red"
-            />
-            <ColorPicker
-              value={usernameColorSlug}
-              onChange={setUsernameColorSlug}
-              label="Couleur du pseudo"
-            />
-            <FontPicker
-              value={usernameFontSlug}
-              onChange={setUsernameFontSlug}
-              preview={profile.username}
-              label="Police du pseudo"
-            />
+            {canCustomize ? (
+              <>
+                <ColorPicker
+                  value={profileAccentSlug}
+                  onChange={setProfileAccentSlug}
+                  label="Couleur du profil"
+                  colors={ACCENT_COLORS}
+                  resolve={findAccent}
+                  defaultSlug="red"
+                />
+                <ColorPicker
+                  value={usernameColorSlug}
+                  onChange={setUsernameColorSlug}
+                  label="Couleur du pseudo"
+                />
+                <FontPicker
+                  value={usernameFontSlug}
+                  onChange={setUsernameFontSlug}
+                  preview={profile.username}
+                  label="Police du pseudo"
+                />
+              </>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
+                  Personnalisation du pseudo
+                </span>
+                <p className="text-[12px] leading-[1.6] text-ink-2 text-balance">
+                  Couleur et police du pseudo, accent de la page profil : réservés
+                  aux soutiens. Un don ponctuel suffit.
+                </p>
+                <a
+                  href="https://ko-fi.com/clubcinefr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="self-start inline-flex items-center gap-2 px-4 py-2 border border-line-2 text-ink-2 font-mono text-[11px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors rounded-md"
+                >
+                  Soutenir <span aria-hidden>→</span>
+                </a>
+              </div>
+            )}
           </div>
 
           {err && (
