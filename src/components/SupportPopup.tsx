@@ -65,13 +65,13 @@ export default function SupportPopup() {
         </p>
 
         <a
-          href="https://www.tipeee.com/clubcine"
+          href="https://ko-fi.com/clubcinefr"
           target="_blank"
           rel="noopener noreferrer"
           onClick={dismiss}
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-ink bg-transparent text-ink font-semibold text-[12px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors rounded-md mt-1"
         >
-          Tipeee <span aria-hidden>→</span>
+          Ko-fi <span aria-hidden>→</span>
         </a>
       </div>
     </div>

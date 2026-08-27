@@ -285,7 +285,7 @@ delete from public.badges where slug in (
 
 -- Catalogue badges
 insert into public.badges (slug, label, description, color) values
-  ('supporter',            'Supporter',                'A soutenu la chaîne sur Tipeee.',                         '#ff0033'),
+  ('supporter',            'Supporter',                'A soutenu la chaîne sur Ko-fi.',                          '#ff0033'),
   ('founding-viewer',      'Premier viewer',           'Présent dès l''ouverture de la chaîne.',                  '#ff0033'),
   ('night-owl',            'Noctambule',               'Connecté entre 02h et 06h.',                              '#ff0033'),
   ('top-10',               'Top 10',                   'A atteint le top 10 du classement.',                      '#ff0033'),

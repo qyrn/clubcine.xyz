@@ -9,12 +9,12 @@ export default function Footer({ className = "" }: { className?: string }) {
       <span>CLUBCINE.XYZ · CHANNEL 01 · 2026</span>
       <span className="flex gap-3">
         <a
-          href="https://www.tipeee.com/clubcine"
+          href="https://ko-fi.com/clubcinefr"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-ink transition-colors"
         >
-          TIPEEE
+          KO-FI
         </a>
         <span>·</span>
         <Link href="/about" className="hover:text-ink transition-colors">
