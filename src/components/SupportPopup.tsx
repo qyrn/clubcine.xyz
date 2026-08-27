@@ -52,16 +52,16 @@ export default function SupportPopup() {
 
       <div className="px-4 py-3 flex flex-col items-center gap-2.5">
         <p className="text-[13px] leading-[1.65] text-ink-2 text-center text-balance">
-          Les films sont diffusés 24/7
-          <br />
-          Pour que le site tienne dans le temps
-          <br />
-          Fais-moi un petit don pour le VPS
-          <br />
-          Merci beaucoup <span className="text-red">❤︎</span>
+          Les films tournent 24/7 sur un serveur qui coûte tous les mois. Un don
+          ponctuel garde la chaîne allumée. Pas d&apos;abonnement, pas de pub.
         </p>
-        <p className="font-mono text-[10px] tracking-[0.04em] text-ink-3 text-center text-balance">
-          ★ badge supporter + role soutien auto
+        <p className="font-mono text-[10px] leading-[1.5] tracking-[0.04em] text-ink-3 text-center text-balance">
+          ★ badge Supporter, emotes perso dans le chat, pseudo en couleur, nom au
+          générique
+        </p>
+        <p className="font-mono text-[10px] leading-[1.5] tracking-[0.04em] text-ink-3 text-center text-balance">
+          Paie avec ton pseudo club ciné, ou l&apos;email de ton compte, pour le
+          badge auto.
         </p>
 
         <a

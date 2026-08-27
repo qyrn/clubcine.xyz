@@ -33,7 +33,7 @@ const TEAM: Member[] = [
 ];
 
 const QUICK_LINKS = [
-  { label: "Soutenir sur Ko-fi", href: "https://ko-fi.com/clubcinefr", external: true },
+  { label: "Le générique", href: "/soutiens", external: false },
   { label: "Suggérer un film", href: "/#suggestions", external: false },
   { label: "Proposer une soirée", href: "/soirees#suggest", external: false },
   { label: "Liste Letterboxd du mois", href: "https://letterboxd.com/clubcinefr/list/club-cine-septembre-2026/", external: true },
@@ -202,6 +202,45 @@ function AboutContent() {
               </Link>
             );
           })}
+        </div>
+      </section>
+
+      <section className="px-10 py-20 border-b border-line flex flex-col items-center text-center gap-6 max-md:px-5 max-md:py-16">
+        <div className="font-mono font-semibold text-[11px] leading-none tracking-[0.16em] uppercase text-ink-3">
+          ★ <span className="text-red font-bold">Soutenir</span>
+          {" · Channel 01"}
+        </div>
+        <h2
+          className="font-bold leading-[1] tracking-[-0.03em] uppercase text-balance"
+          style={{ fontSize: "clamp(32px, 4.5vw, 56px)" }}
+        >
+          Le serveur coûte de l&apos;argent
+        </h2>
+        <p className="text-[14px] leading-[1.6] text-ink-2 max-w-[620px] text-balance">
+          Pas de pub, pas de tracking, pas d&apos;abonnement. Un don ponctuel sur
+          Ko-fi paie le serveur et le stockage, rien d&apos;autre. En échange : le
+          badge Supporter, les emotes perso dans le chat, le pseudo en couleur et
+          ton nom au générique. Le flux reste le même pour tout le monde.
+        </p>
+        <p className="font-mono text-[11px] tracking-[0.04em] text-ink-3 max-w-[560px] text-balance">
+          Pour recevoir le badge automatiquement, paie avec ton pseudo club ciné
+          ou l&apos;email de ton compte.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <a
+            href="https://ko-fi.com/clubcinefr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 px-5 py-2.5 border border-ink text-ink font-semibold text-[12px] uppercase tracking-[0.08em] hover:border-red hover:text-red transition-colors rounded-md"
+          >
+            Faire un don <span aria-hidden>→</span>
+          </a>
+          <Link
+            href="/soutiens"
+            className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.16em] uppercase text-ink-3 hover:text-red transition-colors"
+          >
+            Voir le générique
+          </Link>
         </div>
       </section>
 
