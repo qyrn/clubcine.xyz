@@ -3,7 +3,7 @@ import Image from "next/image";
 import Countdown from "@/components/Countdown";
 import { LAUNCH_ISO } from "@/lib/launch";
 
-const SOON_DESCRIPTION = "Ouverture le 1er septembre 2026, 21h, Paris.";
+const SOON_DESCRIPTION = "Ouverture le 7 septembre 2026, 21h, Paris.";
 
 export const metadata: Metadata = {
   title: "Ouverture imminente",
@@ -69,7 +69,7 @@ export default function SoonPage() {
         className="relative text-ink-3 text-[12px] tracking-[0.18em] text-balance"
         style={{ fontFamily: "var(--font-mono)" }}
       >
-        1ER SEPTEMBRE 2026 · 21H · PARIS
+        7 SEPTEMBRE 2026 · 21H · PARIS
       </p>
     </main>
   );

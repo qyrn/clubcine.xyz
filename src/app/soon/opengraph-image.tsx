@@ -73,7 +73,7 @@ export default async function SoonOpengraphImage() {
             fontWeight: 400,
           }}
         >
-          1ER SEPTEMBRE 2026 · 21H · PARIS
+          7 SEPTEMBRE 2026 · 21H · PARIS
         </div>
       </div>
     ),
