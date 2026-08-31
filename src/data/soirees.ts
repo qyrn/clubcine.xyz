@@ -15,10 +15,10 @@ export interface SoireeDef {
 
 export const SOIREES: SoireeDef[] = [
   {
-    id: "2026-09-05-affaires-non-classees",
+    id: "2026-09-07-affaires-non-classees",
     title: "Affaires non classées",
     films: ["manhunter", "seven", "zodiac"],
-    startISO: "2026-09-05T21:00:00+02:00",
+    startISO: "2026-09-07T21:00:00+02:00",
     posterFilmId: "zodiac",
     posterCustomUrl: "/posters-soirees/affaires-non-classees.webp",
   },
