@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
-export type NotificationType =
+type NotificationType =
   | "follow"
   | "guestbook"
   | "mention"

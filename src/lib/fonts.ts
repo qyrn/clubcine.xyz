@@ -82,7 +82,7 @@ export const FONTS: FontDef[] = [
   },
 ];
 
-export function findFont(slug?: string | null): FontDef {
+function findFont(slug?: string | null): FontDef {
   if (!slug) return FONTS[0];
   return FONTS.find((f) => f.slug === slug) ?? FONTS[0];
 }

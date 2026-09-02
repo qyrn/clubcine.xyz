@@ -7,7 +7,7 @@ export type ViewerTier =
 
 export type ChatterTier = "bavard" | "animateur" | "voix";
 
-export const VIEWER_THRESHOLDS: { tier: ViewerTier; seconds: number; label: string }[] = [
+const VIEWER_THRESHOLDS: { tier: ViewerTier; seconds: number; label: string }[] = [
   { tier: "legende",     seconds: 500 * 3600, label: "Légende" },
   { tier: "cingle",      seconds: 200 * 3600, label: "Cinglé" },
   { tier: "connaisseur", seconds: 50 * 3600,  label: "Connaisseur" },
@@ -15,7 +15,7 @@ export const VIEWER_THRESHOLDS: { tier: ViewerTier; seconds: number; label: stri
   { tier: "habitue",     seconds: 1 * 3600,   label: "Habitué" },
 ];
 
-export const CHATTER_THRESHOLDS: { tier: ChatterTier; count: number; label: string }[] = [
+const CHATTER_THRESHOLDS: { tier: ChatterTier; count: number; label: string }[] = [
   { tier: "voix",      count: 200, label: "Voix" },
   { tier: "animateur", count: 50,  label: "Animateur" },
   { tier: "bavard",    count: 10,  label: "Bavard" },

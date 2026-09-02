@@ -1,18 +1,18 @@
 import { vi } from "vitest";
 
-export interface FakeResult {
+interface FakeResult {
   data?: unknown;
   error?: unknown;
 }
 
-export type QueryOp = "select" | "insert" | "update" | "upsert" | "delete";
+type QueryOp = "select" | "insert" | "update" | "upsert" | "delete";
 
-export interface QueryFilter {
+interface QueryFilter {
   method: string;
   args: unknown[];
 }
 
-export interface QueryContext {
+interface QueryContext {
   table: string;
   op: QueryOp;
   single: boolean;
@@ -20,11 +20,11 @@ export interface QueryContext {
   filters: QueryFilter[];
 }
 
-export type TableHandler = (ctx: QueryContext) => FakeResult;
+type TableHandler = (ctx: QueryContext) => FakeResult;
 
 type AuthCallback = (event: string, session: unknown) => void | Promise<void>;
 
-export interface ChannelHandler {
+interface ChannelHandler {
   event: string;
   config: { event?: string };
   callback: (payload: unknown) => void;
@@ -40,7 +40,7 @@ export interface FakeChannel {
   emit: (event: string, payload: unknown) => void;
 }
 
-export interface SupabaseMockState {
+interface SupabaseMockState {
   session: unknown;
   handlers: Record<string, TableHandler>;
   authCallback: AuthCallback | null;

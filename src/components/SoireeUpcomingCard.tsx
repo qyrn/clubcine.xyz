@@ -17,7 +17,7 @@ const MONTHS = [
   "décembre",
 ];
 
-export function formatSoireeDate(ms: number): string {
+function formatSoireeDate(ms: number): string {
   const d = new Date(ms);
   const day = WEEKDAYS[d.getDay()];
   const month = MONTHS[d.getMonth()];

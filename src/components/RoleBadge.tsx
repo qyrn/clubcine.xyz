@@ -43,7 +43,7 @@ interface IconProps {
   className?: string;
 }
 
-export function Icon({ name, size = 14, className }: IconProps) {
+function Icon({ name, size = 14, className }: IconProps) {
   const props = {
     width: size,
     height: size,
@@ -156,7 +156,7 @@ export const ROLE_ICONS: Record<string, { icon: IconName; color: string; label: 
   pirate: { icon: "skull", color: "#16a34a", label: "PIRATE" },
 };
 
-export const BADGE_ICONS: Record<string, IconName> = {
+const BADGE_ICONS: Record<string, IconName> = {
   supporter: "star-filled",
   "founding-viewer": "spark",
   "night-owl": "moon",
@@ -182,7 +182,7 @@ export const BADGE_ICONS: Record<string, IconName> = {
   "catalogue-complet": "trophy",
 };
 
-export const BADGE_COLORS: Record<string, string> = {
+const BADGE_COLORS: Record<string, string> = {
   supporter: "#facc15",
   "founding-viewer": "#ff0033",
   "night-owl": "#a5b4fc",
@@ -212,7 +212,7 @@ export function badgeColor(slug: string, fallback?: string | null): string {
   return BADGE_COLORS[slug] ?? fallback ?? "#9aa0a6";
 }
 
-export const VIEWER_TIER_ICONS: Record<string, IconName> = {
+const VIEWER_TIER_ICONS: Record<string, IconName> = {
   habitue: "eye",
   cinephile: "popcorn",
   connaisseur: "ticket",
@@ -220,7 +220,7 @@ export const VIEWER_TIER_ICONS: Record<string, IconName> = {
   legende: "trophy",
 };
 
-export const CHATTER_TIER_ICONS: Record<string, IconName> = {
+const CHATTER_TIER_ICONS: Record<string, IconName> = {
   bavard: "bolt",
   animateur: "flame",
   voix: "spark",

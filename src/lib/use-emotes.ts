@@ -74,7 +74,7 @@ export function invalidateEmotesCache() {
   });
 }
 
-export async function primeEmotes(): Promise<Map<string, Emote>> {
+async function primeEmotes(): Promise<Map<string, Emote>> {
   if (cache) return cache;
   if (inflight) return inflight;
   inflight = fetchEmotes().then((map) => {

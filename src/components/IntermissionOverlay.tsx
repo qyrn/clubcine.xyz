@@ -6,7 +6,7 @@ import { useReactions } from "@/lib/use-reactions";
 import { safeImageUrl } from "@/lib/safe-url";
 import { readStorage, writeStorage } from "@/lib/safe-storage";
 
-export interface IntermissionSoiree {
+interface IntermissionSoiree {
   title: string;
   films: { id: string; title: string }[];
   nextFilmId: string;
