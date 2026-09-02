@@ -6,17 +6,11 @@ export interface CostLine {
 }
 
 // Ce que coûte la chaîne chaque mois. Transparence sur /soutiens.
-// TODO auteur : remplir `domaine` et `electricite-nas` avec les vrais montants.
 export const COSTS: CostLine[] = [
   {
-    label: "NAS + électricité",
-    note: "Le catalogue tourne sur un NAS à la maison, allumé 24/7.",
-    monthlyEur: null,
-  },
-  {
-    label: "Nom de domaine",
-    note: "clubcine.xyz, renouvellement annuel ramené au mois.",
-    monthlyEur: null,
+    label: "NAS, électricité, domaine",
+    note: "Le catalogue tourne sur un NAS à la maison, allumé 24/7, sur clubcine.xyz.",
+    monthlyEur: 10,
   },
   {
     label: "Cloudflare",

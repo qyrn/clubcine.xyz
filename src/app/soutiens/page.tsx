@@ -121,12 +121,17 @@ function CostsSection() {
       </ul>
       <div className="flex items-baseline justify-between gap-6 pt-4 mt-1 border-t border-line-2">
         <span className="text-[13px] font-semibold uppercase tracking-[0.1em]">
-          Total connu
+          Le minimum
         </span>
         <span className="font-mono text-[14px] tabular-nums">
-          {total} € / mois{hasUnconfirmedCosts(COSTS) ? " + électricité et domaine" : ""}
+          {total} € / mois{hasUnconfirmedCosts(COSTS) ? " + à préciser" : ""}
         </span>
       </div>
+      <p className="text-[12px] text-ink-3 leading-[1.6] mt-6 text-balance">
+        Au-delà, les dons financent les montées en gamme : plus de stockage,
+        un meilleur hébergement, un CDN sans compromis. Jamais de la pub ou un
+        catalogue payant.
+      </p>
     </section>
   );
 }
