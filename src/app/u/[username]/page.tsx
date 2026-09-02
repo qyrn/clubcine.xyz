@@ -31,11 +31,15 @@ import { fontStack, findColor, findAccent, ACCENT_COLORS } from "@/lib/fonts";
 import FontPicker from "@/components/FontPicker";
 import ColorPicker from "@/components/ColorPicker";
 
+const CATALOG_SIZE = 100;
+const FILM_SEEN_SECONDS = 1200;
+
 interface ProfileStats {
   rank: number | null;
   watchSeconds: number;
   messages: number;
   suggestions: number;
+  filmsSeen: number;
 }
 
 interface ProfileRow {
@@ -585,20 +589,26 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
       setTarget(rowToProfile(row));
       setCreatedAt(row.created_at);
 
-      const [{ data: rows }, { count: msgCount }, { count: sugCount }] = await Promise.all([
-        supabase
-          .from("watch_time")
-          .select("username,seconds")
-          .order("seconds", { ascending: false }),
-        supabase
-          .from("messages")
-          .select("id", { count: "exact", head: true })
-          .ilike("username", row.username),
-        supabase
-          .from("suggestions")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", row.user_id),
-      ]);
+      const [{ data: rows }, { count: msgCount }, { count: sugCount }, { count: filmsSeen }] =
+        await Promise.all([
+          supabase
+            .from("watch_time")
+            .select("username,seconds")
+            .order("seconds", { ascending: false }),
+          supabase
+            .from("messages")
+            .select("id", { count: "exact", head: true })
+            .ilike("username", row.username),
+          supabase
+            .from("suggestions")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", row.user_id),
+          supabase
+            .from("film_progress")
+            .select("film_id", { count: "exact", head: true })
+            .eq("user_id", row.user_id)
+            .gte("seconds", FILM_SEEN_SECONDS),
+        ]);
       if (cancelled) return;
 
       const list = (rows ?? []) as { username: string; seconds: number }[];
@@ -611,6 +621,7 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
         watchSeconds: idx === -1 ? 0 : list[idx].seconds ?? 0,
         messages: msgCount ?? 0,
         suggestions: sugCount ?? 0,
+        filmsSeen: filmsSeen ?? 0,
       });
       setLoading(false);
     };
@@ -764,6 +775,25 @@ function ProfileContent({ usernameParam }: { usernameParam: string }) {
                   label="Suggestions"
                 />
               </div>
+
+              {stats && stats.filmsSeen > 0 && (
+                <div className="px-4 py-5 border-t border-line max-[900px]:border-l-0 flex flex-col gap-2">
+                  <div className="flex items-baseline justify-between font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
+                    <span>Boucle vue</span>
+                    <span className="text-ink-2">
+                      {Math.min(stats.filmsSeen, CATALOG_SIZE)} / {CATALOG_SIZE}
+                    </span>
+                  </div>
+                  <div className="h-1 bg-line rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-red"
+                      style={{
+                        width: `${Math.min(100, (stats.filmsSeen / CATALOG_SIZE) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

@@ -1897,3 +1897,87 @@ begin
     $cron$ select public.announce_started_soirees(); $cron$
   );
 end $$;
+
+-- =============================================================================
+-- 18. suivi de visionnage par film (complétion du catalogue)
+-- =============================================================================
+-- film_progress : secondes cumulées par (user, film), alimenté par la RPC
+-- increment_film_watch (heartbeat du player, comme increment_watch_time mais
+-- avec l'id du film courant). Un film est « vu » à partir de 20 min cumulées.
+-- Badges catalogue-quart / -moitie / -complet (25 / 50 / 100 films vus).
+
+create table if not exists public.film_progress (
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  film_id    text not null,
+  seconds    int not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, film_id)
+);
+
+alter table public.film_progress enable row level security;
+
+drop policy if exists "film_progress read all" on public.film_progress;
+create policy "film_progress read all" on public.film_progress for select using (true);
+
+create or replace function public.increment_film_watch(p_film_id text, p_seconds integer)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  safe_seconds integer;
+begin
+  if auth.uid() is null then return; end if;
+  if p_film_id is null or length(p_film_id) = 0 or length(p_film_id) > 80 then return; end if;
+  safe_seconds := least(greatest(coalesce(p_seconds, 0), 0), 120);
+  if safe_seconds = 0 then return; end if;
+  insert into public.film_progress (user_id, film_id, seconds, updated_at)
+  values (auth.uid(), p_film_id, safe_seconds, now())
+  on conflict (user_id, film_id) do update
+    set seconds = public.film_progress.seconds + safe_seconds,
+        updated_at = now();
+end;
+$$;
+
+revoke all on function public.increment_film_watch(text, integer) from public;
+revoke all on function public.increment_film_watch(text, integer) from anon;
+grant execute on function public.increment_film_watch(text, integer) to authenticated;
+
+insert into public.badges (slug, label, description, color) values
+  ('catalogue-quart',   'Quart de boucle',  '25 films de la boucle vus.',  '#ff0033'),
+  ('catalogue-moitie',  'Moitié de boucle', '50 films de la boucle vus.',  '#ff0033'),
+  ('catalogue-complet', 'Boucle bouclée',   'Les 100 films de la boucle vus.', '#ff0033')
+on conflict (slug) do update set
+  label = excluded.label,
+  description = excluded.description,
+  color = excluded.color;
+
+create or replace function public.award_collection_badges()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  seen_count int;
+begin
+  if NEW.seconds < 1200 then return NEW; end if;
+  select count(*) into seen_count from public.film_progress
+  where user_id = NEW.user_id and seconds >= 1200;
+
+  if seen_count >= 25 then
+    insert into public.user_badges (user_id, badge_slug, awarded_reason)
+    values (NEW.user_id, 'catalogue-quart', '25 films vus')
+    on conflict (user_id, badge_slug) do nothing;
+  end if;
+  if seen_count >= 50 then
+    insert into public.user_badges (user_id, badge_slug, awarded_reason)
+    values (NEW.user_id, 'catalogue-moitie', '50 films vus')
+    on conflict (user_id, badge_slug) do nothing;
+  end if;
+  if seen_count >= 100 then
+    insert into public.user_badges (user_id, badge_slug, awarded_reason)
+    values (NEW.user_id, 'catalogue-complet', '100 films vus')
+    on conflict (user_id, badge_slug) do nothing;
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists film_progress_award_badges on public.film_progress;
+create trigger film_progress_award_badges
+  after insert or update on public.film_progress
+  for each row execute function public.award_collection_badges();

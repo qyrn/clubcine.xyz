@@ -141,7 +141,10 @@ const OVERLAY_HIDE_DELAY_MS = 6000;
 
 function MovieContent() {
   const { username } = useAuth();
-  useWatchHeartbeat(username);
+  const { schedule } = useSchedule();
+  const currentFilmId =
+    schedule && !schedule.intermission ? schedule.currentFilm.id : null;
+  useWatchHeartbeat(username, currentFilmId);
   const [chatOpen, setChatOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return window.innerWidth >= 768;

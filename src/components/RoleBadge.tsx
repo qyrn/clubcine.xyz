@@ -177,6 +177,9 @@ export const BADGE_ICONS: Record<string, IconName> = {
   "soiree-suggest-1": "ticket",
   "soiree-suggest-5": "ticket",
   "soiree-suggest-10": "ticket",
+  "catalogue-quart": "ticket",
+  "catalogue-moitie": "popcorn",
+  "catalogue-complet": "trophy",
 };
 
 export const BADGE_COLORS: Record<string, string> = {
@@ -200,6 +203,9 @@ export const BADGE_COLORS: Record<string, string> = {
   "soiree-suggest-1": "#f472b6",
   "soiree-suggest-5": "#ec4899",
   "soiree-suggest-10": "#db2777",
+  "catalogue-quart": "#9aa0a6",
+  "catalogue-moitie": "#f0eae0",
+  "catalogue-complet": "#ff0033",
 };
 
 export function badgeColor(slug: string, fallback?: string | null): string {
