@@ -5,6 +5,7 @@ import Hls from "hls.js";
 import { ScheduleState } from "@/types";
 import { useSchedule } from "@/lib/schedule-context";
 import IntermissionOverlay from "./IntermissionOverlay";
+import FilmCurtain from "./FilmCurtain";
 import { usePersistentState } from "@/lib/use-persistent-state";
 
 const SYNC_THRESHOLD = 4;
@@ -759,6 +760,11 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
           </span>
         </div>
       )}
+
+      <FilmCurtain
+        inIntermission={!!schedule?.intermission}
+        secondsLeft={intermissionLeft}
+      />
 
       {schedule?.intermission && (
         <IntermissionOverlay

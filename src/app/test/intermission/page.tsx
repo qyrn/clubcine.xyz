@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import IntermissionOverlay from "@/components/IntermissionOverlay";
+import FilmCurtain from "@/components/FilmCurtain";
 import { FILMS } from "@/data/schedule";
 
 const PRESETS = [10, 30, 60, 5 * 60, 15 * 60, 30 * 60];
@@ -11,7 +12,13 @@ export default function IntermissionTest() {
   const [secondsLeft, setSecondsLeft] = useState<number | null>(60);
   const [running, setRunning] = useState(false);
   const [soireeMode, setSoireeMode] = useState(false);
+  const [curtainIn, setCurtainIn] = useState(true);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const replayCurtain = () => {
+    setCurtainIn(false);
+    setTimeout(() => setCurtainIn(true), 60);
+  };
 
   useEffect(() => {
     if (!running) return;
@@ -60,6 +67,8 @@ export default function IntermissionTest() {
         secondsLeft={secondsLeft}
         soiree={soiree}
       />
+
+      <FilmCurtain inIntermission={curtainIn} secondsLeft={secondsLeft} />
 
       <div className="absolute top-4 left-4 z-30 flex flex-col gap-3 bg-bg/90 backdrop-blur-sm border border-line-2 rounded-md p-4 max-w-[320px]">
         <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-red font-bold">
@@ -148,6 +157,14 @@ export default function IntermissionTest() {
             Reset 1m
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={replayCurtain}
+          className="px-3 py-2 border border-line-2 text-ink-2 font-semibold text-[11px] uppercase tracking-[0.08em] hover:border-red hover:text-red rounded transition-colors cursor-pointer"
+        >
+          Rejouer le rideau
+        </button>
 
         <p className="text-[10px] text-ink-3 leading-[1.5] text-balance">
           Cette page sert à prévisualiser l&apos;écran d&apos;entracte
