@@ -9,6 +9,7 @@ import Player from "@/components/Player";
 import Chat from "@/components/Chat";
 import ViewerCount from "@/components/ViewerCount";
 import Brand from "@/components/Brand";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import { formatDuration } from "@/lib/schedule-engine";
 
 function formatHM(seconds: number): string {
@@ -274,6 +275,8 @@ function MovieContent() {
           </button>
         )}
       </div>
+
+      <KeyboardShortcuts />
     </div>
   );
 }
