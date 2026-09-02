@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Ticker from "@/components/Ticker";
 import SoireeUpcomingCard from "@/components/SoireeUpcomingCard";
+import SoireeReminderToggle from "@/components/SoireeReminderToggle";
 import Footer from "@/components/Footer";
 
 interface FilmView {
@@ -309,13 +310,16 @@ export default function SoireesClient({ live, upcoming, past }: Props) {
 
       {upcoming.length > 0 && (
         <section className="px-10 py-14 border-b border-line max-md:px-5 max-md:py-10">
-          <div className="flex justify-between items-baseline mb-8">
+          <div className="flex justify-between items-baseline gap-4 mb-8 flex-wrap">
             <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em] text-balance">
               {live ? "Soirées · ensuite" : "Soirées · à venir"}
             </h2>
-            <span className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
-              {upcoming.length} programmée{upcoming.length > 1 ? "s" : ""}
-            </span>
+            <div className="flex items-baseline gap-4">
+              <SoireeReminderToggle />
+              <span className="font-mono text-[11px] tracking-[0.04em] text-ink-3">
+                {upcoming.length} programmée{upcoming.length > 1 ? "s" : ""}
+              </span>
+            </div>
           </div>
           <div className="grid grid-cols-4 gap-5 max-[1100px]:grid-cols-2 max-[600px]:grid-cols-1">
             {upcoming.map((s) => (

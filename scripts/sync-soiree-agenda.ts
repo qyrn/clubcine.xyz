@@ -42,11 +42,11 @@ async function main() {
 
   const { error: resetErr } = await supabase
     .from("soiree_agenda")
-    .update({ announced: false })
+    .update({ announced: false, push_sent: false })
     .gt("starts_at", new Date().toISOString())
-    .eq("announced", true);
+    .or("announced.eq.true,push_sent.eq.true");
   if (resetErr) {
-    console.error("Reset announced KO :", resetErr.message);
+    console.error("Reset flags KO :", resetErr.message);
     process.exit(1);
   }
 
