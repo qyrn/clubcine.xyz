@@ -515,6 +515,30 @@ begin
     values (uid, 'viewer-legende', '500h+ d''antenne')
     on conflict (user_id, badge_slug) do nothing;
   end if;
+
+  -- night-owl : connecté entre 02h et 06h (heure de Paris).
+  if extract(hour from now() at time zone 'Europe/Paris') between 2 and 5 then
+    insert into public.user_badges (user_id, badge_slug, awarded_reason)
+    values (uid, 'night-owl', 'connecté entre 02h et 06h')
+    on conflict (user_id, badge_slug) do nothing;
+  end if;
+
+  -- founding-viewer : présent pendant la semaine du lancement (7 sept 2026 21h).
+  if now() >= timestamptz '2026-09-07 21:00:00+02'
+     and now() < timestamptz '2026-09-07 21:00:00+02' + interval '7 days' then
+    insert into public.user_badges (user_id, badge_slug, awarded_reason)
+    values (uid, 'founding-viewer', 'présent la semaine du lancement')
+    on conflict (user_id, badge_slug) do nothing;
+  end if;
+
+  -- top-10 : a atteint le top 10 du classement watch_time.
+  if p_seconds >= 3600 and (
+    select count(*) from public.watch_time where seconds > p_seconds
+  ) < 10 then
+    insert into public.user_badges (user_id, badge_slug, awarded_reason)
+    values (uid, 'top-10', 'top 10 du classement')
+    on conflict (user_id, badge_slug) do nothing;
+  end if;
 end;
 $$;
 
@@ -531,6 +555,10 @@ drop trigger if exists watch_time_award_badges on public.watch_time;
 create trigger watch_time_award_badges
   after insert or update on public.watch_time
   for each row execute function public.award_viewer_badges();
+
+-- Classement + check top-10 dans award_viewer_badges_for.
+create index if not exists watch_time_seconds_idx
+  on public.watch_time (seconds desc);
 
 -- 9b-bis. RPC d'incrément du temps de visionnage. La table watch_time est en
 -- écriture seule via cette RPC (aucune policy write). L'identité est dérivée du
