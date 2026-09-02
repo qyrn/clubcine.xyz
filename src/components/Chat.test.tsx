@@ -205,6 +205,26 @@ describe("Chat · dons", () => {
       expect(screen.getByText("vient de soutenir la chaîne")).toBeInTheDocument(),
     );
   });
+
+  it("rend une annonce de soirée (kind soiree) telle quelle", async () => {
+    mock.state.handlers.messages = () => ({
+      data: [
+        {
+          id: "so1",
+          username: "clubcine",
+          text: "La soirée « Affaires non classées » commence",
+          timestamp: 4000,
+          kind: "soiree",
+        },
+      ],
+    });
+    await renderChat();
+    await waitFor(() =>
+      expect(
+        screen.getByText("La soirée « Affaires non classées » commence"),
+      ).toBeInTheDocument(),
+    );
+  });
 });
 
 describe("Chat · modération", () => {

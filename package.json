@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "award:soirees": "tsx --env-file=.env.local scripts/award-soiree-badges.ts",
+    "sync:soirees": "tsx --env-file=.env.local scripts/sync-soiree-agenda.ts",
     "verify:films": "tsx --env-file=.env.local scripts/verify-films.ts"
   },
   "dependencies": {

@@ -10,7 +10,8 @@ export type NotificationType =
   | "role"
   | "suggestion_accepted"
   | "suggestion_rejected"
-  | "badge";
+  | "badge"
+  | "soiree";
 
 const KNOWN_TYPES: NotificationType[] = [
   "follow",
@@ -20,6 +21,7 @@ const KNOWN_TYPES: NotificationType[] = [
   "suggestion_accepted",
   "suggestion_rejected",
   "badge",
+  "soiree",
 ];
 
 export interface AppNotification {

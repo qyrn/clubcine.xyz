@@ -21,6 +21,10 @@ import { usePersistentState } from "@/lib/use-persistent-state";
 
 const COOLDOWN_KEY = "clubcine-chat-cooldown-until";
 
+function isSystemMessage(m: ChatMessage): boolean {
+  return m.kind === "system" || m.kind === "soiree";
+}
+
 function parseTimestamp(raw: string): number | null {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -188,9 +192,15 @@ function SystemMessageLine({
       <span className="text-red shrink-0" aria-hidden>
         ★
       </span>
-      <span className="min-w-0">
-        <span className="text-ink font-semibold">{msg.username}</span>{" "}
-        <span className="text-ink-2">vient de soutenir la chaîne</span>
+      <span className="min-w-0 text-ink-2">
+        {msg.kind === "soiree" ? (
+          msg.text
+        ) : (
+          <>
+            <span className="text-ink font-semibold">{msg.username}</span> vient de
+            soutenir la chaîne
+          </>
+        )}
       </span>
       {canModerate && (
         <button
@@ -499,12 +509,12 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const usernames = useMemo(
     () =>
       Array.from(
-        new Set(messages.filter((m) => m.kind !== "system").map((m) => m.username))
+        new Set(messages.filter((m) => !isSystemMessage(m)).map((m) => m.username))
       ),
     [messages]
   );
   const userMessageCount = useMemo(
-    () => messages.filter((m) => m.kind !== "system").length,
+    () => messages.filter((m) => !isSystemMessage(m)).length,
     [messages]
   );
   const profileMap = useProfilesByUsername(usernames);
@@ -976,7 +986,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               : undefined;
             const showSep =
               i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
-            if (msg.kind === "system") {
+            if (isSystemMessage(msg)) {
               return (
                 <Fragment key={msg.id}>
                   {showSep && <DaySeparator label={dayLabel(msg.timestamp)} compact />}
@@ -1178,7 +1188,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             : undefined;
           const showSep =
             i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
-          if (msg.kind === "system") {
+          if (isSystemMessage(msg)) {
             return (
               <Fragment key={msg.id}>
                 {showSep && <DaySeparator label={dayLabel(msg.timestamp)} />}

@@ -583,7 +583,7 @@ declare
   uid uuid;
   msg_count int;
 begin
-  if NEW.kind = 'system' then return NEW; end if;
+  if NEW.kind <> 'user' then return NEW; end if;
 
   select user_id into uid from public.profiles
   where lower(username) = lower(NEW.username) limit 1;
@@ -888,12 +888,14 @@ alter table public.messages replica identity full;
 alter table public.messages
   add column if not exists kind text not null default 'user';
 
+-- kind : 'user' (défaut), 'system' (don Ko-fi), 'soiree' (annonce de soirée).
 do $$
 begin
-  if not exists (select 1 from pg_constraint where conname = 'messages_kind_check') then
-    alter table public.messages
-      add constraint messages_kind_check check (kind in ('user', 'system'));
+  if exists (select 1 from pg_constraint where conname = 'messages_kind_check') then
+    alter table public.messages drop constraint messages_kind_check;
   end if;
+  alter table public.messages
+    add constraint messages_kind_check check (kind in ('user', 'system', 'soiree'));
 end $$;
 
 -- =============================================================================
@@ -1128,7 +1130,11 @@ declare
   recent_count int;
   is_staff boolean := false;
 begin
-  if (auth.jwt() ->> 'role') = 'service_role' then return new; end if;
+  -- service_role (webhook Ko-fi via PostgREST) ou appel interne postgres
+  -- (pg_cron announce_started_soirees, SQL editor) : pas de rate limit.
+  if (auth.jwt() ->> 'role') = 'service_role' or session_user <> 'authenticator' then
+    return new;
+  end if;
 
   select count(*) into recent_count
   from public.messages
@@ -1293,7 +1299,7 @@ create table if not exists public.notifications (
   recipient_id    uuid not null references auth.users(id) on delete cascade,
   actor_id        uuid references auth.users(id) on delete cascade,
   actor_username  text not null,
-  type            text not null check (type in ('follow', 'guestbook', 'mention', 'role', 'suggestion_accepted', 'suggestion_rejected', 'badge')),
+  type            text not null check (type in ('follow', 'guestbook', 'mention', 'role', 'suggestion_accepted', 'suggestion_rejected', 'badge', 'soiree')),
   detail          text,
   read            boolean not null default false,
   created_at      timestamptz not null default now()
@@ -1314,7 +1320,7 @@ begin
   end if;
   alter table public.notifications
     add constraint notifications_type_check
-    check (type in ('follow', 'guestbook', 'mention', 'role', 'suggestion_accepted', 'suggestion_rejected', 'badge'));
+    check (type in ('follow', 'guestbook', 'mention', 'role', 'suggestion_accepted', 'suggestion_rejected', 'badge', 'soiree'));
 end $$;
 
 create index if not exists notifications_recipient_idx
@@ -1378,7 +1384,7 @@ declare
   sender_id uuid;
   rec record;
 begin
-  if new.kind = 'system' then return new; end if;
+  if new.kind <> 'user' then return new; end if;
 
   select user_id into sender_id from public.profiles
   where lower(username) = lower(new.username) limit 1;
@@ -1634,7 +1640,10 @@ declare
   recent_msg_ts      bigint;
   spam_until         timestamptz;
 begin
-  if (auth.jwt() ->> 'role') = 'service_role' then
+  -- service_role (webhook Ko-fi via PostgREST) ou appel interne postgres
+  -- (pg_cron announce_started_soirees, SQL editor) : autorisé à poser
+  -- kind = 'system', pas de modération. Tout autre appelant est forcé en 'user'.
+  if (auth.jwt() ->> 'role') = 'service_role' or session_user <> 'authenticator' then
     return new;
   end if;
   new.kind := 'user';
@@ -1784,4 +1793,73 @@ begin
      ) then
     alter publication supabase_realtime add table public.chat_settings;
   end if;
+end $$;
+
+-- =============================================================================
+-- 17. annonce des soirées dans le chat
+-- =============================================================================
+-- `soiree_agenda` : miroir minimal de src/data/soirees.ts en base (les soirées
+-- vivent dans le code, pg_cron ne sait pas les lire). Peuplé par
+-- `pnpm sync:soirees` (service role), à relancer après chaque édition de
+-- soirees.ts. Une fois par minute, announce_started_soirees() poste une ligne
+-- `messages` kind = 'soiree' quand une soirée vient de commencer, et notifie
+-- l'auteur crédité (type 'soiree').
+
+create table if not exists public.soiree_agenda (
+  id                text primary key,
+  title             text not null,
+  starts_at         timestamptz not null,
+  credited_username text,
+  announced         boolean not null default false
+);
+
+alter table public.soiree_agenda enable row level security;
+
+drop policy if exists "soiree_agenda read all" on public.soiree_agenda;
+create policy "soiree_agenda read all" on public.soiree_agenda for select using (true);
+
+create or replace function public.announce_started_soirees()
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  s   record;
+  uid uuid;
+begin
+  for s in
+    select * from public.soiree_agenda
+    where announced = false
+      and starts_at <= now()
+      and starts_at > now() - interval '15 minutes'
+  loop
+    insert into public.messages (username, text, timestamp, kind)
+    values (
+      'clubcine',
+      'La soirée « ' || s.title || ' » commence',
+      (extract(epoch from now()) * 1000)::bigint,
+      'soiree'
+    );
+
+    if s.credited_username is not null and length(trim(s.credited_username)) > 0 then
+      select user_id into uid from public.profiles
+      where lower(username) = lower(s.credited_username);
+      if uid is not null then
+        insert into public.notifications (recipient_id, actor_id, actor_username, type, detail)
+        values (uid, null, 'clubcine', 'soiree', s.title);
+      end if;
+    end if;
+
+    update public.soiree_agenda set announced = true where id = s.id;
+  end loop;
+end;
+$$;
+
+do $$
+begin
+  if exists (select 1 from cron.job where jobname = 'announce-soirees') then
+    perform cron.unschedule('announce-soirees');
+  end if;
+  perform cron.schedule(
+    'announce-soirees',
+    '* * * * *',
+    $cron$ select public.announce_started_soirees(); $cron$
+  );
 end $$;

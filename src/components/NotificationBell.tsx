@@ -112,6 +112,10 @@ function NotifIcon({ type }: { type: AppNotification["type"] }) {
       );
       accent = true;
       break;
+    case "soiree":
+      glyph = <path d="M12 2l3 6 6 .5-4.5 4 1.5 6L12 15l-6 3.5 1.5-6L3 8.5 9 8z" />;
+      accent = true;
+      break;
   }
   return (
     <span
@@ -154,6 +158,8 @@ function NotifMessage({ n }: { n: AppNotification }) {
       return <>Ta suggestion {detail} n&apos;a pas été retenue</>;
     case "badge":
       return <>Nouveau badge débloqué : {detail}</>;
+    case "soiree":
+      return <>Ta soirée {detail} passe maintenant</>;
     default:
       return <>{actor} t&apos;a suivi</>;
   }
@@ -191,7 +197,7 @@ export default function NotificationBell() {
     if (n.type === "suggestion_accepted" || n.type === "suggestion_rejected") {
       return "/programme";
     }
-    if (n.type === "mention") return "/movie";
+    if (n.type === "mention" || n.type === "soiree") return "/movie";
     return `/u/${encodeURIComponent(n.actorUsername)}`;
   };
 
