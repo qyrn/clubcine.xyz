@@ -1,7 +1,12 @@
 -- =============================================================================
--- clubcine.xyz · schema complet (consolidé)
+-- clubcine.xyz · schema baseline (consolidé, FIGÉ)
 -- =============================================================================
--- Tout en un seul fichier idempotent. Re-exécutable sans casser l'existant.
+-- État complet du schéma au 2026-09-02 (après batches 1 à 3). Tout est
+-- idempotent : re-exécutable sans casser l'existant.
+--
+-- NE PLUS ÉDITER CE FICHIER. Les évolutions vont dans des fichiers datés
+-- `YYYYMMDDHHMM_slug.sql` dans ce dossier, chacun idempotent, appliqués dans
+-- l'ordre du nom. Voir `supabase/migrations/MIGRATIONS.md`.
 --
 -- Sections :
 --   1. profiles (table + RLS + triggers + backfill)
