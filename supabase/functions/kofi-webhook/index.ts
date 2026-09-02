@@ -1,5 +1,6 @@
 // Edge Function : reçoit un webhook Ko-fi, attribue badge `supporter` + role `soutien`
-// au user dont le pseudo Ko-fi (or l'email) matche un username clubcine.
+// au user dont le pseudo Ko-fi (or l'email) matche un username clubcine, et poste
+// une notification dans le chat global (« <pseudo> vient de soutenir la chaîne »).
 //
 // DÉPLOIEMENT
 //   supabase functions deploy kofi-webhook --no-verify-jwt
@@ -53,6 +54,42 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
   auth: { persistSession: false },
 });
 
+const ANON_DONOR = "Un anonyme";
+const ANON_NAME_ALIASES = new Set(["anonymous", "someone", "anonyme", "un anonyme"]);
+
+function donorDisplayName(payload: KofiPayload): string {
+  const cleaned = (payload.from_name ?? "")
+    .replace(/[^\p{L}\p{N} _.'-]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 40);
+  if (!payload.is_public || !cleaned) return ANON_DONOR;
+  if (ANON_NAME_ALIASES.has(cleaned.toLowerCase())) return ANON_DONOR;
+  return cleaned;
+}
+
+async function postChatNotification(payload: KofiPayload): Promise<void> {
+  if (payload.type !== "Donation") return;
+  const donor = donorDisplayName(payload);
+  const text = `${donor} vient de soutenir la chaîne`;
+  const since = Date.now() - 2 * 60 * 1000;
+  const { data: dupes } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("kind", "system")
+    .eq("text", text)
+    .gte("timestamp", since)
+    .limit(1);
+  if (dupes && dupes.length > 0) return;
+  const { error } = await supabase.from("messages").insert({
+    username: donor,
+    text,
+    timestamp: Date.now(),
+    kind: "system",
+  });
+  if (error) console.error("[kofi] chat notification insert failed:", error.message);
+}
+
 function safeEqual(a: string, b: string): boolean {
   const enc = new TextEncoder();
   const ba = enc.encode(a);
@@ -82,6 +119,12 @@ serve(async (req) => {
 
   if (!safeEqual(payload.verification_token ?? "", KOFI_TOKEN)) {
     return new Response("Invalid token", { status: 401 });
+  }
+
+  try {
+    await postChatNotification(payload);
+  } catch (err) {
+    console.error("[kofi] chat notification error:", err instanceof Error ? err.message : err);
   }
 
   const reason = `ko-fi ${payload.type} ${payload.amount} (msg ${payload.message_id})`;

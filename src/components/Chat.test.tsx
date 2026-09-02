@@ -143,6 +143,70 @@ describe("Chat · envoi", () => {
   });
 });
 
+describe("Chat · dons", () => {
+  it("rend une notification de don comme ligne système", async () => {
+    mock.state.handlers.messages = () => ({
+      data: [
+        {
+          id: "s1",
+          username: "lauraPalmer",
+          text: "lauraPalmer vient de soutenir la chaîne",
+          timestamp: 3000,
+          kind: "system",
+        },
+      ],
+    });
+    await renderChat();
+
+    await waitFor(() =>
+      expect(screen.getByText("vient de soutenir la chaîne")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("lauraPalmer")).toBeInTheDocument();
+  });
+
+  it("ne compte pas les notifications système dans le total de messages", async () => {
+    mock.state.handlers.messages = () => ({
+      data: [
+        { id: "m1", username: "tati", text: "playtime", timestamp: 1000 },
+        {
+          id: "s1",
+          username: "Un anonyme",
+          text: "Un anonyme vient de soutenir la chaîne",
+          timestamp: 2000,
+          kind: "system",
+        },
+      ],
+    });
+    const Chat = (await import("@/components/Chat")).default;
+    render(<Chat />);
+
+    await waitFor(() => expect(screen.getByText("playtime")).toBeInTheDocument());
+    expect(screen.getByText("1 message")).toBeInTheDocument();
+  });
+
+  it("ajoute une notification de don reçue en realtime", async () => {
+    mock.state.handlers.messages = () => ({ data: [] });
+    await renderChat();
+    await waitFor(() => expect(screen.getByText(/personne ne parle/)).toBeInTheDocument());
+
+    act(() => {
+      mock.findChannel("chat").emit("INSERT", {
+        new: {
+          id: "s2",
+          username: "keyzersoze",
+          text: "keyzersoze vient de soutenir la chaîne",
+          timestamp: 6000,
+          kind: "system",
+        },
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("vient de soutenir la chaîne")).toBeInTheDocument(),
+    );
+  });
+});
+
 describe("Chat · modération", () => {
   it("laisse un admin supprimer un message avec retrait optimiste", async () => {
     localStorage.setItem(TOKEN_KEY, "stored");

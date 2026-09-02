@@ -583,6 +583,8 @@ declare
   uid uuid;
   msg_count int;
 begin
+  if NEW.kind = 'system' then return NEW; end if;
+
   select user_id into uid from public.profiles
   where lower(username) = lower(NEW.username) limit 1;
   if uid is null then return NEW; end if;
@@ -875,6 +877,26 @@ create policy "messages delete admin or moderator" on public.messages for delete
 alter table public.messages replica identity full;
 
 -- =============================================================================
+-- 12bis-b. messages : notifications système (dons Ko-fi)
+-- =============================================================================
+-- L'Edge Function kofi-webhook (rôle JWT service_role) insère une ligne
+-- kind = 'system' à chaque don ponctuel : le chat affiche
+-- « <pseudo> vient de soutenir la chaîne ». Les clients anon / authenticated
+-- ne peuvent écrire que kind = 'user' : enforce_chat_moderation force la valeur
+-- pour tout appelant qui n'est pas service_role.
+
+alter table public.messages
+  add column if not exists kind text not null default 'user';
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'messages_kind_check') then
+    alter table public.messages
+      add constraint messages_kind_check check (kind in ('user', 'system'));
+  end if;
+end $$;
+
+-- =============================================================================
 -- 12ter. staff_applications (candidatures pour rejoindre l'équipe)
 -- =============================================================================
 -- Un user connecté peut postuler pour devenir modérateur. L'admin accepte
@@ -1106,6 +1128,8 @@ declare
   recent_count int;
   is_staff boolean := false;
 begin
+  if (auth.jwt() ->> 'role') = 'service_role' then return new; end if;
+
   select count(*) into recent_count
   from public.messages
   where username = new.username
@@ -1354,6 +1378,8 @@ declare
   sender_id uuid;
   rec record;
 begin
+  if new.kind = 'system' then return new; end if;
+
   select user_id into sender_id from public.profiles
   where lower(username) = lower(new.username) limit 1;
 
@@ -1608,6 +1634,11 @@ declare
   recent_msg_ts      bigint;
   spam_until         timestamptz;
 begin
+  if (auth.jwt() ->> 'role') = 'service_role' then
+    return new;
+  end if;
+  new.kind := 'user';
+
   select frozen, slow_mode_seconds
     into settings_frozen, settings_slow
     from public.chat_settings where id = 1;

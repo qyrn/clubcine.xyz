@@ -66,4 +66,5 @@ export interface ChatMessage {
   username: string;
   text: string;
   timestamp: number;
+  kind?: "user" | "system";
 }

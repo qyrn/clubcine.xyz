@@ -157,6 +157,62 @@ function DaySeparator({ label, compact }: { label: string; compact?: boolean }) 
   );
 }
 
+function SystemMessageLine({
+  msg,
+  compact,
+  canModerate,
+  onDelete,
+}: {
+  msg: ChatMessage;
+  compact?: boolean;
+  canModerate: boolean;
+  onDelete: () => void;
+}) {
+  const d = new Date(msg.timestamp);
+  const hhmm = `${d.getHours().toString().padStart(2, "0")}:${d
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+  return (
+    <div
+      className={`group relative flex items-baseline gap-1.5 break-words ${
+        compact ? "text-[12px] leading-[1.55]" : "py-1 text-[13px] leading-[1.6]"
+      }`}
+    >
+      <span
+        className="text-ink-3 text-[10px] font-mono tabular-nums shrink-0 cursor-default"
+        title={fmtFullDate(msg.timestamp)}
+      >
+        {hhmm}
+      </span>
+      <span className="text-red shrink-0" aria-hidden>
+        ★
+      </span>
+      <span className="min-w-0">
+        <span className="text-ink font-semibold">{msg.username}</span>{" "}
+        <span className="text-ink-2">vient de soutenir la chaîne</span>
+      </span>
+      {canModerate && (
+        <button
+          type="button"
+          onClick={onDelete}
+          title="Supprimer cette notification"
+          aria-label="Supprimer cette notification"
+          className="absolute top-0 right-0 p-1 text-ink-3 hover:text-red hover:bg-line rounded-sm leading-none opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity cursor-pointer inline-flex items-center justify-center"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 interface ChatProps {
   onCollapse?: () => void;
   extra?: React.ReactNode;
@@ -441,7 +497,14 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   }, [messages]);
 
   const usernames = useMemo(
-    () => Array.from(new Set(messages.map((m) => m.username))),
+    () =>
+      Array.from(
+        new Set(messages.filter((m) => m.kind !== "system").map((m) => m.username))
+      ),
+    [messages]
+  );
+  const userMessageCount = useMemo(
+    () => messages.filter((m) => m.kind !== "system").length,
     [messages]
   );
   const profileMap = useProfilesByUsername(usernames);
@@ -913,6 +976,19 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               : undefined;
             const showSep =
               i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
+            if (msg.kind === "system") {
+              return (
+                <Fragment key={msg.id}>
+                  {showSep && <DaySeparator label={dayLabel(msg.timestamp)} compact />}
+                  <SystemMessageLine
+                    msg={msg}
+                    compact
+                    canModerate={canModerate}
+                    onDelete={() => deleteMessage(msg)}
+                  />
+                </Fragment>
+              );
+            }
             return (
             <Fragment key={msg.id}>
             {showSep && <DaySeparator label={dayLabel(msg.timestamp)} compact />}
@@ -1057,7 +1133,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       <div className="text-[13px] font-semibold uppercase tracking-[0.16em] mb-5 flex justify-between items-baseline">
         <span>Chat</span>
         <span className="font-mono font-medium text-[11px] tracking-[0.04em] text-ink-3 normal-case">
-          {messages.length} message{messages.length > 1 ? "s" : ""}
+          {userMessageCount} message{userMessageCount > 1 ? "s" : ""}
         </span>
       </div>
 
@@ -1102,6 +1178,18 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             : undefined;
           const showSep =
             i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
+          if (msg.kind === "system") {
+            return (
+              <Fragment key={msg.id}>
+                {showSep && <DaySeparator label={dayLabel(msg.timestamp)} />}
+                <SystemMessageLine
+                  msg={msg}
+                  canModerate={canModerate}
+                  onDelete={() => deleteMessage(msg)}
+                />
+              </Fragment>
+            );
+          }
           return (
           <Fragment key={msg.id}>
           {showSep && <DaySeparator label={dayLabel(msg.timestamp)} />}
