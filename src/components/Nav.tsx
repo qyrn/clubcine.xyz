@@ -212,7 +212,7 @@ export default function Nav({ active }: { active?: string }) {
           {loading ? (
             <span
               aria-hidden
-              className="w-10 h-10 rounded-full border border-line-2 bg-line/40 animate-pulse"
+              className="w-10 h-10 rounded-full border border-line-2 bg-line/40 animate-pulse motion-reduce:animate-none"
             />
           ) : user ? (
             <>

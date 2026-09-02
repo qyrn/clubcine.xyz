@@ -47,7 +47,7 @@ export default function Brand({
         club
         <span
           aria-hidden
-          className="mx-[2px] animate-[pulse-dot_2s_ease-in-out_infinite]"
+          className="mx-[2px] pulse-dot"
           style={{ color: "var(--color-red)" }}
         >
           ·

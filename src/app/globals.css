@@ -101,11 +101,9 @@ a { color: inherit; text-decoration: none; }
   50% { opacity: 0.3; }
 }
 
-@keyframes transition-fade {
-  0% { opacity: 0; }
-  10% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { opacity: 0; }
+@keyframes reaction-fade {
+  0%, 100% { opacity: 0; }
+  10%, 75% { opacity: 1; }
 }
 
 @keyframes reaction-float {
@@ -126,7 +124,35 @@ a { color: inherit; text-decoration: none; }
   }
 }
 
+.ticker-track {
+  animation: ticker 60s linear infinite;
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.pulse-dot-fast {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
 ::cue {
   background: rgba(0, 0, 0, 0.5);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track,
+  .pulse-dot,
+  .pulse-dot-fast {
+    animation: none !important;
+  }
+
+  .ticker-track {
+    transform: none !important;
+  }
+
+  .reaction-float {
+    animation-name: reaction-fade !important;
+  }
 }

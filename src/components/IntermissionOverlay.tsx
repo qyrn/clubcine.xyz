@@ -129,7 +129,7 @@ export default function IntermissionOverlay({
         />
       )}
       <div
-        className={`relative font-mono font-semibold text-[12px] uppercase text-red animate-[pulse-dot_2s_ease-in-out_infinite] ${
+        className={`relative font-mono font-semibold text-[12px] uppercase text-red pulse-dot ${
           soiree ? "tracking-[0.22em] max-w-[90vw] text-balance" : "tracking-[0.32em]"
         }`}
       >
@@ -258,7 +258,7 @@ export default function IntermissionOverlay({
               alt=""
               aria-hidden
               draggable={false}
-              className="absolute bottom-[72px] w-9 h-auto select-none will-change-transform"
+              className="reaction-float absolute bottom-[72px] w-9 h-auto select-none will-change-transform"
               style={
                 {
                   left: `${r.left}%`,

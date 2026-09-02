@@ -573,7 +573,7 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
 
       {buffering && !error && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[18] pointer-events-none">
-          <div className="w-10 h-10 border-2 border-line-2 border-t-ink rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-line-2 border-t-ink rounded-full animate-spin motion-reduce:animate-none" />
         </div>
       )}
 
@@ -754,7 +754,7 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center z-[18]">
-          <span className="text-red text-[11px] font-mono uppercase tracking-[0.16em] animate-[pulse-dot_1.5s_infinite]">
+          <span className="text-red text-[11px] font-mono uppercase tracking-[0.16em] pulse-dot-fast">
             {error}
           </span>
         </div>

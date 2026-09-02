@@ -22,8 +22,7 @@ export default function Ticker() {
   return (
     <div className="border-b border-line bg-bg overflow-hidden">
       <div
-        className="flex whitespace-nowrap font-mono font-semibold text-[11px] tracking-[0.18em] text-ink-3 py-1.5 select-none"
-        style={{ animation: "ticker 60s linear infinite" }}
+        className="ticker-track flex whitespace-nowrap font-mono font-semibold text-[11px] tracking-[0.18em] text-ink-3 py-1.5 select-none"
         aria-hidden
       >
         <div className="shrink-0 flex items-center">{renderLine("a")}</div>

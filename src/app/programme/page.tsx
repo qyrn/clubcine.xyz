@@ -129,7 +129,7 @@ function ProgrammeContent() {
                         {formatHour(item.startTime)}
                         {isActive && (
                           <span className="ml-2 inline-flex items-center gap-1.5 text-red text-[10px] tracking-[0.16em]">
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red animate-[pulse-dot_1.5s_ease-in-out_infinite]" />
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red pulse-dot-fast" />
                             EN COURS
                           </span>
                         )}

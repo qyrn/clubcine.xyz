@@ -47,7 +47,7 @@ export default function SoonPage() {
           club
           <span
             aria-hidden
-            className="mx-[3px] animate-[pulse-dot_2s_ease-in-out_infinite]"
+            className="mx-[3px] pulse-dot"
             style={{ color: "var(--color-red)" }}
           >
             ·
