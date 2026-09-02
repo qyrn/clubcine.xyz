@@ -209,7 +209,7 @@ describe("Player · erreur HLS", () => {
       instances()[0].trigger("hlsError", { fatal: true, type: "networkError", details: "x" });
     });
 
-    await waitFor(() => expect(screen.getByText(/resync/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/antenne momentan/i)).toBeInTheDocument());
     expect(instances()[0].startLoad).toHaveBeenCalled();
     expect(instances()[0].destroy).not.toHaveBeenCalled();
     expect(instances()).toHaveLength(1);

@@ -169,11 +169,12 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (!data.fatal) return;
         console.error("[HLS]", data.type, data.details, "FATAL");
-        setError("erreur HLS, resync...");
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          setError("antenne momentanément coupée, elle revient");
           hls.startLoad();
           return;
         }
+        setError("erreur HLS, resync...");
         if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
           hls.recoverMediaError();
           return;
