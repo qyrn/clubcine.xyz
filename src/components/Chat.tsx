@@ -8,7 +8,7 @@ import { useEmotes, type Emote } from "@/lib/use-emotes";
 import { useMentionSearch, type MentionCandidate } from "@/lib/use-mention-search";
 import { useChatSettings } from "@/lib/use-chat-settings";
 import { ANON_PSEUDOS } from "@/data/anon-pseudos";
-import { ChatMessage } from "@/types";
+import { ChatMessage, ReplyMeta } from "@/types";
 import UserChip from "./UserChip";
 import EmoteText from "./EmoteText";
 import EmotePicker from "./EmotePicker";
@@ -21,8 +21,20 @@ import { usePersistentState } from "@/lib/use-persistent-state";
 
 const COOLDOWN_KEY = "clubcine-chat-cooldown-until";
 
+const ME_PREFIX = "/me ";
+const MAX_EXCERPT = 80;
+
 function isSystemMessage(m: ChatMessage): boolean {
   return m.kind === "system" || m.kind === "soiree";
+}
+
+function isMeAction(m: ChatMessage): boolean {
+  return (m.kind === undefined || m.kind === "user") && m.text.startsWith(ME_PREFIX);
+}
+
+function toExcerpt(text: string): string {
+  const clean = (text.startsWith(ME_PREFIX) ? text.slice(ME_PREFIX.length) : text).trim();
+  return clean.length > MAX_EXCERPT ? `${clean.slice(0, MAX_EXCERPT - 1)}…` : clean;
 }
 
 function parseTimestamp(raw: string): number | null {
@@ -223,6 +235,28 @@ function SystemMessageLine({
   );
 }
 
+function ReplyBar({ target, onCancel }: { target: ReplyMeta; onCancel: () => void }) {
+  return (
+    <div className="flex items-center gap-2 mb-1.5 px-2 py-1.5 border border-line-2 rounded bg-line/20 text-[11px] text-ink-3">
+      <span className="text-red shrink-0" aria-hidden>
+        ↩
+      </span>
+      <span className="min-w-0 truncate">
+        Réponse à <span className="font-semibold text-ink-2">@{target.username}</span>
+        {target.excerpt && <span className="opacity-70"> · {target.excerpt}</span>}
+      </span>
+      <button
+        type="button"
+        onClick={onCancel}
+        aria-label="Annuler la réponse"
+        className="ml-auto shrink-0 text-ink-3 hover:text-red cursor-pointer leading-none text-[13px]"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 interface ChatProps {
   onCollapse?: () => void;
   extra?: React.ReactNode;
@@ -292,6 +326,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
   const [chatError, setChatError] = useState<string | null>(null);
   const [cmdFeedback, setCmdFeedback] = useState<string | null>(null);
   const [banTarget, setBanTarget] = useState<{ userId: string; username: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<ReplyMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -644,6 +679,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       }
       return;
     }
+    if (e.key === "Escape" && replyTo && !showMentions) {
+      e.preventDefault();
+      setReplyTo(null);
+      return;
+    }
     if (!showMentions) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -783,7 +823,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     e.preventDefault();
     if (!input.trim() || !username) return;
     const trimmed = input.trim();
-    if (canModerate && trimmed.startsWith("/")) {
+    if (canModerate && trimmed.startsWith("/") && !trimmed.startsWith(ME_PREFIX)) {
       setInput("");
       closeMention();
       closeEmote();
@@ -810,7 +850,9 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       setChatError(`message trop long, ${MAX_LEN} caractères maximum`);
       return;
     }
+    const replySnapshot = replyTo;
     setInput("");
+    setReplyTo(null);
     closeMention();
     closeEmote();
 
@@ -818,9 +860,11 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       username,
       text,
       timestamp: Date.now(),
+      reply_meta: replySnapshot,
     });
     if (error) {
       setInput(text);
+      setReplyTo(replySnapshot);
       setChatError(error.message);
       const m = error.message.match(/(\d+)\s*secondes?/);
       if (m && /pause|spam/i.test(error.message)) {
@@ -916,6 +960,147 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
     return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
   };
 
+  const startReply = (msg: ChatMessage) => {
+    setReplyTo({ id: String(msg.id), username: msg.username, excerpt: toExcerpt(msg.text) });
+    inputRef.current?.focus();
+  };
+
+  const scrollToMessage = (id: string) => {
+    const root = scrollRef.current;
+    if (!root) return;
+    root.querySelector(`[data-mid="${id}"]`)?.scrollIntoView({ block: "center" });
+  };
+
+  const renderRow = (msg: ChatMessage, i: number, compact: boolean) => {
+    const showSep =
+      i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
+    const sep = showSep ? (
+      <DaySeparator label={dayLabel(msg.timestamp)} compact={compact} />
+    ) : null;
+
+    if (isSystemMessage(msg)) {
+      return (
+        <Fragment key={msg.id}>
+          {sep}
+          <SystemMessageLine
+            msg={msg}
+            compact={compact}
+            canModerate={canModerate}
+            onDelete={() => deleteMessage(msg)}
+          />
+        </Fragment>
+      );
+    }
+
+    const mine =
+      !!selfMentionRe &&
+      msg.username.toLowerCase() !== selfLower &&
+      selfMentionRe.test(msg.text);
+    const targetProfile = canModerate
+      ? profileMap.get(msg.username.toLowerCase())
+      : undefined;
+    const action = isMeAction(msg);
+    const bodyText = action ? msg.text.slice(ME_PREFIX.length) : msg.text;
+    const emoteSize = compact ? 18 : 22;
+    const parentLoaded =
+      !!msg.reply_meta && messages.some((m) => String(m.id) === msg.reply_meta!.id);
+
+    return (
+      <Fragment key={msg.id}>
+        {sep}
+        <div
+          data-mid={String(msg.id)}
+          className={`group relative break-words ${
+            compact ? "text-[12px] leading-[1.55]" : "py-1 text-[13px] leading-[1.6]"
+          } ${
+            mine
+              ? `${compact ? "-mx-1.5 px-1.5 py-0.5" : "-mx-2 px-2"} bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]`
+              : ""
+          }`}
+        >
+          {msg.reply_meta && (
+            <button
+              type="button"
+              disabled={!parentLoaded}
+              onClick={() => scrollToMessage(msg.reply_meta!.id)}
+              className={`flex items-baseline gap-1 max-w-full text-[11px] text-ink-3 mb-0.5 ${
+                parentLoaded ? "hover:text-ink cursor-pointer" : "cursor-default"
+              }`}
+            >
+              <span className="text-red shrink-0" aria-hidden>
+                ↩
+              </span>
+              <span className="font-semibold shrink-0">@{msg.reply_meta.username}</span>
+              <span className="truncate opacity-80">{msg.reply_meta.excerpt}</span>
+            </button>
+          )}
+          <span
+            className="text-ink-3 text-[10px] font-mono tabular-nums align-middle mr-1.5 cursor-default"
+            title={fmtFullDate(msg.timestamp)}
+          >
+            {formatTime(msg.timestamp)}
+          </span>
+          <UserChip
+            username={msg.username}
+            profile={profileMap.get(msg.username.toLowerCase())}
+            size="sm"
+            className="font-semibold text-ink align-middle mr-1"
+          />
+          {action ? (
+            <EmoteText
+              text={bodyText}
+              emotes={emotes}
+              size={emoteSize}
+              className="text-ink-2 italic"
+              highlightSelf={selfLower}
+            />
+          ) : (
+            <>
+              <span className="text-ink-3">: </span>
+              <EmoteText
+                text={bodyText}
+                emotes={emotes}
+                size={emoteSize}
+                className="text-ink-2"
+                highlightSelf={selfLower}
+              />
+            </>
+          )}
+          <span
+            className={`absolute right-0 ${compact ? "top-0" : "top-0.5"} flex items-center gap-0.5 group-hover:bg-bg/90 rounded-sm`}
+          >
+            {username && (
+              <button
+                type="button"
+                onClick={() => startReply(msg)}
+                title="Répondre"
+                aria-label={`Répondre à ${msg.username}`}
+                className="p-1 text-ink-3 hover:text-red hover:bg-line transition-colors cursor-pointer rounded-sm leading-none opacity-0 group-hover:opacity-100 focus-within:opacity-100 inline-flex items-center justify-center"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <polyline points="9 17 4 12 9 7" />
+                  <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+                </svg>
+              </button>
+            )}
+            {canModerate && (
+              <ModTools
+                username={msg.username}
+                onDeleteMessage={() => deleteMessage(msg)}
+                onPurgeUser={() => deleteAllFromUser(msg)}
+                onBanUser={
+                  targetProfile?.userId
+                    ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
+                    : undefined
+                }
+              />
+            )}
+          </span>
+        </div>
+      </Fragment>
+    );
+  };
+
   const statusText = frozen
     ? "Chat figé par la modération"
     : slowModeSeconds > 0
@@ -976,77 +1161,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             </div>
           )}
 
-          {messages.map((msg, i) => {
-            const mine =
-              !!selfMentionRe &&
-              msg.username.toLowerCase() !== selfLower &&
-              selfMentionRe.test(msg.text);
-            const targetProfile = canModerate
-              ? profileMap.get(msg.username.toLowerCase())
-              : undefined;
-            const showSep =
-              i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
-            if (isSystemMessage(msg)) {
-              return (
-                <Fragment key={msg.id}>
-                  {showSep && <DaySeparator label={dayLabel(msg.timestamp)} compact />}
-                  <SystemMessageLine
-                    msg={msg}
-                    compact
-                    canModerate={canModerate}
-                    onDelete={() => deleteMessage(msg)}
-                  />
-                </Fragment>
-              );
-            }
-            return (
-            <Fragment key={msg.id}>
-            {showSep && <DaySeparator label={dayLabel(msg.timestamp)} compact />}
-            <div
-              className={`group relative text-[12px] leading-[1.55] break-words ${
-                mine
-                  ? "-mx-1.5 px-1.5 py-0.5 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
-                  : ""
-              }`}
-            >
-              <span
-                className="text-ink-3 text-[10px] font-mono tabular-nums align-middle mr-1.5 cursor-default"
-                title={fmtFullDate(msg.timestamp)}
-              >
-                {formatTime(msg.timestamp)}
-              </span>
-              <UserChip
-                username={msg.username}
-                profile={profileMap.get(msg.username.toLowerCase())}
-                size="sm"
-                className="font-semibold text-ink align-middle mr-1"
-              />
-              <span className="text-ink-3">: </span>
-              <EmoteText
-                text={msg.text}
-                emotes={emotes}
-                size={18}
-                className="text-ink-2"
-                highlightSelf={selfLower}
-              />
-              {canModerate && (
-                <span className="absolute top-0 right-0 group-hover:bg-bg/90 rounded-sm">
-                  <ModTools
-                    username={msg.username}
-                    onDeleteMessage={() => deleteMessage(msg)}
-                    onPurgeUser={() => deleteAllFromUser(msg)}
-                    onBanUser={
-                      targetProfile?.userId
-                        ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
-                        : undefined
-                    }
-                  />
-                </span>
-              )}
-            </div>
-            </Fragment>
-            );
-          })}
+          {messages.map((msg, i) => renderRow(msg, i, true))}
         </div>
           {!atBottom && messages.length > 0 && (
             <button
@@ -1096,6 +1211,8 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               compact
             />
           ) : (
+          <>
+          {replyTo && <ReplyBar target={replyTo} onCancel={() => setReplyTo(null)} />}
           <form onSubmit={sendMessage} className="border-t border-line p-2 flex gap-1.5">
             <input
               ref={inputRef}
@@ -1125,6 +1242,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
               {lockSeconds > 0 ? `${lockSeconds}s` : "Envoyer"}
             </button>
           </form>
+          </>
           )}
         </div>
         {banTarget && (
@@ -1178,76 +1296,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
           <div className="text-ink-3 text-[12px] pt-6 text-center">personne ne parle</div>
         )}
 
-        {messages.map((msg, i) => {
-          const mine =
-            !!selfMentionRe &&
-            msg.username.toLowerCase() !== selfLower &&
-            selfMentionRe.test(msg.text);
-          const targetProfile = canModerate
-            ? profileMap.get(msg.username.toLowerCase())
-            : undefined;
-          const showSep =
-            i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
-          if (isSystemMessage(msg)) {
-            return (
-              <Fragment key={msg.id}>
-                {showSep && <DaySeparator label={dayLabel(msg.timestamp)} />}
-                <SystemMessageLine
-                  msg={msg}
-                  canModerate={canModerate}
-                  onDelete={() => deleteMessage(msg)}
-                />
-              </Fragment>
-            );
-          }
-          return (
-          <Fragment key={msg.id}>
-          {showSep && <DaySeparator label={dayLabel(msg.timestamp)} />}
-          <div
-            className={`group relative py-1 text-[13px] leading-[1.6] break-words ${
-              mine
-                ? "-mx-2 px-2 bg-red/[0.06] shadow-[inset_3px_0_0_0_var(--red)] rounded-[3px]"
-                : ""
-            }`}
-          >
-            <span
-              className="text-ink-3 text-[10px] font-mono tabular-nums align-middle mr-1.5 cursor-default"
-              title={fmtFullDate(msg.timestamp)}
-            >
-              {formatTime(msg.timestamp)}
-            </span>
-            <UserChip
-              username={msg.username}
-              profile={profileMap.get(msg.username.toLowerCase())}
-              size="sm"
-              className="font-semibold text-ink align-middle mr-1"
-            />
-            <span className="text-ink-3">: </span>
-            <EmoteText
-              text={msg.text}
-              emotes={emotes}
-              size={22}
-              className="text-ink-2"
-              highlightSelf={selfLower}
-            />
-            {canModerate && (
-              <span className="absolute top-0.5 right-0 group-hover:bg-bg/90 rounded-sm">
-                <ModTools
-                  username={msg.username}
-                  onDeleteMessage={() => deleteMessage(msg)}
-                  onPurgeUser={() => deleteAllFromUser(msg)}
-                  onBanUser={
-                    targetProfile?.userId
-                      ? () => setBanTarget({ userId: targetProfile.userId, username: msg.username })
-                      : undefined
-                  }
-                />
-              </span>
-            )}
-          </div>
-          </Fragment>
-          );
-        })}
+        {messages.map((msg, i) => renderRow(msg, i, false))}
       </div>
         {!atBottom && messages.length > 0 && (
           <button
@@ -1297,6 +1346,8 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             compact={false}
           />
         ) : (
+        <>
+        {replyTo && <ReplyBar target={replyTo} onCancel={() => setReplyTo(null)} />}
         <form onSubmit={sendMessage} className="flex gap-2">
           <input
             ref={inputRef}
@@ -1325,6 +1376,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
             {lockSeconds > 0 ? `${lockSeconds}s` : "Envoyer"}
           </button>
         </form>
+        </>
         )}
       </div>
       {banTarget && (

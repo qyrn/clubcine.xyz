@@ -227,6 +227,59 @@ describe("Chat · dons", () => {
   });
 });
 
+describe("Chat · réponses et /me", () => {
+  it("rend une action /me en italique, sans séparateur deux-points", async () => {
+    mock.state.handlers.messages = () => ({
+      data: [{ id: "m1", username: "tati", text: "/me sifflote", timestamp: 1000 }],
+    });
+    await renderChat();
+
+    await waitFor(() => expect(screen.getByText("sifflote")).toBeInTheDocument());
+    expect(screen.queryByText(":", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("joint reply_meta à l'insertion quand on répond à un message", async () => {
+    const inserts: Array<Record<string, unknown>> = [];
+    mock.state.handlers.messages = (ctx) => {
+      if (ctx.op === "insert") {
+        inserts.push(ctx.payload as Record<string, unknown>);
+        return { data: null };
+      }
+      return { data: [{ id: "m1", username: "varda", text: "cléo", timestamp: 1000 }] };
+    };
+    await renderChat();
+    await waitFor(() => expect(screen.getByText("cléo")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText("Répondre à varda"));
+    expect(screen.getByText(/Réponse à/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "bien vu" } });
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+
+    await waitFor(() => expect(inserts).toHaveLength(1));
+    expect(inserts[0].reply_meta).toMatchObject({ username: "varda", excerpt: "cléo" });
+  });
+
+  it("affiche l'extrait cité au-dessus d'une réponse", async () => {
+    mock.state.handlers.messages = () => ({
+      data: [
+        { id: "m1", username: "varda", text: "cléo de 5 à 7", timestamp: 1000 },
+        {
+          id: "m2",
+          username: "demy",
+          text: "les parapluies",
+          timestamp: 2000,
+          reply_meta: { id: "m1", username: "varda", excerpt: "cléo de 5 à 7" },
+        },
+      ],
+    });
+    await renderChat();
+
+    await waitFor(() => expect(screen.getByText("les parapluies")).toBeInTheDocument());
+    expect(screen.getAllByText("cléo de 5 à 7")).toHaveLength(2);
+  });
+});
+
 describe("Chat · modération", () => {
   it("laisse un admin supprimer un message avec retrait optimiste", async () => {
     localStorage.setItem(TOKEN_KEY, "stored");

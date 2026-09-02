@@ -898,6 +898,12 @@ begin
     add constraint messages_kind_check check (kind in ('user', 'system', 'soiree'));
 end $$;
 
+-- reply_meta : snapshot dénormalisé du message cité (jsonb { id, username,
+-- excerpt }), null si le message n'est pas une réponse. Cosmétique : survit à la
+-- suppression du parent, pas de FK.
+alter table public.messages
+  add column if not exists reply_meta jsonb;
+
 -- =============================================================================
 -- 12ter. staff_applications (candidatures pour rejoindre l'équipe)
 -- =============================================================================

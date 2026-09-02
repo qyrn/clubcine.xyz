@@ -61,10 +61,17 @@ export interface ScheduleState {
   serverTime?: number;
 }
 
+export interface ReplyMeta {
+  id: string;
+  username: string;
+  excerpt: string;
+}
+
 export interface ChatMessage {
   id: string;
   username: string;
   text: string;
   timestamp: number;
   kind?: "user" | "system" | "soiree";
+  reply_meta?: ReplyMeta | null;
 }
