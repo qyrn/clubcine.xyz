@@ -5,9 +5,14 @@ import type { Film, ScheduleState } from "@/types";
 import { createSupabaseMock } from "@/test/supabase-mock";
 
 const hlsState = vi.hoisted(() => ({ instances: [] as unknown[] }));
+const engine = vi.hoisted(() => ({ getCurrentSchedule: vi.fn() }));
 const mock = createSupabaseMock();
 
 vi.mock("@/lib/supabase", () => ({ supabase: mock.client }));
+vi.mock("@/lib/schedule-engine", () => ({
+  getCurrentSchedule: engine.getCurrentSchedule,
+  formatDuration: (s: number) => `${Math.floor(s / 60)}min`,
+}));
 
 vi.mock("hls.js", () => {
   const Events = {
@@ -101,10 +106,11 @@ async function renderPlayer(initial: ScheduleState) {
 }
 
 async function pushSchedule(next: ScheduleState) {
-  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => next });
+  engine.getCurrentSchedule.mockReturnValue(next);
+  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ t: Date.now() }) });
   await act(async () => {
     document.dispatchEvent(new Event("visibilitychange"));
-    for (let i = 0; i < 6; i++) await Promise.resolve();
+    for (let i = 0; i < 8; i++) await Promise.resolve();
   });
 }
 
@@ -114,7 +120,9 @@ beforeEach(() => {
   hlsState.instances.length = 0;
   localStorage.clear();
   fetchMock.mockReset();
-  fetchMock.mockResolvedValue({ ok: true, json: async () => makeSchedule() });
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ t: Date.now() }) });
+  engine.getCurrentSchedule.mockReset();
+  engine.getCurrentSchedule.mockReturnValue(makeSchedule());
 
   let currentTime = 0;
   Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
@@ -226,7 +234,8 @@ describe("Player · erreur HLS", () => {
     await renderPlayer(schedule);
     await waitFor(() => expect(instances()).toHaveLength(1));
 
-    fetchMock.mockResolvedValue({ ok: true, json: async () => schedule });
+    engine.getCurrentSchedule.mockReturnValue(schedule);
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ t: Date.now() }) });
 
     act(() => {
       instances()[0].trigger("hlsError", { fatal: true, type: "otherError", details: "x" });

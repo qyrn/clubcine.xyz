@@ -286,7 +286,7 @@ function MovieContent() {
 
 export default function MoviePage() {
   return (
-    <ScheduleProvider pollIntervalMs={30_000}>
+    <ScheduleProvider>
       <MovieContent />
     </ScheduleProvider>
   );

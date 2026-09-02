@@ -154,6 +154,7 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
       hlsRef.current = hls;
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setError(null);
         video.play().catch((e) => console.warn("[HLS] play failed:", e));
       });
 
@@ -191,6 +192,7 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
       video.currentTime = offset;
       video.play().catch(() => {});
       setHasSubs(video.textTracks.length > 0);
+      setError(null);
     }
   }, []);
 
@@ -218,7 +220,6 @@ export default function Player({ controlsVisible }: PlayerProps = {}) {
         video.currentTime = targetOffset;
         if (video.paused) video.play().catch(() => {});
       }
-      setError(null);
     },
     [loadFilm]
   );
