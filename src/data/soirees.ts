@@ -58,16 +58,10 @@ export interface ResolvedSoiree {
 
 const SLOT_SECONDS = 30 * 60;
 
-let cached: ResolvedSoiree[] | null = null;
-let cachedKey = "";
-
-export function getResolvedSoirees(): ResolvedSoiree[] {
-  const key = SOIREES.map((s) => `${s.id}:${s.startISO}:${s.films.join(",")}`).join("|");
-  if (cached && cachedKey === key) return cached;
-
-  const filmsById = new Map(FILMS.map((f) => [f.id, f]));
-  const resolved: ResolvedSoiree[] = SOIREES.map((def) => {
-    const films = def.films.map((id) => {
+export function resolveSoirees(defs: SoireeDef[], films: Film[]): ResolvedSoiree[] {
+  const filmsById = new Map(films.map((f) => [f.id, f]));
+  const resolved: ResolvedSoiree[] = defs.map((def) => {
+    const soireeFilms = def.films.map((id) => {
       const f = filmsById.get(id);
       if (!f) throw new Error(`Soirée ${def.id} référence un film inconnu : ${id}`);
       return f;
@@ -77,9 +71,9 @@ export function getResolvedSoirees(): ResolvedSoiree[] {
     const startSec = Math.floor(startMs / 1000);
 
     let durationSec = 0;
-    for (let i = 0; i < films.length; i++) {
-      durationSec += films[i].duration;
-      if (i < films.length - 1) {
+    for (let i = 0; i < soireeFilms.length; i++) {
+      durationSec += soireeFilms[i].duration;
+      if (i < soireeFilms.length - 1) {
         const rem = durationSec % SLOT_SECONDS;
         if (rem !== 0) durationSec += SLOT_SECONDS - rem;
       }
@@ -87,7 +81,7 @@ export function getResolvedSoirees(): ResolvedSoiree[] {
     const totalRem = durationSec % SLOT_SECONDS;
     if (totalRem !== 0) durationSec += SLOT_SECONDS - totalRem;
 
-    return { def, films, startSec, durationSec, endSec: startSec + durationSec };
+    return { def, films: soireeFilms, startSec, durationSec, endSec: startSec + durationSec };
   });
 
   resolved.sort((a, b) => a.startSec - b.startSec);
@@ -100,7 +94,17 @@ export function getResolvedSoirees(): ResolvedSoiree[] {
     }
   }
 
-  cached = resolved;
-  cachedKey = key;
   return resolved;
+}
+
+let cached: ResolvedSoiree[] | null = null;
+let cachedKey = "";
+
+export function getResolvedSoirees(): ResolvedSoiree[] {
+  const key = SOIREES.map((s) => `${s.id}:${s.startISO}:${s.films.join(",")}`).join("|");
+  if (cached && cachedKey === key) return cached;
+
+  cached = resolveSoirees(SOIREES, FILMS);
+  cachedKey = key;
+  return cached;
 }

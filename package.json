@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "award:soirees": "tsx --env-file=.env.local scripts/award-soiree-badges.ts",
     "verify:films": "tsx --env-file=.env.local scripts/verify-films.ts"
   },
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@next/third-parties": "^16.3.2",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
