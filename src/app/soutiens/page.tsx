@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { ROLE_ICONS, RoleBadge } from "@/components/RoleBadge";
 import { fontStack, findColor } from "@/lib/fonts";
 import { safeImageUrl } from "@/lib/safe-url";
+import { useDonationStats } from "@/lib/use-donation-stats";
+import { COSTS, knownMonthlyTotal, hasUnconfirmedCosts } from "@/data/costs";
 
 interface Supporter {
   userId: string;
@@ -90,9 +92,49 @@ function SupporterCard({ supporter }: { supporter: Supporter }) {
   );
 }
 
+function CostsSection() {
+  const total = knownMonthlyTotal(COSTS);
+  return (
+    <section className="px-10 py-14 border-b border-line w-full max-w-[720px] mx-auto max-md:px-5">
+      <h2 className="text-[14px] font-semibold uppercase tracking-[0.16em] mb-2">
+        Ce que ça coûte
+      </h2>
+      <p className="text-[13px] text-ink-2 leading-[1.6] mb-8 text-balance">
+        Pas de mystère. Voici ce qui fait tourner la chaîne chaque mois.
+      </p>
+      <ul className="flex flex-col divide-y divide-line">
+        {COSTS.map((c) => (
+          <li key={c.label} className="flex items-baseline justify-between gap-6 py-3">
+            <span className="flex flex-col gap-0.5 min-w-0">
+              <span className="text-[14px] text-ink">{c.label}</span>
+              <span className="font-mono text-[11px] text-ink-3 leading-[1.5]">{c.note}</span>
+            </span>
+            <span className="font-mono text-[13px] tabular-nums shrink-0 text-ink-2">
+              {c.monthlyEur === null
+                ? "à préciser"
+                : c.monthlyEur === 0
+                  ? "gratuit"
+                  : `${c.monthlyEur} € / mois`}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="flex items-baseline justify-between gap-6 pt-4 mt-1 border-t border-line-2">
+        <span className="text-[13px] font-semibold uppercase tracking-[0.1em]">
+          Total connu
+        </span>
+        <span className="font-mono text-[14px] tabular-nums">
+          {total} € / mois{hasUnconfirmedCosts(COSTS) ? " + électricité et domaine" : ""}
+        </span>
+      </div>
+    </section>
+  );
+}
+
 export default function SoutiensPage() {
   const [state, setState] = useState<LoadState>("loading");
   const [supporters, setSupporters] = useState<Supporter[]>([]);
+  const donations = useDonationStats();
 
   useEffect(() => {
     let cancelled = false;
@@ -176,7 +218,7 @@ export default function SoutiensPage() {
           Les soutiens
         </h1>
         <p className="text-[15px] leading-[1.6] text-ink-2 max-w-[560px] text-balance">
-          Ces gens paient le serveur pour que la chaîne tourne. Pas de pub, pas
+          Ces gens ont mis quelques euros pour que la chaîne tourne. Pas de pub, pas
           d&apos;abonnement, pas de catalogue infini. Un don ponctuel, et un merci
           affiché ici.
         </p>
@@ -189,6 +231,20 @@ export default function SoutiensPage() {
           Faire un don <span aria-hidden>→</span>
         </a>
       </header>
+
+      <section className="px-10 py-14 border-b border-line flex flex-col items-center text-center gap-3 max-md:px-5">
+        <div className="font-mono text-[64px] leading-none font-bold tabular-nums max-md:text-[48px]">
+          {donations.loading || donations.error ? "—" : donations.total}
+        </div>
+        <p className="text-[14px] text-ink-2">
+          {donations.total === 1 ? "don reçu" : "dons reçus"} depuis l&apos;ouverture
+          {!donations.loading && !donations.error && donations.thisMonth > 0 && (
+            <span className="text-ink-3"> · {donations.thisMonth} ce mois-ci</span>
+          )}
+        </p>
+      </section>
+
+      <CostsSection />
 
       <section className="px-10 py-10 border-b border-line w-full max-w-[1100px] mx-auto max-md:px-5">
         {state === "loading" ? (

@@ -127,6 +127,21 @@ serve(async (req) => {
     console.error("[kofi] chat notification error:", err instanceof Error ? err.message : err);
   }
 
+  if (payload.type === "Donation") {
+    const amount = Number.parseFloat(payload.amount ?? "");
+    const { error: donationErr } = await supabase.from("donations").upsert(
+      {
+        message_id: payload.message_id ?? null,
+        amount: Number.isFinite(amount) ? amount : null,
+        currency: (payload as { currency?: string }).currency ?? null,
+        is_public: payload.is_public === true,
+        from_name: payload.is_public === true ? (payload.from_name ?? null) : null,
+      },
+      { onConflict: "message_id", ignoreDuplicates: true },
+    );
+    if (donationErr) console.error("[kofi] donation insert failed:", donationErr.message);
+  }
+
   const reason = `ko-fi ${payload.type} ${payload.amount} (msg ${payload.message_id})`;
 
   let userId: string | null = null;
