@@ -915,6 +915,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       return;
     }
     if (!data || data.length === 0) {
+      deletedIdsRef.current.delete(key);
       setChatError(
         "RLS a refusé la suppression. Ton rôle = " +
           (profile?.role ?? "null") +
@@ -944,6 +945,7 @@ export default function Chat({ onCollapse, extra }: ChatProps = {}) {
       return;
     }
     if (!data || data.length === 0) {
+      for (const m of originals) deletedIdsRef.current.delete(String(m.id));
       setChatError(
         "RLS a refusé la purge. Ton rôle = " +
           (profile?.role ?? "null") +

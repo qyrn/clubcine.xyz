@@ -335,7 +335,7 @@ describe("Chat · modération", () => {
     expect(screen.getByText("playtime")).toBeInTheDocument();
   });
 
-  it("signale le refus RLS quand le delete renvoie 0 ligne affectée", async () => {
+  it("signale le refus RLS quand le delete renvoie 0 ligne affectée et fait réapparaître le message", async () => {
     localStorage.setItem(TOKEN_KEY, "stored");
     mock.state.session = { user: { id: "admin1", user_metadata: {} } };
     mock.state.handlers.profiles = (ctx) => (ctx.single ? { data: adminProfileRow() } : { data: [] });
@@ -356,7 +356,7 @@ describe("Chat · modération", () => {
     await waitFor(() =>
       expect(screen.getByText(/RLS a refusé la suppression/)).toBeInTheDocument(),
     );
-    expect(screen.queryByText("protégé")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("protégé")).toBeInTheDocument());
   });
 
   it("purge tous les messages d'un utilisateur via l'action de purge auteur", async () => {
