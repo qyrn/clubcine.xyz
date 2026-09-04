@@ -37,6 +37,9 @@ export interface FakeChannel {
   subscribe: ReturnType<typeof vi.fn>;
   unsubscribe: ReturnType<typeof vi.fn>;
   send: ReturnType<typeof vi.fn>;
+  track: ReturnType<typeof vi.fn>;
+  untrack: ReturnType<typeof vi.fn>;
+  presenceState: () => Record<string, unknown[]>;
   emit: (event: string, payload: unknown) => void;
 }
 
@@ -45,6 +48,7 @@ interface SupabaseMockState {
   handlers: Record<string, TableHandler>;
   authCallback: AuthCallback | null;
   channels: FakeChannel[];
+  presence: Record<string, Record<string, unknown[]>>;
 }
 
 const OPERATION_METHODS: Record<string, QueryOp> = {
@@ -102,9 +106,15 @@ function makeChannel(state: SupabaseMockState, name: string): FakeChannel {
       handlers.push({ event, config, callback });
       return channel;
     }),
-    subscribe: vi.fn(() => channel),
+    subscribe: vi.fn((callback?: (status: string) => void) => {
+      callback?.("SUBSCRIBED");
+      return channel;
+    }),
     unsubscribe: vi.fn(() => Promise.resolve("ok")),
     send: vi.fn(() => Promise.resolve("ok")),
+    track: vi.fn(() => Promise.resolve("ok")),
+    untrack: vi.fn(() => Promise.resolve("ok")),
+    presenceState: () => state.presence[name] ?? {},
     emit: (event: string, payload: unknown) => {
       for (const handler of handlers) {
         if (handler.config?.event === event) handler.callback(payload);
@@ -121,6 +131,7 @@ export function createSupabaseMock() {
     handlers: {},
     authCallback: null,
     channels: [],
+    presence: {},
   };
 
   const client = {
@@ -144,6 +155,7 @@ export function createSupabaseMock() {
     state.handlers = {};
     state.authCallback = null;
     state.channels = [];
+    state.presence = {};
   };
 
   const findChannel = (name: string): FakeChannel => {
